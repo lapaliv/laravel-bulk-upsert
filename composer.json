@@ -1,0 +1,34 @@
+{
+  "name": "lapaliv/laravel-bulk-upsert",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Lapaliv\\BulkUpsert\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Lapaliv\\BulkUpsert\\Tests\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Lapin Alexey",
+      "email": "lapaliv+github@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^8.0",
+    "nesbot/carbon": "^2.0",
+    "illuminate/database": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "9.5.x-dev",
+    "orchestra/testbench": "8.0.x-dev",
+    "vlucas/phpdotenv": "5.5.x-dev",
+    "ext-pdo": "*",
+    "fakerphp/faker": "^1.9"
+  }
+}
