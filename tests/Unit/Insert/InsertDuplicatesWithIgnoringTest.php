@@ -30,7 +30,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insertOrIgnore(['email'], $collection);
+        $sut->insertOrIgnore($collection, ['email']);
 
         // assert
         $existingUsers->each(

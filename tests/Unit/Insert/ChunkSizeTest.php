@@ -25,7 +25,7 @@ class ChunkSizeTest extends TestCase
         ] = $this->arrange();
 
         // act
-        $sut->insert(['email'], $collection);
+        $sut->insert($collection, ['email']);
 
         // assert
         $this->assertEquals(

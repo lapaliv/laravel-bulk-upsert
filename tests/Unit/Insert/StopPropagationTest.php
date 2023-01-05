@@ -34,7 +34,7 @@ final class StopPropagationTest extends TestCase
         ] = $this->arrange($model, $dispatchedEvents, $notDispatchedEvents);
 
         // act
-        $sut->insert(['email'], $collection);
+        $sut->insert($collection, ['email']);
 
         // assert
         // This part is described in the `arrange` method

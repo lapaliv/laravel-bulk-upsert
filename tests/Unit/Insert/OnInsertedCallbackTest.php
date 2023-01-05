@@ -30,7 +30,7 @@ class OnInsertedCallbackTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert(['uuid'], $collection);
+        $sut->insert($collection, ['uuid']);
 
         // assert
         self::assertEquals(
