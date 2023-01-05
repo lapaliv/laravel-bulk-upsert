@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Models;
 
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Schema\Builder;
-use Lapaliv\BulkUpsert\BulkModel;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 abstract class Model extends \Illuminate\Database\Eloquent\Model implements BulkModel
 {
