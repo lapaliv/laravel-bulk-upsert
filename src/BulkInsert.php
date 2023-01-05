@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert;
 
 use Closure;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkInsertFeature;
@@ -180,7 +181,7 @@ class BulkInsert
             if ($item instanceof BulkModel) {
                 $result[] = $item;
             } else {
-                /** @var \Lapaliv\BulkUpsert\BulkModel $model */
+                /** @var \Lapaliv\BulkUpsert\Contracts\BulkModel $model */
                 $model = new $this->model();
                 $model->fill((array)$item);
                 $result[] = $model;

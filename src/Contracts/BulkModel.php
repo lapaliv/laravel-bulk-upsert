@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert;
+namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\Eloquent\MassAssignmentException;
 

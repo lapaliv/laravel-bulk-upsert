@@ -6,10 +6,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\BulkModel;
-use Lapaliv\BulkUpsert\DatabaseDrivers\BulkDatabaseDriver;
-use Lapaliv\BulkUpsert\DatabaseDrivers\BulkMysqlBulkDatabaseDriver;
-use Lapaliv\BulkUpsert\DatabaseDrivers\BulkPostgresBulkDatabaseDriver;
+use Lapaliv\BulkUpsert\BulkUpsert;
+use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkDatabaseDriverIsNotSupported;
 
@@ -154,25 +153,19 @@ class BulkInsertFeature
     private function getDriver(array $rows): BulkDatabaseDriver
     {
         $driverName = $this->model->getConnection()->getDriverName();
+        $driver = BulkUpsert::getDatabaseDriver($driverName);
 
-        return match ($driverName) {
-            'mysql' => new BulkMysqlBulkDatabaseDriver(
-                $this->model->getConnection(),
-                $this->model->newQuery(),
-                $rows,
-                $this->uniqueColumns,
-                $this->model->getIncrementing(),
-            ),
-            'pgsql' => new BulkPostgresBulkDatabaseDriver(
-                $this->model->getConnection(),
-                $this->model->newQuery(),
-                $this->model->getKeyName(),
-                $rows,
-                $this->uniqueColumns,
-                $this->model->getIncrementing(),
-            ),
-            default => throw new BulkDatabaseDriverIsNotSupported($driverName),
-        };
+        if ($driver === null) {
+            throw new BulkDatabaseDriverIsNotSupported($driverName);
+        }
+
+        return $driver->setBuilder($this->model->newQuery())
+            ->setConnectionName($this->model->getConnection()->getName())
+            ->setRows($rows)
+            ->setUniqueAttributes($this->uniqueColumns)
+            ->setHasIncrementing($this->model->getIncrementing())
+            ->setPrimaryKeyName($this->model->getKeyName())
+            ->setSelectColumns($this->selectColumns);
     }
 
     private function fireEventsBeforeInsert(BulkModel $model): bool
@@ -254,3 +247,4 @@ class BulkInsertFeature
         $model->syncOriginal();
     }
 }
+

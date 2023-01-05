@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Lapaliv\BulkUpsert\BulkModel;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 class BulkGetDateFieldsFeature
 {
