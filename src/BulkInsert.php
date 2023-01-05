@@ -83,7 +83,9 @@ class BulkInsert
 
     public function onInserting(callable $callback): static
     {
-        $this->insertingCallback = $callback;
+        $this->insertingCallback = is_callable($callback)
+            ? Closure::fromCallable($callback)
+            : $callback;
 
         return $this;
     }
