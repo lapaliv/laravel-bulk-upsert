@@ -30,5 +30,12 @@
     "vlucas/phpdotenv": "5.5.x-dev",
     "ext-pdo": "*",
     "fakerphp/faker": "^1.9"
-  }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Lapaliv\\BulkUpsert\\Providers\\BulkUpsertServiceProvider"
+      ]
+    }
+}
 }

@@ -11,12 +11,12 @@ class BulkPostgresDriverSelectAffectedRowsFeature
     /**
      * @param \Illuminate\Database\Eloquent\Builder $builder
      * @param string[] $uniqueAttributes
-     * @param string $primaryKeyName
+     * @param string|null $primaryKeyName
      */
     public function __construct(
         protected Builder $builder,
         protected array   $uniqueAttributes,
-        protected string  $primaryKeyName,
+        protected ?string  $primaryKeyName,
     )
     {
         //
@@ -42,6 +42,7 @@ class BulkPostgresDriverSelectAffectedRowsFeature
 
         foreach ($keyedRows as $key => $row) {
             if (array_key_exists($key, $keyedInsertedRows)
+                && $this->primaryKeyName !== null
                 && array_key_exists($this->primaryKeyName, $keyedInsertedRows[$key])
             ) {
                 $primaries[] = $keyedInsertedRows[$key][$this->primaryKeyName];
