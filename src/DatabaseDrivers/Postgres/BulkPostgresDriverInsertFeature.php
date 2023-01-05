@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\DatabaseDrivers\Postgres;
 
-use Illuminate\Database\Connection;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Features\BulkPrepareValuesForInsertingFeature;
 use Throwable;
@@ -10,10 +10,10 @@ use Throwable;
 class BulkPostgresDriverInsertFeature
 {
     public function __construct(
-        private Connection $connection,
-        private string     $table,
-        private array      $uniqueAttributes,
-        private ?string    $primaryKey = null,
+        private ConnectionInterface $connection,
+        private string              $connectionName,
+        private string              $table,
+        private array               $selectColumns,
     )
     {
         //
@@ -34,13 +34,7 @@ class BulkPostgresDriverInsertFeature
             'values' => $values,
         ] = $prepareValuesFeature->handle($fields, $rows);
 
-        $selectColumns = array_unique(
-            array_filter(
-                array_merge($this->uniqueAttributes, [$this->primaryKey])
-            )
-        );
-
-        DB::connection($this->connection->getName())->beginTransaction();
+        DB::connection($this->connectionName)->beginTransaction();
 
         try {
             $result = $this->connection->select(
@@ -50,16 +44,16 @@ class BulkPostgresDriverInsertFeature
                     implode(',', $fields),
                     implode(',', $values),
                     $ignoring ? 'ON CONFLICT DO NOTHING' : '',
-                    implode(',', $selectColumns)
+                    implode(',', $this->selectColumns)
                 ),
                 $bindings
             );
 
-            DB::connection($this->connection->getName())->commit();
+            DB::connection($this->connectionName)->commit();
 
             return $result;
         } catch (Throwable $throwable) {
-            DB::connection($this->connection->getName())->rollBack();
+            DB::connection($this->connectionName)->rollBack();
 
             throw $throwable;
         }

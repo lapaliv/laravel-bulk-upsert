@@ -6,9 +6,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\BulkModel;
 use Lapaliv\BulkUpsert\BulkUpsert;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkDatabaseDriverIsNotSupported;
 

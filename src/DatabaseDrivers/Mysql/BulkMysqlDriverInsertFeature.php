@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\DatabaseDrivers\Mysql;
 
-use Illuminate\Database\Connection;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Features\BulkPrepareValuesForInsertingFeature;
 use Throwable;
@@ -10,9 +10,10 @@ use Throwable;
 class BulkMysqlDriverInsertFeature
 {
     public function __construct(
-        private Connection $connection,
-        private string     $table,
-        private bool       $hasIncrementing
+        private ConnectionInterface $connection,
+        private string              $connectionName,
+        private string              $table,
+        private bool                $hasIncrementing
     )
     {
         //
@@ -34,7 +35,7 @@ class BulkMysqlDriverInsertFeature
             'values' => $values
         ] = $preparingValuesFeature->handle($fields, $rows);
 
-        DB::connection($this->connection->getName())->beginTransaction();
+        DB::connection($this->connectionName)->beginTransaction();
 
         try {
             $this->connection->insert(
@@ -52,11 +53,11 @@ class BulkMysqlDriverInsertFeature
                 ? $this->connection->selectOne("SELECT LAST_INSERT_ID() as payload;")
                 : null;
 
-            DB::connection($this->connection->getName())->commit();
+            DB::connection($this->connectionName)->commit();
 
             return $lastInsertedId?->payload;
         } catch (Throwable $throwable) {
-            DB::connection($this->connection->getName())->rollBack();
+            DB::connection($this->connectionName)->rollBack();
             throw $throwable;
         }
     }

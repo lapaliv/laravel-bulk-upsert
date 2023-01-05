@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests;
 
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
-use Illuminate\Foundation\Application;
+use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
 use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
 use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
 use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
@@ -50,6 +50,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::$manager->bootEloquent();
 
         $this->app->bind('db', fn() => self::$manager->getDatabaseManager());
+        $this->app->register(BulkUpsertServiceProvider::class);
     }
 
     private static function readEnv(): void
