@@ -29,7 +29,7 @@ class TimestampFieldsTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert(['email'], $collection);
+        $sut->insert($collection, ['email']);
 
         // assert
         $collection->each(

@@ -100,21 +100,15 @@ class BulkInsert
         return $this;
     }
 
-    public function insert(
-        array    $uniqueColumns,
-        iterable $rows
-    ): void
+    public function insert(iterable $rows, array $uniqueAttributes): void
     {
-        $feature = $this->getFeature($uniqueColumns, false);
+        $feature = $this->getFeature(false, $uniqueAttributes);
         $this->insertByChunks($feature, $rows);
     }
 
-    public function insertOrIgnore(
-        array    $uniqueColumns,
-        iterable $rows,
-    ): void
+    public function insertOrIgnore(iterable $rows, array $uniqueAttributes): void
     {
-        $feature = $this->getFeature($uniqueColumns, true);
+        $feature = $this->getFeature(true, $uniqueAttributes);
         $this->insertByChunks($feature, $rows);
     }
 
@@ -158,12 +152,12 @@ class BulkInsert
         );
     }
 
-    protected function getFeature(array $uniqueColumns, bool $ignore): BulkInsertFeature
+    protected function getFeature(bool $ignore, array $uniqueAttributes): BulkInsertFeature
     {
         return new BulkInsertFeature(
             model: $this->model,
-            uniqueColumns: $uniqueColumns,
-            selectColumns: $this->selectColumns ?? null,
+            uniqueColumns: $uniqueAttributes,
+            selectColumns: $this->getSelectColumns($uniqueAttributes),
             dateFields: $this->getDateFields(),
             events: $this->events,
             ignore: $ignore,
@@ -200,5 +194,19 @@ class BulkInsert
         }
 
         return $this->dateFields;
+    }
+
+    protected function getSelectColumns(array $uniqueAttributes): array
+    {
+        if (in_array('*', $this->selectColumns, true)) {
+            return $this->selectColumns;
+        }
+
+        return array_unique(
+            array_merge(
+                $this->selectColumns,
+                $uniqueAttributes
+            )
+        );
     }
 }

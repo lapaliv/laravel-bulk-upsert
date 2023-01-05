@@ -31,7 +31,7 @@ class InsertDuplicatesWithoutIgnoringTest extends TestCase
         $this->expectException(QueryException::class);
 
         // act
-        $sut->insert(['email'], $collection);
+        $sut->insert($collection, ['email']);
     }
 
     public function data(): array

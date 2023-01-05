@@ -27,7 +27,7 @@ class SelectColumnsWithIncrementingTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert(['email'], $collection);
+        $sut->insert($collection, ['email']);
 
         // assert
         // This part is described in the `assertChunk` method
