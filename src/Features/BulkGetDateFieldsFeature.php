@@ -6,28 +6,23 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 class BulkGetDateFieldsFeature
 {
-    public function __construct(private BulkModel $model)
-    {
-        //
-    }
-
     /**
      * @return array<string, string>
      */
-    public function handle(): array
+    public function handle(BulkModel $model): array
     {
         $result = [];
 
-        foreach ($this->model->getDates() as $field) {
-            $result[$field] = $this->model->getDateFormat();
+        foreach ($model->getDates() as $field) {
+            $result[$field] = $model->getDateFormat();
         }
 
-        foreach ($this->model->getCasts() as $key => $value) {
+        foreach ($model->getCasts() as $key => $value) {
             if (is_string($value) && preg_match('/^(date(?:time)?)(?::(.+?))?$/', $value, $matches)) {
                 if ($matches[1] === 'date') {
                     $result[$key] = $matches[2] ?? 'Y-m-d';
                 } else {
-                    $result[$key] = $matches[2] ?? $this->model->getDateFormat();
+                    $result[$key] = $matches[2] ?? $model->getDateFormat();
                 }
             }
         }

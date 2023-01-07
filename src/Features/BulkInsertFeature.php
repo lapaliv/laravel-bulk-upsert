@@ -6,11 +6,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\BulkUpsert;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Exceptions\BulkDatabaseDriverIsNotSupported;
 
 class BulkInsertFeature
 {
@@ -23,108 +21,114 @@ class BulkInsertFeature
 
     /**
      * The datetime s
-     * @var \Carbon\CarbonInterface
+     * @var CarbonInterface
      */
     private CarbonInterface $startedAt;
 
-    private bool $hasCreatingEvent = false;
-    private bool $hasSavingEvent = false;
-    private bool $hasCreatedEvent = false;
-    private bool $hasSavedEvent = false;
-
     public function __construct(
-        private BulkModel $model,
-        private array     $uniqueColumns,
-        private array     $selectColumns,
-        private array     $dateFields,
-        private array     $events,
-        private bool      $ignore,
-        private ?Closure  $insertingCallback,
-        private ?Closure  $insertedCallback,
+        private BulkFireModelEventsFeature $fireModelEventsFeature,
+        private BulkGetDriverFeature $getDriverFeature,
+        private BulkConvertArrayToCollectionFeature $convertArrayToCollectionFeature,
+        private BulkConvertAttributesToScalarArrayFeature $convertAttributesToScalarArrayFeature,
+        private BulkFreshTimestampsFeature $freshTimestampsFeature,
     )
     {
-        foreach ($this->events as $event) {
-            switch ($event) {
-                case BulkEventEnum::CREATING:
-                    $this->hasCreatingEvent = true;
-                    break;
-                case BulkEventEnum::CREATED:
-                    $this->hasCreatedEvent = true;
-                    break;
-                case BulkEventEnum::SAVING:
-                    $this->hasSavingEvent = true;
-                    break;
-                case BulkEventEnum::SAVED:
-                    $this->hasSavedEvent = true;
-                    break;
-            }
-        }
+        //
     }
 
     /**
+     * @param BulkModel $model
+     * @param array $uniqueAttributes
+     * @param array $selectColumns
+     * @param array $dateFields
+     * @param array $events
+     * @param bool $ignore
+     * @param Closure|null $insertingCallback
+     * @param Closure|null $insertedCallback
      * @param BulkModel[] $models
      * @return void
      */
-    public function handle(array $models): void
+    public function handle(
+        BulkModel $model,
+        array $uniqueAttributes,
+        array $selectColumns,
+        array $dateFields,
+        array $events,
+        bool $ignore,
+        ?Closure $insertingCallback,
+        ?Closure $insertedCallback,
+        array $models,
+    ): void
     {
         if (empty($models)) {
             return;
         }
 
-        if ($this->insertingCallback !== null) {
-            $callbackResult = call_user_func(
-                $this->insertingCallback,
-                $this->model->newCollection($models)
-            );
-
-            $models = $callbackResult ?? $models;
+        if ($insertingCallback !== null) {
+            $models = $insertingCallback($model->newCollection($models)) ?? $models;
         }
+
+        $this->startedAt = Carbon::now();
 
         [
             'rows' => $rows,
             'fields' => $fields,
-        ] = $this->preparingModels($models);
+        ] = $this->preparingModels($models, $dateFields, $events);
 
         if (empty($rows)) {
             return;
         }
 
-        $driver = $this->getDriver($rows);
+        $driver = $this->getDriver(
+            $model,
+            $uniqueAttributes,
+            $selectColumns,
+            $rows
+        );
 
-        $this->startedAt = Carbon::now();
-        $this->firstInsertedId = $driver->insert($fields, $this->ignore);
+        $this->firstInsertedId = $driver->insert($fields, $ignore);
 
-        if ($this->hasCreatedEvent === false
-            && $this->hasSavedEvent === false
-            && $this->insertedCallback === null
-        ) {
+        if ($this->hasToSelect($events, $insertedCallback) === false) {
             return;
         }
 
-        $insertedRows = $driver->selectAffectedRows($this->selectColumns);
-        $collection = $this->convertArrayToCollection($insertedRows);
+        $insertedRows = $driver->selectAffectedRows();
+        $collection = $this->convertArrayToCollectionFeature->handle($model, $insertedRows);
 
-        $this->fillWasRecentlyCreated($collection);
-        $this->prepareCollection($collection);
+        $this->fillWasRecentlyCreated($model, $collection);
+        $this->prepareCollection($collection, $events);
 
-        if ($this->insertedCallback !== null) {
-            call_user_func($this->insertedCallback, $collection);
+        if ($insertedCallback !== null) {
+            $insertedCallback($collection);
         }
     }
 
-    private function preparingModels(array $models): array
+    /**
+     * @param BulkModel[] $models
+     * @param string[] $dateFields
+     * @return array{
+     *     rows: array[],
+     *     fields: string[],
+     * }
+     */
+    private function preparingModels(array $models, array $dateFields, array $events): array
     {
         $rows = [];
         $fields = [];
 
         foreach ($models as $model) {
-            if ($this->fireEventsBeforeInsert($model) === false) {
+            $firing = $this->fireModelEventsFeature->handle($model, $events, [
+                BulkEventEnum::SAVING,
+                BulkEventEnum::CREATING,
+            ]);
+
+            if ($firing === false) {
                 continue;
             }
 
-            $this->freshTimestamps($model);
+            $this->freshTimestampsFeature->handle($model);
 
-            $row = $this->convertModelToArray($model);
+            $row = $this->convertAttributesToScalarArrayFeature->handle($dateFields, $model->getAttributes());
             $rows[] = $row;
             $fields[] = array_keys($row);
         }
@@ -137,80 +141,42 @@ class BulkInsertFeature
         ];
     }
 
-    private function convertModelToArray(BulkModel $model): array
+    private function getDriver(
+        BulkModel $model,
+        array $uniqueAttributes,
+        array $selectColumns,
+        array $rows,
+    ): BulkDatabaseDriver
     {
-        $result = [];
-
-        foreach ($model->getAttributes() as $key => $value) {
-            $result[$key] = array_key_exists($key, $this->dateFields)
-                ? Carbon::parse($value)->format($this->dateFields[$key])
-                : $value;
-        }
-
-        return $result;
+        return $this->getDriverFeature->handle(
+            $model,
+            $rows,
+            $uniqueAttributes,
+            $selectColumns,
+        );
     }
 
-    private function getDriver(array $rows): BulkDatabaseDriver
+    private function hasToSelect(array $events, ?Closure $insertedCallback): bool
     {
-        $driverName = $this->model->getConnection()->getDriverName();
-        $driver = BulkUpsert::getDatabaseDriver($driverName);
-
-        if ($driver === null) {
-            throw new BulkDatabaseDriverIsNotSupported($driverName);
+        if ($insertedCallback !== null) {
+            return true;
         }
 
-        return $driver->setBuilder($this->model->newQuery())
-            ->setConnectionName($this->model->getConnection()->getName())
-            ->setRows($rows)
-            ->setUniqueAttributes($this->uniqueColumns)
-            ->setHasIncrementing($this->model->getIncrementing())
-            ->setPrimaryKeyName($this->model->getKeyName())
-            ->setSelectColumns($this->selectColumns);
+        $insertedEvents = array_intersect($events, [
+            BulkEventEnum::CREATED,
+            BulkEventEnum::SAVED,
+        ]);
+
+        return empty($insertedEvents) === false;
     }
 
-    private function fireEventsBeforeInsert(BulkModel $model): bool
+    private function fillWasRecentlyCreated(BulkModel $model, Collection $collection): void
     {
-        if ($this->hasSavingEvent && $model->fireModelEvent(BulkEventEnum::SAVING) === false) {
-            return false;
-        }
-
-        if ($this->hasCreatingEvent && $model->fireModelEvent(BulkEventEnum::CREATING) === false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private function freshTimestamps(BulkModel $model): void
-    {
-        if ($model->usesTimestamps()) {
-            $model->setAttribute($model->getCreatedAtColumn(), Carbon::now());
-            $model->setAttribute($model->getUpdatedAtColumn(), Carbon::now());
-        }
-    }
-
-    private function convertArrayToCollection(array $rows): Collection
-    {
-        $result = $this->model->newCollection();
-
-        foreach ($rows as $key => $row) {
-            /** @var BulkModel $model */
-            $model = new $this->model();
-            $model->setRawAttributes($row);
-
-            $result->put($key, $model);
-        }
-
-        return $result;
-    }
-
-    private function fillWasRecentlyCreated(Collection $collection): void
-    {
-        if ($this->firstInsertedId !== null && $this->model->getIncrementing()) {
+        if ($this->firstInsertedId !== null && $model->getIncrementing()) {
             $collection->map(
                 fn(BulkModel $model) => $model->wasRecentlyCreated = $model->getKey() >= $this->firstInsertedId
             );
-        } elseif ($this->model->usesTimestamps()) {
+        } elseif ($model->usesTimestamps()) {
             $collection->map(
                 function (BulkModel $model) {
                     /** @var CarbonInterface|null $createdAt */
@@ -221,29 +187,16 @@ class BulkInsertFeature
         }
     }
 
-    private function prepareCollection(Collection $collection): void
+    private function prepareCollection(Collection $collection, array $events): void
     {
         $collection->map(
-            function (BulkModel $model): void {
-                $this->fireModelEventsAfterInsert($model);
-                $this->syncOrigins($model);
+            function (BulkModel $model) use ($events): void {
+                $this->fireModelEventsFeature->handle($model, $events, [
+                    BulkEventEnum::CREATED,
+                    BulkEventEnum::SAVED,
+                ]);
+                $model->syncOriginal();
             }
         );
-    }
-
-    private function fireModelEventsAfterInsert(BulkModel $model): void
-    {
-        if ($this->hasCreatedEvent && $model->wasRecentlyCreated) {
-            $model->fireModelEvent(BulkEventEnum::CREATED, false);
-        }
-
-        if ($this->hasSavedEvent) {
-            $model->fireModelEvent(BulkEventEnum::SAVED, false);
-        }
-    }
-
-    private function syncOrigins(BulkModel $model): void
-    {
-        $model->syncOriginal();
     }
 }

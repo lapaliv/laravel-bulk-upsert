@@ -27,7 +27,7 @@ class SelectColumnsWithIncrementingTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['email']);
+        $sut->insert($model, ['email'], $collection);
 
         // assert
         // This part is described in the `assertChunk` method
@@ -66,8 +66,8 @@ class SelectColumnsWithIncrementingTest extends TestCase
         $actualSelectColumns = ['email', 'name'];
         $expectSelectColumns = [...$actualSelectColumns, (new $model)->getKeyName()];
 
-        $sut = new BulkInsert($model);
-        $sut->select($actualSelectColumns)
+        $sut = $this->app->make(BulkInsert::class)
+            ->select($actualSelectColumns)
             ->onInserted(
                 fn(Collection $users) => $this->assertChunk($users, $expectSelectColumns)
             );

@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\Eloquent\Builder;
+use stdClass;
 
 interface BulkDatabaseDriver
 {
@@ -14,11 +15,11 @@ interface BulkDatabaseDriver
     public function insert(array $fields, bool $ignoring): ?int;
 
     /**
-     * @return \stdClass[]
+     * @return stdClass[]
      */
     public function selectAffectedRows(): array;
 
-    public function setConnectionName(string $name): static;
+    public function update(): bool;
 
     public function setBuilder(Builder $builder): static;
 

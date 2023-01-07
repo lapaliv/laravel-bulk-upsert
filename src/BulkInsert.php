@@ -5,19 +5,17 @@ namespace Lapaliv\BulkUpsert;
 use Closure;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\BulkConvertArrayToCollectionFeature;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkInsertFeature;
+use Lapaliv\BulkUpsert\Traits\BulkSettings;
 
 class BulkInsert
 {
-    private BulkModel $model;
-    private int $chunkSize = 100;
-    private array $selectColumns = ['*'];
-    private array $dateFields;
+    use BulkSettings;
 
-    private ?Closure $chunkCallback;
-    private ?Closure $insertingCallback;
-    private ?Closure $insertedCallback;
+    private ?Closure $insertingCallback = null;
+    private ?Closure $insertedCallback = null;
 
     private array $events = [
         BulkEventEnum::CREATING,
@@ -27,62 +25,15 @@ class BulkInsert
     ];
 
     public function __construct(
-        string|BulkModel $model,
+        private BulkInsertFeature $insertFeature,
+        private BulkGetDateFieldsFeature $getDateFieldsFeature,
+        private BulkConvertArrayToCollectionFeature $convertArrayToCollectionFeature,
     )
     {
-        $this->model = is_string($model) ? new $model() : $model;
+        //
     }
 
-    public function chunk(int $size = 100, ?callable $callback = null): static
-    {
-        $this->chunkSize = $size;
-
-        if ($callback !== null) {
-            $this->chunkCallback = is_callable($callback)
-                ? Closure::fromCallable($callback)
-                : $callback;
-        }
-
-        return $this;
-    }
-
-    public function setEvents(array $events): static
-    {
-        $this->events = array_intersect($events, [
-            BulkEventEnum::CREATING,
-            BulkEventEnum::CREATED,
-            BulkEventEnum::SAVING,
-            BulkEventEnum::SAVED,
-        ]);
-
-        return $this;
-    }
-
-    public function getEvents(): array
-    {
-        return $this->events;
-    }
-
-    public function select(array $columns = ['*']): static
-    {
-        if (in_array('*', $columns, true)) {
-            $columns = ['*'];
-        } elseif ($this->model->getIncrementing()
-            && in_array($this->model->getKeyName(), $columns, true) === false
-        ) {
-            $columns[] = $this->model->getKeyName();
-        } elseif ($this->model->usesTimestamps()
-            && in_array($this->model->getCreatedAtColumn(), $columns, true) === false
-        ) {
-            $columns[] = $this->model->getCreatedAtColumn();
-        }
-
-        $this->selectColumns = $columns;
-
-        return $this;
-    }
-
-    public function onInserting(callable $callback): static
+    public function onInserting(?callable $callback): static
     {
         $this->insertingCallback = is_callable($callback)
             ? Closure::fromCallable($callback)
@@ -91,7 +42,7 @@ class BulkInsert
         return $this;
     }
 
-    public function onInserted(callable $callback): static
+    public function onInserted(?callable $callback): static
     {
         $this->insertedCallback = is_callable($callback)
             ? Closure::fromCallable($callback)
@@ -100,113 +51,86 @@ class BulkInsert
         return $this;
     }
 
-    public function insert(iterable $rows, array $uniqueAttributes): void
+    public function insert(
+        string|BulkModel $model,
+        array $uniqueAttributes,
+        iterable $rows,
+    ): void
     {
-        $feature = $this->getFeature(false, $uniqueAttributes);
-        $this->insertByChunks($feature, $rows);
-    }
-
-    public function insertOrIgnore(iterable $rows, array $uniqueAttributes): void
-    {
-        $feature = $this->getFeature(true, $uniqueAttributes);
-        $this->insertByChunks($feature, $rows);
-    }
-
-    protected function separate(iterable $rows, Closure $callback): void
-    {
-        if (is_array($rows) && count($rows) <= $this->chunkSize) {
-            $chunk = $rows;
-        } else {
-            $chunk = [];
-
-            foreach ($rows as $key => $row) {
-                if ($row instanceof BulkModel) {
-                    $chunk[$key] = $row;
-                } else {
-                    $chunk[$key] = new $this->model();
-                    $chunk[$key]->fill((array)$row);
-                }
-
-                if (count($chunk) % $this->chunkSize === 0) {
-                    $callback($chunk);
-                    $chunk = [];
-                }
-            }
-        }
-
-        if (empty($chunk) === false) {
-            $callback($chunk);
-        }
+        $this->insertByChunks(
+            $model,
+            $uniqueAttributes,
+            $rows,
+            ignore: false,
+        );
     }
 
     protected function insertByChunks(
-        BulkInsertFeature $feature,
-        iterable          $rows,
+        string|BulkModel $model,
+        array $uniqueAttributes,
+        iterable $rows,
+        bool $ignore
     ): void
     {
+        $model = is_string($model) ? new $model() : $model;
+        $selectColumns = $this->getSelectColumns($model);
+        $dateFields = $this->getDateFieldsFeature->handle($model);
+
         $this->separate(
+            $model,
             $rows,
-            fn(array $chunk) => $feature->handle(
-                $this->convertChunkToArrayOfModels($chunk)
-            )
-        );
-    }
+            function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields): void {
+                if ($this->chunkCallback !== null) {
+                    $chunk = call_user_func($this->chunkCallback, $chunk) ?? $chunk;
+                }
 
-    protected function getFeature(bool $ignore, array $uniqueAttributes): BulkInsertFeature
-    {
-        return new BulkInsertFeature(
-            model: $this->model,
-            uniqueColumns: $uniqueAttributes,
-            selectColumns: $this->getSelectColumns($uniqueAttributes),
-            dateFields: $this->getDateFields(),
-            events: $this->events,
-            ignore: $ignore,
-            insertingCallback: $this->insertingCallback ?? null,
-            insertedCallback: $this->insertedCallback ?? null
-        );
-    }
-
-    protected function convertChunkToArrayOfModels(array $chunk): array
-    {
-        $chunk = isset($this->chunkCallback)
-            ? (call_user_func($this->chunkCallback, $chunk) ?? $chunk)
-            : $chunk;
-
-        $result = [];
-        foreach ($chunk as $item) {
-            if ($item instanceof BulkModel) {
-                $result[] = $item;
-            } else {
-                /** @var \Lapaliv\BulkUpsert\Contracts\BulkModel $model */
-                $model = new $this->model();
-                $model->fill((array)$item);
-                $result[] = $model;
+                $this->insertFeature->handle(
+                    $model,
+                    $uniqueAttributes,
+                    $selectColumns,
+                    $dateFields,
+                    $this->events,
+                    $ignore,
+                    $this->insertingCallback,
+                    $this->insertedCallback,
+                    $this->convertArrayToCollectionFeature->handle($model, $chunk)->all()
+                );
             }
-        }
-
-        return $result;
+        );
     }
 
-    protected function getDateFields(): array
-    {
-        if (isset($this->dateFields) === false) {
-            $this->dateFields = (new BulkGetDateFieldsFeature($this->model))->handle();
-        }
-
-        return $this->dateFields;
-    }
-
-    protected function getSelectColumns(array $uniqueAttributes): array
+    protected function getSelectColumns(BulkModel $model): array
     {
         if (in_array('*', $this->selectColumns, true)) {
-            return $this->selectColumns;
+            return ['*'];
         }
 
-        return array_unique(
-            array_merge(
-                $this->selectColumns,
-                $uniqueAttributes
-            )
+        if ($model->getIncrementing()) {
+            return in_array($model->getKeyName(), $this->selectColumns, true)
+                ? $this->selectColumns
+                : array_merge($this->selectColumns, [$model->getKeyName()]);
+        }
+
+        if ($model->usesTimestamps()) {
+            return in_array($model->getCreatedAtColumn(), $this->selectColumns, true)
+                ? $this->selectColumns
+                : array_merge($this->selectColumns, [$model->getCreatedAtColumn()]);
+        }
+
+        return $this->selectColumns;
+    }
+
+    public function insertOrIgnore(
+        string|BulkModel $model,
+        array $uniqueAttributes,
+        iterable $rows,
+    ): void
+    {
+        $this->insertByChunks(
+            $model,
+            $uniqueAttributes,
+            $rows,
+            ignore: true,
         );
     }
 }

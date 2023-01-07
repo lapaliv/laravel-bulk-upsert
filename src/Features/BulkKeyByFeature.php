@@ -11,15 +11,12 @@ class BulkKeyByFeature
      */
     public function handle(array $rows, array $attributes): array
     {
+        $generateKeyFeature = new BulkGetKeyForRowFeature();
         $result = [];
 
         foreach ($rows as $row) {
-            $key = '';
-            foreach ($attributes as $attribute) {
-                $key .= $row[$attribute] . ':';
-            }
-
-            $result[md5($key)] = $row;
+            $key = $generateKeyFeature->handle($row, $attributes);
+            $result[$key] = $row;
         }
 
         return $result;

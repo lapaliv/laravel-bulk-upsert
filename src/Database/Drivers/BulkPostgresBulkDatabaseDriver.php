@@ -1,16 +1,19 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\DatabaseDrivers;
+namespace Lapaliv\BulkUpsert\Database\Drivers;
 
 use Illuminate\Database\Eloquent\Builder;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
-use Lapaliv\BulkUpsert\DatabaseDrivers\Postgres\BulkPostgresDriverInsertFeature;
-use Lapaliv\BulkUpsert\DatabaseDrivers\Postgres\BulkPostgresDriverSelectAffectedRowsFeature;
-use Lapaliv\BulkUpsert\Features\BulkConvertStdClassCollectionToArrayCollectionFeature;
+use Lapaliv\BulkUpsert\Database\Drivers\Common\BulkDatabaseDriverUpdateFeature;
+use Lapaliv\BulkUpsert\Database\Drivers\Postgres\BulkPostgresDriverInsertFeature;
+use Lapaliv\BulkUpsert\Database\Drivers\Postgres\BulkPostgresDriverSelectAffectedRowsFeature;
+use Lapaliv\BulkUpsert\Database\Processors\PostgresProcessor;
+use Lapaliv\BulkUpsert\Features\BulkConvertArrayOfObjectsToScalarArraysFeature;
+use stdClass;
+use Throwable;
 
 class BulkPostgresBulkDatabaseDriver implements BulkDatabaseDriver
 {
-    private string $connectionName;
     private Builder $builder;
     private array $rows;
     private array $uniqueAttributes;
@@ -23,26 +26,36 @@ class BulkPostgresBulkDatabaseDriver implements BulkDatabaseDriver
      */
     private array $insertedRows = [];
 
+    public function __construct(
+        private PostgresProcessor $processor,
+        private BulkPostgresDriverInsertFeature $postgresDriverInsertFeature,
+        private BulkConvertArrayOfObjectsToScalarArraysFeature $convertArrayOfObjectsToScalarArraysFeature,
+        private BulkPostgresDriverSelectAffectedRowsFeature $postgresDriverSelectAffectedRowsFeature,
+        private BulkDatabaseDriverUpdateFeature $databaseDriverUpdateFeature,
+    )
+    {
+        //
+    }
+
     /**
      * @param string[] $fields
      * @param bool $ignoring
      * @return int|null
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function insert(array $fields, bool $ignoring): ?int
     {
-        $feature = new BulkPostgresDriverInsertFeature(
+        $insertedRows = $this->postgresDriverInsertFeature->handle(
             $this->builder->getConnection(),
-            $this->connectionName,
             $this->builder->from,
+            $fields,
+            $this->rows,
+            $ignoring,
             $this->selectColumns,
         );
 
-        $insertedRows = $feature->handle($fields, $this->rows, $ignoring);
-
         if (empty($insertedRows) === false) {
-            $this->insertedRows = (new BulkConvertStdClassCollectionToArrayCollectionFeature())
-                ->handle($insertedRows);
+            $this->insertedRows = $this->convertArrayOfObjectsToScalarArraysFeature->handle($insertedRows);
 
             if ($this->hasIncrementing && $this->primaryKeyName !== null) {
                 reset($insertedRows);
@@ -55,28 +68,18 @@ class BulkPostgresBulkDatabaseDriver implements BulkDatabaseDriver
     }
 
     /**
-     * @return \stdClass[]
+     * @return stdClass[]
      */
     public function selectAffectedRows(): array
     {
-        $feature = new BulkPostgresDriverSelectAffectedRowsFeature(
+        return $this->postgresDriverSelectAffectedRowsFeature->handle(
             $this->builder,
             $this->uniqueAttributes,
-            $this->primaryKeyName
-        );
-
-        return $feature->handle(
             $this->rows,
             $this->insertedRows,
             $this->selectColumns,
+            $this->primaryKeyName,
         );
-    }
-
-    public function setConnectionName(string $name): static
-    {
-        $this->connectionName = $name;
-
-        return $this;
     }
 
     public function setBuilder(Builder $builder): static
@@ -119,5 +122,18 @@ class BulkPostgresBulkDatabaseDriver implements BulkDatabaseDriver
         $this->selectColumns = $columns;
 
         return $this;
+    }
+
+    public function update(): bool
+    {
+        $result = $this->databaseDriverUpdateFeature->handle(
+            $this->processor,
+            $this->builder->getConnection(),
+            $this->builder->from,
+            $this->uniqueAttributes,
+            $this->rows,
+        );
+
+        return $result > 0;
     }
 }

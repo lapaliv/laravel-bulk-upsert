@@ -30,7 +30,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insertOrIgnore($collection, ['email']);
+        $sut->insertOrIgnore($model, ['email'], $collection);
 
         // assert
         $existingUsers->each(
@@ -118,7 +118,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
             ),
             'existingEmails' => $existingUsers->pluck('email'),
             'collection' => $collection,
-            'sut' => new BulkInsert($model),
+            'sut' => $this->app->make(BulkInsert::class),
         ];
     }
 }

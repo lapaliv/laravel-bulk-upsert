@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Insert;
 
+use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
 use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
@@ -14,9 +15,6 @@ class ChunkSizeTest extends TestCase
 
     private int $numberOfChunks = 0;
 
-    /**
-     * @return void
-     */
     public function test(): void
     {
         [
@@ -25,7 +23,7 @@ class ChunkSizeTest extends TestCase
         ] = $this->arrange();
 
         // act
-        $sut->insert($collection, ['email']);
+        $sut->insert(MysqlUser::class, ['email'], $collection);
 
         // assert
         $this->assertEquals(
@@ -36,15 +34,17 @@ class ChunkSizeTest extends TestCase
 
     /**
      * @return array{
-     *     collection: \Illuminate\Database\Eloquent\Collection,
-     *     sut: \Lapaliv\BulkUpsert\BulkInsert
+     *     collection: Collection,
+     *     sut: BulkInsert
      * }
      */
     private function arrange(): array
     {
+        $this->numberOfChunks = 0;
+
         $generateUserCollectionFeature = new GenerateUserCollectionFeature(MysqlUser::class);
         $collection = $generateUserCollectionFeature->handle(self::NUMBER_OF_ROWS);
-        $sut = (new BulkInsert(MysqlUser::class))
+        $sut = $this->app->make(BulkInsert::class)
             ->chunk(
                 self::CHUNK_SIZE,
                 function (array $chunk) {

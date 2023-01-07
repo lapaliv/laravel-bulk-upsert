@@ -26,7 +26,7 @@ final class CommonTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['email']);
+        $sut->insert($model, ['email'], $collection);
 
         // assert
         $collection->map(
@@ -63,7 +63,7 @@ final class CommonTest extends TestCase
             'collection' => $generateUserCollectionFeature->handle(
                 self::NUMBER_OF_USERS
             ),
-            'sut' => new BulkInsert($model),
+            'sut' => $this->app->make(BulkInsert::class),
         ];
     }
 }
