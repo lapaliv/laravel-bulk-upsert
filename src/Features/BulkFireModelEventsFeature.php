@@ -7,6 +7,12 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 class BulkFireModelEventsFeature
 {
+    /**
+     * @param BulkModel $model
+     * @param string[] $allowedEvents
+     * @param string[] $events
+     * @return bool
+     */
     public function handle(BulkModel $model, array $allowedEvents, array $events): bool
     {
         $finalEvents = array_intersect($events, $allowedEvents);
@@ -26,6 +32,9 @@ class BulkFireModelEventsFeature
         return true;
     }
 
+    /**
+     * @return string[]
+     */
     private function getHaltEvents(): array
     {
         return [
@@ -35,6 +44,9 @@ class BulkFireModelEventsFeature
         ];
     }
 
+    /**
+     * @return string[]
+     */
     private function getNotHaltEvents(): array
     {
         return [

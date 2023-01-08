@@ -9,6 +9,13 @@ use Lapaliv\BulkUpsert\Exceptions\BulkDatabaseDriverIsNotSupported;
 
 class BulkGetDriverFeature
 {
+    /**
+     * @param BulkModel $model
+     * @param scalar[][] $rows
+     * @param string[] $uniqueColumns
+     * @param string[] $selectColumns
+     * @return BulkDatabaseDriver
+     */
     public function handle(
         BulkModel $model,
         array $rows,

@@ -7,6 +7,13 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 class BulkConvertArrayToCollectionFeature
 {
+    /**
+     * @template TKey of int|string
+     *
+     * @param BulkModel $model
+     * @param array<TKey, BulkModel|scalar[]> $rows
+     * @return Collection<TKey, BulkModel>
+     */
     public function handle(BulkModel $model, array $rows): Collection
     {
         $result = $model->newCollection();

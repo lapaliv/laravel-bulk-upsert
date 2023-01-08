@@ -3,21 +3,20 @@
 namespace Lapaliv\BulkUpsert;
 
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkUpdateFeature;
 use Lapaliv\BulkUpsert\Traits\BulkSettings;
+use Illuminate\Database\Eloquent\Collection;
 
 class BulkUpdate
 {
     use BulkSettings;
 
-    private BulkModel $model;
-    private Collection $exitingRows;
     private ?Closure $updatingCallback = null;
     private ?Closure $updatedCallback = null;
+
     private array $events = [
         BulkEventEnum::UPDATING,
         BulkEventEnum::UPDATED,
@@ -33,6 +32,10 @@ class BulkUpdate
         //
     }
 
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @return $this
+     */
     public function onUpdating(callable $callback): static
     {
         $this->updatingCallback = is_callable($callback)
@@ -42,6 +45,10 @@ class BulkUpdate
         return $this;
     }
 
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @return $this
+     */
     public function onUpdated(callable $callback): static
     {
         $this->updatedCallback = is_callable($callback)
@@ -51,6 +58,13 @@ class BulkUpdate
         return $this;
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param string[]|null $uniqueAttributes
+     * @param string[] $updateAttributes
+     * @return void
+     */
     public function update(
         string|BulkModel $model,
         iterable $rows,
@@ -61,6 +75,13 @@ class BulkUpdate
         $this->updateByChunks($model, $uniqueAttributes, $updateAttributes, $rows);
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param string[]|null $uniqueAttributes
+     * @param string[] $updateAttributes
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @return void
+     */
     protected function updateByChunks(
         string|BulkModel $model,
         ?array $uniqueAttributes,
@@ -96,6 +117,11 @@ class BulkUpdate
         );
     }
 
+    /**
+     * @param string[] $uniqueAttributes
+     * @param string[] $updateAttributes
+     * @return string[]
+     */
     protected function getSelectColumns(
         array $uniqueAttributes,
         array $updateAttributes,

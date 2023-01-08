@@ -4,6 +4,10 @@ namespace Lapaliv\BulkUpsert\Features;
 
 class BulkCollapseArrayFeature
 {
+    /**
+     * @param array<mixed, scalar[]|scalar> $array
+     * @return array<int, scalar>
+     */
     public function handle(array $array): array
     {
         $result = [];

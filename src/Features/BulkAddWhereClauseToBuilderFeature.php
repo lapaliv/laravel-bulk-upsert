@@ -9,8 +9,8 @@ use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderWhereClause;
 class BulkAddWhereClauseToBuilderFeature
 {
     /**
-     * @param EloquentBuilder|QueryBuilder $builder
-     * @param array $uniqueAttributes
+     * @param EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder
+     * @param string[] $uniqueAttributes
      * @param array<int, array<string, scalar>> $rows
      * @return void
      */
@@ -31,7 +31,7 @@ class BulkAddWhereClauseToBuilderFeature
     /**
      * @param EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder
      * @param array<scalar, array<int, array<string, mixed>>> $groups
-     * @param array $uniqueAttributes
+     * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
      * @return void
      */

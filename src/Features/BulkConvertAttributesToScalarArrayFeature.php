@@ -6,6 +6,11 @@ use Carbon\Carbon;
 
 class BulkConvertAttributesToScalarArrayFeature
 {
+    /**
+     * @param string[] $dateFields
+     * @param scalar[] $attributes
+     * @return mixed[]
+     */
     public function handle(array $dateFields, array $attributes): array
     {
         $result = [];

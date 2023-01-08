@@ -9,6 +9,7 @@ use Lapaliv\BulkUpsert\Features\BulkConvertArrayToCollectionFeature;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkInsertFeature;
 use Lapaliv\BulkUpsert\Traits\BulkSettings;
+use Illuminate\Database\Eloquent\Collection;
 
 class BulkInsert
 {
@@ -33,6 +34,10 @@ class BulkInsert
         //
     }
 
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @return $this
+     */
     public function onInserting(?callable $callback): static
     {
         $this->insertingCallback = is_callable($callback)
@@ -42,6 +47,10 @@ class BulkInsert
         return $this;
     }
 
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @return $this
+     */
     public function onInserted(?callable $callback): static
     {
         $this->insertedCallback = is_callable($callback)
@@ -51,6 +60,12 @@ class BulkInsert
         return $this;
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @return void
+     */
     public function insert(
         string|BulkModel $model,
         array $uniqueAttributes,
@@ -65,6 +80,13 @@ class BulkInsert
         );
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param bool $ignore
+     * @return void
+     */
     protected function insertByChunks(
         string|BulkModel $model,
         array $uniqueAttributes,
@@ -120,6 +142,12 @@ class BulkInsert
         return $this->selectColumns;
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @return void
+     */
     public function insertOrIgnore(
         string|BulkModel $model,
         array $uniqueAttributes,

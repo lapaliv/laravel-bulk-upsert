@@ -2,7 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
@@ -21,6 +20,18 @@ class BulkUpdateFeature
         //
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[]|null $updateAttributes
+     * @param string[] $selectColumns
+     * @param string[] $dateFields
+     * @param string[] $events
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $updatingCallback
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $updatedCallback
+     * @param BulkModel[] $models
+     * @return void
+     */
     public function handle(
         BulkModel $model,
         array $uniqueAttributes,
@@ -28,8 +39,8 @@ class BulkUpdateFeature
         array $selectColumns,
         array $dateFields,
         array $events,
-        ?Closure $updatingCallback,
-        ?Closure $updatedCallback,
+        ?callable $updatingCallback,
+        ?callable $updatedCallback,
         array $models,
     ): void
     {
@@ -79,7 +90,14 @@ class BulkUpdateFeature
         }
     }
 
-
+    /**
+     * @param Collection<BulkModel> $models
+     * @param string[] $dateFields
+     * @param string[] $uniqueAttributes
+     * @param string[]|null $updateAttributes
+     * @param string[] $events
+     * @return scalar[][]
+     */
     private function preparingModels(
         Collection $models,
         array $dateFields,
@@ -131,6 +149,13 @@ class BulkUpdateFeature
         return $rows;
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[] $selectColumns
+     * @param scalar[][] $rows
+     * @return BulkDatabaseDriver
+     */
     private function getDriver(
         BulkModel $model,
         array $uniqueAttributes,
@@ -146,6 +171,11 @@ class BulkUpdateFeature
         );
     }
 
+    /**
+     * @param Collection<BulkModel> $existingModels
+     * @param string[] $events
+     * @return void
+     */
     private function finalStep(Collection $existingModels, array $events): void
     {
         $existingModels->map(

@@ -17,6 +17,14 @@ class BulkSelectExistingRowsFeature
         //
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[] $updateAttributes
+     * @param string[] $selectColumns
+     * @param BulkModel[] $models
+     * @return Collection<BulkModel>
+     */
     public function handle(
         BulkModel $model,
         array $uniqueAttributes,
@@ -78,6 +86,13 @@ class BulkSelectExistingRowsFeature
         return $result;
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[] $selectColumns
+     * @param BulkModel[] $models
+     * @return Collection<BulkModel>
+     */
     private function select(
         BulkModel $model,
         array $uniqueAttributes,
@@ -100,7 +115,7 @@ class BulkSelectExistingRowsFeature
 
     /**
      * @param BulkModel[] $models
-     * @return array[]
+     * @return BulkModel[]
      */
     private function prepareRowsForSelect(
         array $uniqueAttributes,
@@ -121,6 +136,14 @@ class BulkSelectExistingRowsFeature
         return $result;
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[] $updateAttributes
+     * @param Collection<BulkModel> $collection
+     * @param BulkModel[] $models
+     * @return Collection<BulkModel>
+     */
     private function fillInAttributes(
         BulkModel $model,
         array $uniqueAttributes,

@@ -6,6 +6,9 @@ use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
 
 class BulkDatabaseDriverManager
 {
+    /**
+     * @var BulkDatabaseDriver[]
+     */
     private static array $drivers = [];
 
     public static function registerDriver(string $name, BulkDatabaseDriver $driver): void

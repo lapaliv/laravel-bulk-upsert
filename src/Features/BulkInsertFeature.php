@@ -4,7 +4,6 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
@@ -19,10 +18,6 @@ class BulkInsertFeature
      */
     private ?int $firstInsertedId = null;
 
-    /**
-     * The datetime s
-     * @var CarbonInterface
-     */
     private CarbonInterface $startedAt;
 
     public function __construct(
@@ -38,13 +33,13 @@ class BulkInsertFeature
 
     /**
      * @param BulkModel $model
-     * @param array $uniqueAttributes
-     * @param array $selectColumns
-     * @param array $dateFields
-     * @param array $events
+     * @param string[] $uniqueAttributes
+     * @param string[] $selectColumns
+     * @param string[] $dateFields
+     * @param string[] $events
      * @param bool $ignore
-     * @param Closure|null $insertingCallback
-     * @param Closure|null $insertedCallback
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $insertingCallback
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $insertedCallback
      * @param BulkModel[] $models
      * @return void
      */
@@ -55,8 +50,8 @@ class BulkInsertFeature
         array $dateFields,
         array $events,
         bool $ignore,
-        ?Closure $insertingCallback,
-        ?Closure $insertedCallback,
+        ?callable $insertingCallback,
+        ?callable $insertedCallback,
         array $models,
     ): void
     {
@@ -141,6 +136,13 @@ class BulkInsertFeature
         ];
     }
 
+    /**
+     * @param BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param string[] $selectColumns
+     * @param scalar[][] $rows
+     * @return BulkDatabaseDriver
+     */
     private function getDriver(
         BulkModel $model,
         array $uniqueAttributes,
@@ -156,7 +158,12 @@ class BulkInsertFeature
         );
     }
 
-    private function hasToSelect(array $events, ?Closure $insertedCallback): bool
+    /**
+     * @param string[] $events
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $insertedCallback
+     * @return bool
+     */
+    private function hasToSelect(array $events, ?callable $insertedCallback): bool
     {
         if ($insertedCallback !== null) {
             return true;
@@ -170,6 +177,11 @@ class BulkInsertFeature
         return empty($insertedEvents) === false;
     }
 
+    /**
+     * @param BulkModel $model
+     * @param Collection<BulkModel> $collection
+     * @return void
+     */
     private function fillWasRecentlyCreated(BulkModel $model, Collection $collection): void
     {
         if ($this->firstInsertedId !== null && $model->getIncrementing()) {
@@ -187,6 +199,11 @@ class BulkInsertFeature
         }
     }
 
+    /**
+     * @param Collection<BulkModel> $collection
+     * @param string[] $events
+     * @return void
+     */
     private function prepareCollection(Collection $collection, array $events): void
     {
         $collection->map(
