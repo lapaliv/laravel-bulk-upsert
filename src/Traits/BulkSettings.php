@@ -61,7 +61,7 @@ trait BulkSettings
                 $chunk[$key]->fill((array)$row);
             }
 
-            if (count($chunk) % $this->chunkSize === 0) {
+            if ($this->chunkSize > 0 && count($chunk) % $this->chunkSize === 0) {
                 $callback($chunk);
                 $chunk = [];
             }
