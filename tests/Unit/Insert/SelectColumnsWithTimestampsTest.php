@@ -27,7 +27,7 @@ class SelectColumnsWithTimestampsTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['uuid']);
+        $sut->insert($model, ['uuid'], $collection);
 
         // assert
         // This part is described in the `assertChunk` method
@@ -55,8 +55,8 @@ class SelectColumnsWithTimestampsTest extends TestCase
         $actualSelectColumns = ['uuid', 'name'];
         $expectSelectColumns = [...$actualSelectColumns, (new $model)->getCreatedAtColumn()];
 
-        $sut = new BulkInsert($model);
-        $sut->select($actualSelectColumns)
+        $sut = $this->app->make(BulkInsert::class)
+            ->select($actualSelectColumns)
             ->onInserted(
                 fn(Collection $users) => $this->assertChunk($users, $expectSelectColumns)
             );

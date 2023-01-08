@@ -25,7 +25,7 @@ class NotAlignedAttributesTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['uuid']);
+        $sut->insert($model, ['uuid'], $collection);
 
         // assert
         $collection->each(
@@ -62,7 +62,7 @@ class NotAlignedAttributesTest extends TestCase
     private function arrange(string $model): array
     {
         $collection = $this->generateCollection($model);
-        $sut = new BulkInsert($model);
+        $sut = $this->app->make(BulkInsert::class);
 
         return compact('sut', 'collection');
     }

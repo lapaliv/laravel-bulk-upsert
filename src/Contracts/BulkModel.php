@@ -2,10 +2,14 @@
 
 namespace Lapaliv\BulkUpsert\Contracts;
 
+use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 
 /**
  * @property bool $wasRecentlyCreated
+ * @property bool $exists
  */
 interface BulkModel
 {
@@ -39,7 +43,7 @@ interface BulkModel
      *
      * @param BulkModel[] $models
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection
      */
     public function newCollection(array $models = []);
 
@@ -77,14 +81,14 @@ interface BulkModel
     /**
      * Get a new query builder for the model's table.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return Builder
      */
     public function newQuery();
 
     /**
      * Get the database connection for the model.
      *
-     * @return \Illuminate\Database\Connection
+     * @return Connection
      */
     public function getConnection();
 
@@ -156,4 +160,26 @@ interface BulkModel
      * @return $this
      */
     public function syncOriginal();
+
+    /**
+     * Get the attributes that have been changed since the last sync.
+     *
+     * @return array
+     */
+    public function getDirty();
+
+    /**
+     * Determine if the model or any of the given attribute(s) have been modified.
+     *
+     * @param array|string|null $attributes
+     * @return bool
+     */
+    public function isDirty($attributes = null);
+
+    /**
+     * Sync the changed attributes.
+     *
+     * @return $this
+     */
+    public function syncChanges();
 }

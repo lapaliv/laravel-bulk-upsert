@@ -34,7 +34,7 @@ final class StopPropagationTest extends TestCase
         ] = $this->arrange($model, $dispatchedEvents, $notDispatchedEvents);
 
         // act
-        $sut->insert($collection, ['email']);
+        $sut->insert($model, ['email'], $collection);
 
         // assert
         // This part is described in the `arrange` method
@@ -137,7 +137,7 @@ final class StopPropagationTest extends TestCase
         }
 
         foreach ($notDispatchedEvents as $event) {
-            $model::registerModelEvent($event, function () {
+            $model::registerModelEvent($event, function () use($event) {
                 $this->fail();
             });
         }
@@ -148,7 +148,7 @@ final class StopPropagationTest extends TestCase
             'collection' => $generateUserCollectionFeature->handle(
                 self::NUMBER_OF_USERS,
             ),
-            'sut' => new BulkInsert($model),
+            'sut' => $this->app->make(BulkInsert::class),
         ];
     }
 }

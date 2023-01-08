@@ -4,57 +4,62 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderWhereClause;
 
 class BulkAddWhereClauseToBuilderFeature
 {
     /**
+     * @param EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder
      * @param string[] $uniqueAttributes
-     */
-    public function __construct(private array $uniqueAttributes)
-    {
-        //
-    }
-
-    /**
-     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $builder
      * @param array<int, array<string, scalar>> $rows
      * @return void
      */
-    public function handle(EloquentBuilder|QueryBuilder $builder, array $rows): void
+    public function handle(
+        EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder,
+        array $uniqueAttributes,
+        array $rows
+    ): void
     {
         $this->makeBuilder(
             $builder,
-            $this->groupBy($rows, $this->uniqueAttributes[0]),
+            $this->groupBy($rows, $uniqueAttributes[0]),
+            $uniqueAttributes,
             0
         );
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $builder
+     * @param EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder
      * @param array<scalar, array<int, array<string, mixed>>> $groups
+     * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
      * @return void
      */
-    protected function makeBuilder(EloquentBuilder|QueryBuilder $builder, array $groups, int $uniqAttributeIndex): void
+    protected function makeBuilder(
+        EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder,
+        array $groups,
+        array $uniqueAttributes,
+        int $uniqAttributeIndex
+    ): void
     {
-        $column = $this->uniqueAttributes[$uniqAttributeIndex];
+        $column = $uniqueAttributes[$uniqAttributeIndex];
 
-        if (array_key_exists($uniqAttributeIndex + 1, $this->uniqueAttributes)) {
+        if (array_key_exists($uniqAttributeIndex + 1, $uniqueAttributes)) {
             foreach ($groups as $value => $children) {
                 $builder->orWhere(
-                    function (EloquentBuilder $builder) use ($column, $value, $children, $uniqAttributeIndex) {
+                    function (EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
                         $builder
-                            ->where($column, $value)
+                            ->where($column, '=', $value)
                             ->where(
-                                function (EloquentBuilder $builder) use ($children, $uniqAttributeIndex) {
-                                    $this->makeBuilder($builder, $children, $uniqAttributeIndex);
+                                function (EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
+                                    $this->makeBuilder($builder, $children, $uniqueAttributes, $uniqAttributeIndex);
                                 }
                             );
                     }
                 );
             }
         } elseif (count($groups) === 1) {
-            $builder->where($column, array_keys($groups)[0]);
+            $builder->where($column, '=', array_keys($groups)[0]);
         } else {
             $builder->whereIn($column, array_keys($groups));
         }

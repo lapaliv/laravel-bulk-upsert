@@ -29,7 +29,7 @@ class TimestampFieldsTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['email']);
+        $sut->insert($model, ['email'], $collection);
 
         // assert
         $collection->each(
@@ -65,7 +65,7 @@ class TimestampFieldsTest extends TestCase
     private function arrange(string $model): array
     {
         $collection = $this->generateCollection($model);
-        $sut = new BulkInsert($model);
+        $sut = $this->app->make(BulkInsert::class);
 
         return compact('collection', 'sut');
     }

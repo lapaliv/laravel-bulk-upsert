@@ -30,7 +30,7 @@ class OnInsertedCallbackTest extends TestCase
         ] = $this->arrange($model);
 
         // act
-        $sut->insert($collection, ['uuid']);
+        $sut->insert($model, ['uuid'], $collection);
 
         // assert
         self::assertEquals(
@@ -65,8 +65,8 @@ class OnInsertedCallbackTest extends TestCase
     {
         $collection = $this->generateCollection($model);
 
-        $sut = new BulkInsert($model);
-        $sut->chunk(self::CHUNK_SIZE)
+        $sut = $this->app->make(BulkInsert::class)
+            ->chunk(self::CHUNK_SIZE)
             ->onInserted([$this, 'assertChunk']);
 
         return compact('sut', 'collection');

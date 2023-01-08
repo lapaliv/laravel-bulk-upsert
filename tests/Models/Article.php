@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
@@ -11,9 +12,11 @@ use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
  * @property string $name
  * @property string|null $content
  * @property bool $is_new
- * @property \Carbon\CarbonInterface $created_at
- * @property \Carbon\CarbonInterface $updated_at
- * @property \Carbon\CarbonInterface|null $deleted_at
+ * @property CarbonInterface|null $date
+ * @property CarbonInterface|null $microseconds
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property CarbonInterface|null $deleted_at
  */
 abstract class Article extends Model
 {
@@ -29,6 +32,8 @@ abstract class Article extends Model
         'name',
         'content',
         'is_new',
+        'date',
+        'microseconds',
     ];
 
     protected $casts = [
@@ -55,6 +60,10 @@ abstract class Article extends Model
                 ->nullable();
             $table->boolean('is_new')
                 ->default(true);
+            $table->date('date')
+                ->nullable();
+            $table->timestamp('microseconds', 6)
+                ->nullable();
 
             $table->timestamps();
             $table->softDeletes();

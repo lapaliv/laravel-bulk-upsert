@@ -7,7 +7,7 @@ use Illuminate\Database\Query\Expression;
 class BulkPrepareValuesForInsertingFeature
 {
     /**
-     * @param array $fields
+     * @param string[] $fields
      * @param array $rows
      * @return array{values: string[], bindings: string[]}
      */
