@@ -33,15 +33,10 @@ class BulkMysqlDriverInsertFeature
         bool $hasIncrementing,
     ): ?int
     {
-        [
-            'bindings' => $bindings,
-            'values' => $values
-        ] = $this->prepareValuesForInsertingFeature->handle($fields, $rows);
-
         $connection->beginTransaction();
 
         try {
-            $connection->insert(
+            $connection->selectOne(
                 sprintf(
                     "INSERT %s INTO %s (%s) VALUES %s;",
                     $ignore ? 'IGNORE' : '',

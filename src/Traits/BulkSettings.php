@@ -3,8 +3,6 @@
 namespace Lapaliv\BulkUpsert\Traits;
 
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 trait BulkSettings
 {
@@ -60,38 +58,5 @@ trait BulkSettings
             : $columns;
 
         return $this;
-    }
-
-    /**
-     * @param BulkModel $model
-     * @param array<int, BulkModel|mixed[]>|Collection<int, BulkModel>|iterable $rows
-     * @param Closure $callback
-     * @return void
-     */
-    protected function separate(
-        BulkModel $model,
-        iterable $rows,
-        Closure $callback,
-    ): void
-    {
-        $chunk = [];
-
-        foreach ($rows as $key => $row) {
-            if ($row instanceof BulkModel) {
-                $chunk[$key] = $row;
-            } else {
-                $chunk[$key] = new $model();
-                $chunk[$key]->fill((array)$row);
-            }
-
-            if ($this->chunkSize > 0 && count($chunk) % $this->chunkSize === 0) {
-                $callback($chunk);
-                $chunk = [];
-            }
-        }
-
-        if (empty($chunk) === false) {
-            $callback($chunk);
-        }
     }
 }

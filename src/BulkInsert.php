@@ -2,21 +2,30 @@
 
 namespace Lapaliv\BulkUpsert;
 
-use Closure;
+use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\Contracts\BulkInsertContract;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 use Lapaliv\BulkUpsert\Features\BulkConvertArrayToCollectionFeature;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkInsertFeature;
-use Lapaliv\BulkUpsert\Traits\BulkSettings;
-use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\Features\BulkSeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class BulkInsert
+class BulkInsert implements BulkInsertContract
 {
-    use BulkSettings;
+    private int $chunkSize = 100;
 
-    private ?Closure $insertingCallback = null;
-    private ?Closure $insertedCallback = null;
+    /**
+     * @var string[]
+     */
+    private array $selectColumns = ['*'];
+
+    private ?BulkCallback $chunkCallback = null;
+    private ?BulkCallback $creatingCallback = null;
+    private ?BulkCallback $createdCallback = null;
+    private ?BulkCallback $savedCallback = null;
 
     private array $events = [
         BulkEventEnum::CREATING,
@@ -29,20 +38,54 @@ class BulkInsert
         private BulkInsertFeature $insertFeature,
         private BulkGetDateFieldsFeature $getDateFieldsFeature,
         private BulkConvertArrayToCollectionFeature $convertArrayToCollectionFeature,
+        private BulkSeparateIterableRowsFeature $separateIterableRowsFeature,
     )
     {
         //
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @param int $size
+     * @param callable(Collection<BulkModel> $chunk): BulkModel[]|null $callback
      * @return $this
      */
-    public function onInserting(?callable $callback): static
+    public function chunk(int $size = 100, ?callable $callback = null): static
     {
-        $this->insertingCallback = is_callable($callback)
-            ? Closure::fromCallable($callback)
-            : $callback;
+        $this->chunkSize = $size;
+        $this->chunkCallback = $callback === null
+            ? null
+            : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getEvents(): array
+    {
+        return $this->events;
+    }
+
+    /**
+     * @param string[] $events
+     * @return $this
+     */
+    public function setEvents(array $events): static
+    {
+        $this->events = array_intersect($events, [
+            BulkEventEnum::CREATING,
+            BulkEventEnum::CREATED,
+            BulkEventEnum::SAVING,
+            BulkEventEnum::SAVED,
+        ]);
+
+        return $this;
+    }
+
+    public function disableEvents(): static
+    {
+        $this->events = [];
 
         return $this;
     }
@@ -51,33 +94,52 @@ class BulkInsert
      * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
      * @return $this
      */
-    public function onInserted(?callable $callback): static
+    public function onCreating(?callable $callback): static
     {
-        $this->insertedCallback = is_callable($callback)
-            ? Closure::fromCallable($callback)
-            : $callback;
+        $this->creatingCallback = $callback === null
+            ? $callback
+            : new BulkCallback($callback);
 
         return $this;
     }
 
     /**
-     * @param string|BulkModel $model
-     * @param string[] $uniqueAttributes
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
-     * @return void
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @return $this
      */
-    public function insert(
-        string|BulkModel $model,
-        array $uniqueAttributes,
-        iterable $rows,
-    ): void
+    public function onCreated(?callable $callback): static
     {
-        $this->insertByChunks(
-            $model,
-            $uniqueAttributes,
-            $rows,
-            ignore: false,
-        );
+        $this->createdCallback = $callback === null
+            ? $callback
+            : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @return $this
+     */
+    public function onSaved(?callable $callback): static
+    {
+        $this->createdCallback = $callback === null
+            ? $callback
+            : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @param string[] $columns
+     * @return $this
+     */
+    public function select(array $columns = ['*']): static
+    {
+        $this->selectColumns = in_array('*', $columns, true)
+            ? ['*']
+            : $columns;
+
+        return $this;
     }
 
     /**
@@ -87,40 +149,48 @@ class BulkInsert
      * @param bool $ignore
      * @return void
      */
-    protected function insertByChunks(
-        string|BulkModel $model,
-        array $uniqueAttributes,
-        iterable $rows,
-        bool $ignore
-    ): void
+    public function insert(string|BulkModel $model, array $uniqueAttributes, iterable $rows, bool $ignore = false): void
     {
-        $model = is_string($model) ? new $model() : $model;
+        $model = $this->getBulkModel($model);
         $selectColumns = $this->getSelectColumns($model);
         $dateFields = $this->getDateFieldsFeature->handle($model);
 
-        $this->separate(
-            $model,
+        $this->separateIterableRowsFeature->handle(
+            $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields): void {
-                if ($this->chunkCallback !== null) {
-                    $chunk = call_user_func($this->chunkCallback, $chunk) ?? $chunk;
-                }
+                $collection = $this->convertArrayToCollectionFeature->handle($model, $chunk);
 
                 $this->insertFeature->handle(
                     $model,
                     $uniqueAttributes,
                     $selectColumns,
                     $dateFields,
-                    $this->events,
+                    $this->events, // todo: use hasEventListeners from dispatcher
                     $ignore,
-                    $this->insertingCallback,
-                    $this->insertedCallback,
-                    $this->convertArrayToCollectionFeature->handle($model, $chunk)->all()
+                    $this->creatingCallback,
+                    $this->createdCallback,
+                    $this->savedCallback,
+                    $this->chunkCallback?->handle($collection) ?? $collection
                 );
             }
         );
     }
 
+    /**
+     * @param string|BulkModel $model
+     * @param string[] $uniqueAttributes
+     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @return void
+     */
+    public function insertOrIgnore(string|BulkModel $model, array $uniqueAttributes, iterable $rows): void
+    {
+        $this->insert($model, $uniqueAttributes, $rows, true);
+    }
+
+    /**
+     * @return string[]
+     */
     protected function getSelectColumns(BulkModel $model): array
     {
         if (in_array('*', $this->selectColumns, true)) {
@@ -142,23 +212,16 @@ class BulkInsert
         return $this->selectColumns;
     }
 
-    /**
-     * @param string|BulkModel $model
-     * @param string[] $uniqueAttributes
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
-     * @return void
-     */
-    public function insertOrIgnore(
-        string|BulkModel $model,
-        array $uniqueAttributes,
-        iterable $rows,
-    ): void
+    protected function getBulkModel(BulkModel|string $model): BulkModel
     {
-        $this->insertByChunks(
-            $model,
-            $uniqueAttributes,
-            $rows,
-            ignore: true,
-        );
+        if ($model instanceof BulkModel) {
+            return $model;
+        }
+
+        if (class_exists($model) === false || is_a($model, BulkModel::class) === false) {
+            throw new BulkModelIsUndefined();
+        }
+
+        return new $model();
     }
 }

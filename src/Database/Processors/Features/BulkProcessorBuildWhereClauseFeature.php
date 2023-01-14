@@ -9,7 +9,7 @@ use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\WhereClause\BulkSqlBuilderWhe
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Features\BulkConvertValueToSqlFeature;
 use Lapaliv\BulkUpsert\Features\BulkCollapseArrayFeature;
 
-class ProcessorBuildWhereClauseFeature
+class BulkProcessorBuildWhereClauseFeature
 {
     public function __construct(
         private BulkConvertValueToSqlFeature $convertValueToSqlFeature,

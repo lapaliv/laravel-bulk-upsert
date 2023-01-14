@@ -3,12 +3,12 @@
 namespace Lapaliv\BulkUpsert;
 
 use Closure;
+use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\BulkUpdateFeature;
 use Lapaliv\BulkUpsert\Traits\BulkSettings;
-use Illuminate\Database\Eloquent\Collection;
 
 class BulkUpdate
 {

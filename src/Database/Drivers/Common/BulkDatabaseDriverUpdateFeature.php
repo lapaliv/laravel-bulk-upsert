@@ -6,7 +6,7 @@ use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseProcessor;
 use Lapaliv\BulkUpsert\Database\BulkSqlBuilder;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderCaseClause;
-use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdateOperation;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdate;
 use Lapaliv\BulkUpsert\Features\BulkAddWhereClauseToBuilderFeature;
 use Throwable;
 
@@ -53,7 +53,7 @@ class BulkDatabaseDriverUpdateFeature
         string $table,
         array $rows,
         array $uniqueAttributes,
-    ): BulkSqlBuilderUpdateOperation
+    ): BulkSqlBuilderUpdate
     {
         $sqlBuilder = $this->sqlBuilder
             ->update()

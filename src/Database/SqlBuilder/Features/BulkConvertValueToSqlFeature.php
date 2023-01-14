@@ -4,6 +4,11 @@ namespace Lapaliv\BulkUpsert\Database\SqlBuilder\Features;
 
 class BulkConvertValueToSqlFeature
 {
+    /**
+     * @param mixed $value
+     * @param mixed[] $bindings
+     * @return string
+     */
     public function handle(mixed $value, array &$bindings): string
     {
         if (is_int($value)) {

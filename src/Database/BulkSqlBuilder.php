@@ -3,13 +3,19 @@
 namespace Lapaliv\BulkUpsert\Database;
 
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderWhereClause;
-use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdateOperation;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderInsert;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdate;
 
 class BulkSqlBuilder
 {
-    public function update(): BulkSqlBuilderUpdateOperation
+    public function insert(): BulkSqlBuilderInsert
     {
-        return new BulkSqlBuilderUpdateOperation(
+        return new BulkSqlBuilderInsert();
+    }
+
+    public function update(): BulkSqlBuilderUpdate
+    {
+        return new BulkSqlBuilderUpdate(
             new BulkSqlBuilderWhereClause(),
         );
     }

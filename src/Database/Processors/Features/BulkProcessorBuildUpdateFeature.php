@@ -2,21 +2,21 @@
 
 namespace Lapaliv\BulkUpsert\Database\Processors\Features;
 
-use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdateOperation;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderUpdate;
 use Lapaliv\BulkUpsert\Features\BulkCollapseArrayFeature;
 
-class ProcessorBuildUpdateFeature
+class BulkProcessorBuildUpdateFeature
 {
     public function __construct(
         private BulkCollapseArrayFeature $collapseArrayFeature,
-        private ProcessorBuildCaseClauseFeature $buildCaseClauseFeature,
-        private ProcessorBuildWhereClauseFeature $whereClauseFeature,
+        private BulkProcessorBuildCaseClauseFeature $buildCaseClauseFeature,
+        private BulkProcessorBuildWhereClauseFeature $whereClauseFeature,
     )
     {
         //
     }
 
-    public function handle(BulkSqlBuilderUpdateOperation $builder): array
+    public function handle(BulkSqlBuilderUpdate $builder): array
     {
         $bindings = [];
         $result = 'UPDATE ';

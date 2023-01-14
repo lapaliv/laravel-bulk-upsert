@@ -2,12 +2,14 @@
 
 namespace Lapaliv\BulkUpsert\Database\Drivers;
 
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Lapaliv\BulkUpsert\Contracts\BulkDatabaseDriver;
 use Lapaliv\BulkUpsert\Database\Drivers\Common\BulkDatabaseDriverUpdateFeature;
 use Lapaliv\BulkUpsert\Database\Drivers\Mysql\BulkMysqlDriverInsertFeature;
 use Lapaliv\BulkUpsert\Database\Drivers\Mysql\BulkMysqlDriverSelectAffectedRowsFeature;
 use Lapaliv\BulkUpsert\Database\Processors\MysqlProcessor;
+use Lapaliv\BulkUpsert\Database\SqlBuilder\Operations\BulkSqlBuilderInsert;
 use stdClass;
 use Throwable;
 
@@ -18,6 +20,8 @@ class BulkMysqlBulkDatabaseDriver implements BulkDatabaseDriver
     private array $uniqueAttributes;
     private bool $hasIncrementing;
     private array $selectColumns;
+
+    private ?int $lastInsertedId = null;
 
     public function __construct(
         private MysqlProcessor $processor,
@@ -30,27 +34,38 @@ class BulkMysqlBulkDatabaseDriver implements BulkDatabaseDriver
     }
 
     /**
-     * @param string[] $fields
-     * @param bool $ignoring
-     * @return int|null
-     * @throws Throwable
+     * @param ConnectionInterface $connection
+     * @param BulkSqlBuilderInsert $sqlBuilder
+     * @return bool
      */
-    public function insert(array $fields, bool $ignoring): ?int
+    public function insert(ConnectionInterface $connection, BulkSqlBuilderInsert $sqlBuilder): bool
     {
-        return $this->mysqlDriverInsertFeature->handle(
-            $this->builder->getConnection(),
-            $this->builder->from,
-            $fields,
-            $this->rows,
-            $ignoring,
-            $this->hasIncrementing,
-        );
+        ['sql' => $sql, 'bindings' => $bindings] = $this->processor->insert($sqlBuilder);
+
+        $connection->beginTransaction();
+
+        try {
+            $this->lastInsertedId = $connection->selectOne($sql, $bindings);
+            $connection->commit();
+
+            return true;
+        } catch (Throwable $exception) {
+            $connection->rollBack();
+            throw $exception;
+        }
+//        return $this->mysqlDriverInsertFeature->handle(
+//            $this->builder->getConnection(),
+//            $this->builder->from,
+//            $this->rows,
+//            $ignoring,
+//            $this->hasIncrementing,
+//        );
     }
 
     /**
      * @return stdClass[]
      */
-    public function selectAffectedRows(): array
+    public function selectAffectedRows(ConnectionInterface $connection, array $rows): array
     {
         return $this->mysqlDriverSelectAffectedRowsFeature->handle(
             $this->builder,

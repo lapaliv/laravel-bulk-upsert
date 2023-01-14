@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Contracts;
 
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,6 +14,13 @@ use Illuminate\Database\Eloquent\MassAssignmentException;
  */
 interface BulkModel
 {
+    /**
+     * Get the event dispatcher instance.
+     *
+     * @return Dispatcher
+     */
+    public static function getEventDispatcher();
+
     /**
      * Get an attribute from the model.
      *
@@ -182,4 +190,48 @@ interface BulkModel
      * @return $this
      */
     public function syncChanges();
+
+    /**
+     * Get the relationships that are touched on save.
+     *
+     * @return array
+     */
+    public function getTouchedRelations();
+
+    /**
+     * Touch the owning relations of the model.
+     *
+     * @return void
+     */
+    public function touchOwners();
+
+    /**
+     * Set the value of the "created at" attribute.
+     *
+     * @param mixed $value
+     * @return $this
+     */
+    public function setCreatedAt($value);
+
+    /**
+     * Set the value of the "updated at" attribute.
+     *
+     * @param mixed $value
+     * @return $this
+     */
+    public function setUpdatedAt($value);
+
+    /**
+     * Update the creation and update timestamps.
+     *
+     * @return $this
+     */
+    public function updateTimestamps();
+
+    /**
+     * Get all the loaded relations for the instance.
+     *
+     * @return array
+     */
+    public function getRelations();
 }

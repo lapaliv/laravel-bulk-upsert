@@ -8,11 +8,10 @@ use stdClass;
 interface BulkDatabaseDriver
 {
     /**
-     * @param string[] $fields
      * @param bool $ignoring
-     * @return int|null
+     * @return bool
      */
-    public function insert(array $fields, bool $ignoring): ?int;
+    public function insert(): bool;
 
     /**
      * @return stdClass[]

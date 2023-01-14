@@ -23,10 +23,9 @@ class TimestampFieldsTest extends TestCase
      */
     public function test(string $model): void
     {
-        [
-            'sut' => $sut,
-            'collection' => $collection,
-        ] = $this->arrange($model);
+        // arrange
+        $collection = $this->generateCollection($model);
+        $sut = $this->app->make(BulkInsert::class);
 
         // act
         $sut->insert($model, ['email'], $collection);
@@ -53,21 +52,6 @@ class TimestampFieldsTest extends TestCase
             [MysqlUser::class],
             [PostgresUser::class],
         ];
-    }
-
-    /**
-     * @param string $model
-     * @return array{
-     *     sut: BulkInsert,
-     *     collection: UserCollection
-     * }
-     */
-    private function arrange(string $model): array
-    {
-        $collection = $this->generateCollection($model);
-        $sut = $this->app->make(BulkInsert::class);
-
-        return compact('collection', 'sut');
     }
 
     private function generateCollection(string $model): UserCollection

@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Database\SqlBuilder\Operations;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderCaseClause;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderWhereClause;
 
-class BulkSqlBuilderUpdateOperation
+class BulkSqlBuilderUpdate
 {
     private string $table;
     private bool $ignore = false;

@@ -6,7 +6,7 @@ use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderCaseClause;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\CaseClause\BulkSqlBuilderCaseClauseBody;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Features\BulkConvertValueToSqlFeature;
 
-class ProcessorBuildCaseClauseFeature
+class BulkProcessorBuildCaseClauseFeature
 {
     public function __construct(
         private BulkConvertValueToSqlFeature $convertValueToSqlFeature,

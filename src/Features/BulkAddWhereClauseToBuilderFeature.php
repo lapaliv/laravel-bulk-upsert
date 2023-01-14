@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Database\SqlBuilder\Clauses\BulkSqlBuilderWhereClause;
 
 class BulkAddWhereClauseToBuilderFeature
@@ -11,13 +12,13 @@ class BulkAddWhereClauseToBuilderFeature
     /**
      * @param EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder
      * @param string[] $uniqueAttributes
-     * @param array<int, array<string, scalar>> $rows
+     * @param array<int, array<string, scalar|BulkModel>> $rows
      * @return void
      */
     public function handle(
         EloquentBuilder|QueryBuilder|BulkSqlBuilderWhereClause $builder,
         array $uniqueAttributes,
-        array $rows
+        iterable $rows
     ): void
     {
         $this->makeBuilder(

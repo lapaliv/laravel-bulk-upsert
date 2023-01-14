@@ -43,12 +43,11 @@ class BulkPostgresBulkDatabaseDriver implements BulkDatabaseDriver
      * @return int|null
      * @throws Throwable
      */
-    public function insert(array $fields, bool $ignoring): ?int
+    public function insert(bool $ignoring): bool
     {
         $insertedRows = $this->postgresDriverInsertFeature->handle(
             $this->builder->getConnection(),
             $this->builder->from,
-            $fields,
             $this->rows,
             $ignoring,
             $this->selectColumns,
