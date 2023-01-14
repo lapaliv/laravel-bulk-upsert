@@ -166,7 +166,10 @@ class BulkInsert implements BulkInsertContract
                     $uniqueAttributes,
                     $selectColumns,
                     $dateFields,
-                    $this->events, // todo: use hasEventListeners from dispatcher
+                    array_filter(
+                        $this->getEvents(),
+                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
+                    ),
                     $ignore,
                     $this->creatingCallback,
                     $this->createdCallback,
