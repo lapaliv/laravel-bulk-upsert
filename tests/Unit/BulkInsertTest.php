@@ -4,22 +4,23 @@ namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Exception;
 use Faker\Factory;
+use Faker\Generator;
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\BulkUpdate;
+use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
 use Lapaliv\BulkUpsert\Tests\Features\SwitchDriverToNullDriverFeature;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
+use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
 use Lapaliv\BulkUpsert\Tests\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
-use stdClass;
 
-class UpdateTest extends TestCase
+class BulkInsertTest extends TestCase
 {
     private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private SwitchDriverToNullDriverFeature $switchDriverToNullDriverFeature;
 
     /**
      * @dataProvider chunkCallbackDataProvider
@@ -34,14 +35,15 @@ class UpdateTest extends TestCase
         // arrange
         $users = $this->generateUserCollectionFeature->handle($model, $numberOfUsers, ['email', 'name']);
         $callbackSpy = Mockery::spy(Callback::class);
+        $this->switchDriverToNullDriverFeature->handle();
 
-        /** @var BulkUpdate $sut */
+        /** @var BulkInsert $sut */
         $sut = $this->app
-            ->make(BulkUpdate::class)
+            ->make(BulkInsert::class)
             ->chunk($chunkSize, $callbackSpy);
 
         // act
-        $sut->update($model, $users, ['email']);
+        $sut->insert($model, ['email'], $users);
 
         // assert
         $callbackSpy->shouldHaveBeenCalled();
@@ -67,14 +69,14 @@ class UpdateTest extends TestCase
     public function testThrowBulkModelIsUndefined(string $model): void
     {
         // assert
-        /** @var BulkUpdate $sut */
-        $sut = $this->app->make(BulkUpdate::class);
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
 
         // assert
         $this->expectException(BulkModelIsUndefined::class);
 
         // act
-        $sut->update($model, []);
+        $sut->insert($model, [], []);
     }
 
     /**
@@ -86,8 +88,8 @@ class UpdateTest extends TestCase
     public function testIntersectEvents(array $events): void
     {
         // assert
-        /** @var BulkUpdate $sut */
-        $sut = $this->app->make(BulkUpdate::class);
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
 
         // act
         $sut->setEvents($events);
@@ -98,8 +100,8 @@ class UpdateTest extends TestCase
                 $sut->getEvents(),
                 static fn(string $event): bool => !in_array($event, [
                     BulkEventEnum::SAVING,
-                    BulkEventEnum::UPDATING,
-                    BulkEventEnum::UPDATED,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
                     BulkEventEnum::SAVED,
                 ], true)
             )
@@ -118,16 +120,15 @@ class UpdateTest extends TestCase
     protected function chunkCallbackDataProvider(): array
     {
         return [
-            [PostgresUser::class, 7, 3],
-            [PostgresUser::class, 12, 4],
+            [MysqlUser::class, 5, 1],
+            [MysqlUser::class, 10, 3],
         ];
     }
 
     protected function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
-            'random string' => ['\Abcd'],
-            'stdClass' => [stdClass::class],
+            'random string' => [base64_encode(random_bytes(3))],
             'class does not implement BulkModel' => [self::class],
         ];
     }
@@ -138,24 +139,24 @@ class UpdateTest extends TestCase
             'correct' => [
                 [
                     BulkEventEnum::SAVING,
-                    BulkEventEnum::UPDATING,
-                    BulkEventEnum::UPDATED,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
                     BulkEventEnum::SAVING,
                 ],
             ],
             'extra' => [
                 [
                     BulkEventEnum::SAVING,
-                    BulkEventEnum::UPDATING,
-                    BulkEventEnum::UPDATED,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
                     BulkEventEnum::SAVING,
                     BulkEventEnum::UPDATING,
                 ],
             ],
             'some' => [
                 [
-                    BulkEventEnum::UPDATING,
-                    BulkEventEnum::UPDATED,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
                 ],
             ],
         ];
