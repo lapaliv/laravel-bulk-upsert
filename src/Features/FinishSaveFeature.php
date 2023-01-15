@@ -2,22 +2,38 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\BulkUpdate;
+use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Contracts\Driver;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 class FinishSaveFeature
 {
     public function __construct(
-        private BulkFireModelEventsFeature $fireModelEventsFeature,
-        private BulkUpdate $bulkUpdate,
+        private FireModelEventsFeature $fireModelEventsFeature,
+        private UpdateBuilder $builder,
     )
     {
         //
     }
 
-    public function handle(BulkModel $eloquent, Collection $collection, array $events): void
+    /**
+     * @param BulkModel $eloquent
+     * @param Collection $collection
+     * @param ConnectionInterface $connection
+     * @param Driver $driver
+     * @param string[] $events
+     * @return void
+     */
+    public function handle(
+        BulkModel $eloquent,
+        Collection $collection,
+        ConnectionInterface $connection,
+        Driver $driver,
+        array $events,
+    ): void
     {
         if (empty($eloquent->getTouchedRelations())) {
             $collection->each(
@@ -39,7 +55,7 @@ class FinishSaveFeature
         $relations = $this->getTouchedRelations($eloquent, $collection);
 
         if (empty($relations) === false) {
-            $this->touchRelations($relations);
+            $this->touchRelations($relations, $connection, $driver);
         }
 
         $collection->each(
@@ -72,21 +88,53 @@ class FinishSaveFeature
 
     /**
      * @param Collection[] $relations
+     * @param ConnectionInterface $connection
+     * @param Driver $driver
      * @return void
      */
-    private function touchRelations(array $relations): void
+    private function touchRelations(
+        array $relations,
+        ConnectionInterface $connection,
+        Driver $driver,
+    ): void
     {
-        $this->bulkUpdate->events([BulkEventEnum::SAVED]);
-
         foreach ($relations as $collection) {
-            if ($collection->isNotEmpty()) {
-                /** @var BulkModel $model */
-                $model = $collection->first();
-                $this->bulkUpdate->update(
-                    $model,
-                    $collection,
-                    [$model->getKeyName()],
-                    [$model->getUpdatedAtColumn()]
+            if ($collection->isEmpty()) {
+                continue;
+            }
+
+            /** @var BulkModel $model */
+            $model = $collection->first();
+            $this->builder->reset()->table($model->getTable());
+
+            if ($model->usesTimestamps() === false) {
+                continue;
+            }
+
+            $collection = $collection
+                ->each(
+                    fn(BulkModel $model) => $model->updateTimestamps()
+                )
+                ->filter(
+                    fn(BulkModel $model) => $model->isDirty()
+                )
+                ->each(
+                    fn(BulkModel $model) => $this->builder->addSet(
+                        $model->getUpdatedAtColumn(),
+                        [$model->getKeyName() => $model->getKey()],
+                        $model->getAttribute($model->getUpdatedAtColumn())
+                    )
+                );
+
+            $updateResult = $driver->update($connection, $this->builder);
+
+            if ($updateResult > 0) {
+                $collection->each(
+                    fn(BulkModel $model) => $this->fireModelEventsFeature->handle(
+                        $model,
+                        [BulkEventEnum::SAVED],
+                        [BulkEventEnum::SAVED]
+                    )
                 );
             }
         }

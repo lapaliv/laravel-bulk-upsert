@@ -234,4 +234,11 @@ interface BulkModel
      * @return array
      */
     public function getRelations();
+
+    /**
+     * Get the table associated with the model.
+     *
+     * @return string
+     */
+    public function getTable();
 }

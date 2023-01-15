@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Drivers\MySql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
-use Lapaliv\BulkUpsert\Database\SqlBuilder\Features\BulkConvertValueToSqlFeature;
+use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Throwable;
 
 class MySqlDriverInsert
 {
     public function __construct(
-        private BulkConvertValueToSqlFeature $convertValueToSqlFeature,
+        private MixedValueToSqlConverter $mixedValueToSqlConverter,
     )
     {
         //
@@ -61,7 +61,7 @@ class MySqlDriverInsert
         foreach ($builder->getValues() as $value) {
             $item = [];
             foreach ($builder->getColumns() as $column) {
-                $item[] = $this->convertValueToSqlFeature->handle($value[$column] ?? null, $bindings);
+                $item[] = $this->mixedValueToSqlConverter->handle($value[$column] ?? null, $bindings);
             }
             $values[] = implode(',', $item);
         }

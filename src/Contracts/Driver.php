@@ -3,7 +3,9 @@
 namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
+use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 
 interface Driver
 {
@@ -12,4 +14,11 @@ interface Driver
         InsertBuilder $builder,
         ?string $primaryKeyName,
     ): int|string|null;
+
+    public function update(
+        ConnectionInterface $connection,
+        UpdateBuilder $builder
+    ): int;
+
+    public function simpleInsert(Builder $builder, array $values): void;
 }

@@ -38,6 +38,8 @@ abstract class Article extends Model
 
     protected $casts = [
         'is_new' => 'boolean',
+        'date' => 'date',
+        'microseconds' => 'datetime:Y-m-d H:i:s.u',
     ];
 
     public function newCollection(array $models = []): ArticleCollection

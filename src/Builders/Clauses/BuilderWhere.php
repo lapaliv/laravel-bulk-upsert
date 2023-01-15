@@ -9,20 +9,30 @@ use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
 
 trait BuilderWhere
 {
+    /**
+     * @var BuilderWhereCallback[]|BuilderWhereCondition[]|BuilderWhereIn[]
+     */
     private array $wheres = [];
     private array $fields = [];
 
-    public function where(string|Closure $field, string $operator, mixed $value, string $boolean = 'and'): static
+    public function where(
+        string|Closure $field,
+        string $operator = '=',
+        mixed $value = null,
+        string $boolean = 'and',
+    ): static
     {
-        $this->fields[$field] = $field;
-        $this->wheres[] = $field instanceof Closure
-            ? new BuilderWhereCallback($field, $boolean)
-            : new BuilderWhereCondition($field, $operator, $value, $boolean);
+        if ($field instanceof Closure) {
+            $this->wheres[] = new BuilderWhereCallback($field, $boolean);
+        } else {
+            $this->fields[$field] = $field;
+            $this->wheres[] = new BuilderWhereCondition($field, $operator, $value, $boolean);
+        }
 
         return $this;
     }
 
-    public function orWhere(string|Closure $field, string $operator, mixed $value): static
+    public function orWhere(string|Closure $field, string $operator = '=', mixed $value = null): static
     {
         return $this->where($field, $operator, $value, 'or');
     }
@@ -35,6 +45,9 @@ trait BuilderWhere
         return $this;
     }
 
+    /**
+     * @return BuilderWhereCallback[]|BuilderWhereCondition[]|BuilderWhereIn[]
+     */
     public function getWheres(): array
     {
         return $this->wheres;

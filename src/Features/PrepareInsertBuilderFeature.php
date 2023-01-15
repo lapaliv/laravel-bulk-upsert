@@ -5,15 +5,16 @@ namespace Lapaliv\BulkUpsert\Features;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Converters\ArrayToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class PrepareInsertBuilderFeature
 {
     public function __construct(
-        private BulkFireModelEventsFeature $fireModelEventsFeature,
-        private BulkConvertAttributesToScalarArrayFeature $convertAttributesToScalarArrayFeature,
-        private BulkFreshTimestampsFeature $freshTimestampsFeature,
+        private FireModelEventsFeature $fireModelEventsFeature,
+        private ArrayToScalarArrayConverter $arrayToScalarArrayConverter,
+        private FreshTimestampsFeature $freshTimestampsFeature,
         private InsertBuilder $builder,
     )
     {
@@ -30,13 +31,13 @@ class PrepareInsertBuilderFeature
     ): ?InsertBuilder
     {
         $result = $this->builder
-            ->into($eloquent->newQuery()->from)
+            ->into($eloquent->getTable())
             ->onConflictDoNothing($ignore);
 
         if ($creatingCallback === null) {
-            $this->fillInBuilderFromCollection($result, $collection, $dateFields, $events);
+            $this->fillInBuilderFromCollection($collection, $dateFields, $events);
         } else {
-            $collection = $this->prepareModelsForCreating($collection, $events);
+            $collection = $this->prepareModels($collection, $events);
             $collection = $creatingCallback->handle($collection) ?? $collection;
 
             if ($collection->isEmpty()) {
@@ -44,7 +45,6 @@ class PrepareInsertBuilderFeature
             }
 
             $this->fillInBuilderFromArray(
-                $result,
                 $this->convertCollectionToArray($collection, $dateFields)
             );
         }
@@ -58,18 +58,18 @@ class PrepareInsertBuilderFeature
      * @param array $events
      * @return Collection
      */
-    private function prepareModelsForCreating(Collection $collection, array $events): Collection
+    private function prepareModels(Collection $collection, array $events): Collection
     {
         return $collection
             ->filter(
-                fn(BulkModel $model) => $this->fireModelEventsBeforeCreating($model, $events)
+                fn(BulkModel $model) => $this->fireModelEvents($model, $events)
             )
             ->each(
                 fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
-    private function fireModelEventsBeforeCreating(BulkModel $model, array $events): bool
+    private function fireModelEvents(BulkModel $model, array $events): bool
     {
         return $this->fireModelEventsFeature->handle($model, $events, [
             BulkEventEnum::SAVING,
@@ -86,7 +86,7 @@ class PrepareInsertBuilderFeature
     {
         return $collection
             ->transform(
-                fn(BulkModel $model) => $this->convertAttributesToScalarArrayFeature->handle(
+                fn(BulkModel $model) => $this->arrayToScalarArrayConverter->handle(
                     $dateFields,
                     $model->getAttributes(),
                 )
@@ -94,23 +94,18 @@ class PrepareInsertBuilderFeature
             ->toArray();
     }
 
-    private function fillInBuilderFromCollection(
-        InsertBuilder $builder,
-        Collection $collection,
-        array $dateFields,
-        array $events,
-    ): InsertBuilder
+    private function fillInBuilderFromCollection(Collection $collection, array $dateFields, array $events): void
     {
         $columns = [];
 
         foreach ($collection as $model) {
-            if ($this->fireModelEventsBeforeCreating($model, $events) === false) {
+            if ($this->fireModelEvents($model, $events) === false) {
                 continue;
             }
 
             $this->freshTimestampsFeature->handle($model);
 
-            $row = $this->convertAttributesToScalarArrayFeature->handle(
+            $row = $this->arrayToScalarArrayConverter->handle(
                 $dateFields,
                 $model->getAttributes(),
             );
@@ -119,24 +114,24 @@ class PrepareInsertBuilderFeature
                 $columns[$key] = $key;
             }
 
-            $builder->addValue($row);
+            $this->builder->addValue($row);
         }
 
-        return $builder->columns($columns);
+        $this->builder->columns($columns);
     }
 
-    private function fillInBuilderFromArray(InsertBuilder $builder, array $rows): void
+    private function fillInBuilderFromArray(array $rows): void
     {
         $columns = [];
 
         foreach ($rows as $row) {
-            $builder->addValue($row);
+            $this->builder->addValue($row);
 
             foreach ($row as $key => $value) {
                 $columns[$key] = $key;
             }
         }
 
-        $builder->columns($columns);
+        $this->builder->columns($columns);
     }
 }

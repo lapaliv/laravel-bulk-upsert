@@ -2,21 +2,29 @@
 
 namespace Lapaliv\BulkUpsert;
 
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Contracts\BulkUpdateContract;
+use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
-use Lapaliv\BulkUpsert\Features\BulkUpdateFeature;
-use Lapaliv\BulkUpsert\Traits\BulkSettings;
+use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
+use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Features\UpdateFeature;
+use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class BulkUpdate
+class BulkUpdate implements BulkUpdateContract
 {
-    use BulkSettings;
+    private int $chunkSize = 100;
 
-    private ?Closure $updatingCallback = null;
-    private ?Closure $updatedCallback = null;
+    /**
+     * @var string[]
+     */
+    private array $selectColumns = ['*'];
 
+    /**
+     * @var string[]
+     */
     private array $events = [
         BulkEventEnum::UPDATING,
         BulkEventEnum::UPDATED,
@@ -24,23 +32,78 @@ class BulkUpdate
         BulkEventEnum::SAVED,
     ];
 
+    private ?BulkCallback $chunkCallback = null;
+    private ?BulkCallback $updatingCallback = null;
+    private ?BulkCallback $updatedCallback = null;
+    private ?BulkCallback $savingCallback = null;
+    private ?BulkCallback $savedCallback = null;
+
     public function __construct(
-        private BulkUpdateFeature $updateFeature,
-        private BulkGetDateFieldsFeature $getDateFieldsFeature,
+        private UpdateFeature $updateFeature,
+        private GetDateFieldsFeature $getDateFieldsFeature,
+        private SeparateIterableRowsFeature $separateIterableRowsFeature,
+        private ArrayToCollectionConverter $arrayToCollectionConverter,
+        private GetBulkModelFeature $getBulkModelFeature,
     )
     {
         //
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @param int $size
+     * @param (callable(Collection<BulkModel> $chunk): Collection<BulkModel>)|null $callback
      * @return $this
      */
-    public function onUpdating(callable $callback): static
+    public function chunk(int $size = 100, ?callable $callback = null): static
     {
-        $this->updatingCallback = is_callable($callback)
-            ? Closure::fromCallable($callback)
-            : $callback;
+        $this->chunkSize = $size;
+        $this->chunkCallback = $callback === null
+            ? null
+            : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getEvents(): array
+    {
+        return $this->events;
+    }
+
+    /**
+     * @param string[] $events
+     * @return $this
+     */
+    public function setEvents(array $events): static
+    {
+        $this->events = array_intersect($events, [
+            BulkEventEnum::UPDATING,
+            BulkEventEnum::UPDATED,
+            BulkEventEnum::SAVING,
+            BulkEventEnum::SAVED,
+        ]);
+
+        return $this;
+    }
+
+    public function disableEvents(): static
+    {
+        $this->events = [];
+
+        return $this;
+    }
+
+    /**
+     * @param string[] $columns
+     * @return $this
+     */
+    public function select(array $columns = ['*']): static
+    {
+        $this->selectColumns = in_array('*', $columns, true)
+            ? ['*']
+            : $columns;
 
         return $this;
     }
@@ -49,11 +112,42 @@ class BulkUpdate
      * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
      * @return $this
      */
-    public function onUpdated(callable $callback): static
+    public function onUpdating(?callable $callback): static
     {
-        $this->updatedCallback = is_callable($callback)
-            ? Closure::fromCallable($callback)
-            : $callback;
+        $this->updatingCallback = $callback === null ? null : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @return $this
+     */
+    public function onUpdated(?callable $callback): static
+    {
+        $this->updatedCallback = $callback === null ? null : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @return $this
+     */
+    public function onSaving(?callable $callback): static
+    {
+        $this->savingCallback = $callback === null ? null : new BulkCallback($callback);
+
+        return $this;
+    }
+
+    /**
+     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @return $this
+     */
+    public function onSaved(?callable $callback): static
+    {
+        $this->savedCallback = $callback === null ? null : new BulkCallback($callback);
 
         return $this;
     }
@@ -69,49 +163,35 @@ class BulkUpdate
         string|BulkModel $model,
         iterable $rows,
         ?array $uniqueAttributes = null,
-        array $updateAttributes = [],
+        ?array $updateAttributes = null,
     ): void
     {
-        $this->updateByChunks($model, $uniqueAttributes, $updateAttributes, $rows);
-    }
-
-    /**
-     * @param string|BulkModel $model
-     * @param string[]|null $uniqueAttributes
-     * @param string[] $updateAttributes
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
-     * @return void
-     */
-    protected function updateByChunks(
-        string|BulkModel $model,
-        ?array $uniqueAttributes,
-        array $updateAttributes,
-        iterable $rows,
-    ): void
-    {
-        $model = is_string($model) ? new $model() : $model;
+        $model = $this->getBulkModelFeature->handle($model);
         $uniqueAttributes ??= [$model->getKeyName()];
         $selectColumns = $this->getSelectColumns($uniqueAttributes, $updateAttributes);
         $dateFields = $this->getDateFieldsFeature->handle($model);
 
-        $this->separate(
-            $model,
+        $this->separateIterableRowsFeature->handle(
+            $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields): void {
-                if ($this->chunkCallback !== null) {
-                    $chunk = call_user_func($this->chunkCallback, $chunk) ?? $chunk;
-                }
+                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
 
                 $this->updateFeature->handle(
-                    model: $model,
+                    eloquent: $model,
                     uniqueAttributes: $uniqueAttributes,
                     updateAttributes: $updateAttributes,
                     selectColumns: $selectColumns,
                     dateFields: $dateFields,
-                    events: $this->getEvents(),
+                    events: array_filter(
+                        $this->getEvents(),
+                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
+                    ),
                     updatingCallback: $this->updatingCallback,
                     updatedCallback: $this->updatedCallback,
-                    models: $chunk,
+                    savingCallback: $this->savingCallback,
+                    savedCallback: $this->savedCallback,
+                    collection: $this->chunkCallback?->handle($collection) ?? $collection,
                 );
             }
         );
@@ -119,12 +199,12 @@ class BulkUpdate
 
     /**
      * @param string[] $uniqueAttributes
-     * @param string[] $updateAttributes
+     * @param string[]|null $updateAttributes
      * @return string[]
      */
     protected function getSelectColumns(
         array $uniqueAttributes,
-        array $updateAttributes,
+        ?array $updateAttributes,
     ): array
     {
         if (in_array('*', $this->selectColumns, true)) {

@@ -4,28 +4,8 @@ namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\Eloquent\Collection;
 
-interface BulkInsertContract
+interface BulkInsertContract extends BulkSave
 {
-    /**
-     * @param int $size
-     * @param callable(BulkModel[] $chunk): BulkModel[]|null $callback
-     * @return $this
-     */
-    public function chunk(int $size = 100, ?callable $callback = null): static;
-
-    /**
-     * @return string[]
-     */
-    public function getEvents(): array;
-
-    /**
-     * @param string[] $events
-     * @return $this
-     */
-    public function setEvents(array $events): static;
-
-    public function disableEvents(): static;
-
     /**
      * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
      * @return $this
@@ -43,12 +23,6 @@ interface BulkInsertContract
      * @return $this
      */
     public function onSaved(?callable $callback): static;
-
-    /**
-     * @param string[] $columns
-     * @return $this
-     */
-    public function select(array $columns = ['*']): static;
 
     /**
      * @param string|BulkModel $model

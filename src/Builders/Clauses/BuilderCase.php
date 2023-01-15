@@ -2,21 +2,25 @@
 
 namespace Lapaliv\BulkUpsert\Builders\Clauses;
 
+use Lapaliv\BulkUpsert\Builders\Clauses\Case\BuilderCaseWhen;
+
 class BuilderCase
 {
-    use BuilderWhere;
+    /** @var BuilderCaseWhen[] */
+    private array $whens = [];
+    private BuilderRawExpression|int|float|string|bool|null $else = null;
 
-    public BuilderRawExpression|int|float|string|bool|null $then = null;
-    public BuilderRawExpression|int|float|string|bool|null $else = null;
-
-    public function getThen(): BuilderRawExpression|int|float|string|bool|null
+    /**
+     * @return BuilderCaseWhen[]
+     */
+    public function getWhens(): array
     {
-        return $this->then;
+        return $this->whens;
     }
 
-    public function then(BuilderRawExpression|int|float|string|bool|null $value): static
+    public function addWhenThen(BuilderCaseWhen $builderCaseWhen): static
     {
-        $this->then = $value;
+        $this->whens[] = $builderCaseWhen;
 
         return $this;
     }

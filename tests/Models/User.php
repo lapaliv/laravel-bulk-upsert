@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
@@ -11,11 +12,11 @@ use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
  * @property string $email
  * @property string $name
  * @property string|null $phone
- * @property \Carbon\CarbonInterface|null $date
- * @property \Carbon\CarbonInterface|null $microseconds
- * @property \Carbon\CarbonInterface $created_at
- * @property \Carbon\CarbonInterface $updated_at
- * @property \Carbon\CarbonInterface|null $deleted_at
+ * @property CarbonInterface|null $date
+ * @property CarbonInterface|null $microseconds
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property CarbonInterface|null $deleted_at
  */
 abstract class User extends Model
 {
@@ -46,7 +47,7 @@ abstract class User extends Model
         self::dropTable();
         self::getSchema()->create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('email', 50)
+            $table->string('email', 100)
                 ->unique();
             $table->string('name', 50);
             $table->string('phone')

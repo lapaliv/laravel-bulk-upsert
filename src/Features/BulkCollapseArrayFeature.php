@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+/**
+ * @deprecated
+ */
 class BulkCollapseArrayFeature
 {
     /**

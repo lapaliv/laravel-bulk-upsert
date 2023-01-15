@@ -10,6 +10,14 @@ use Throwable;
 
 class FillWasRecentlyCreatedFeature
 {
+    /**
+     * @param BulkModel $eloquent
+     * @param Collection<BulkModel> $collection
+     * @param string[] $dateFields
+     * @param int|null $lastInsertedId
+     * @param CarbonInterface $startedAt
+     * @return void
+     */
     public function handle(
         BulkModel $eloquent,
         Collection $collection,
@@ -27,7 +35,9 @@ class FillWasRecentlyCreatedFeature
         }
 
         $collection->map(
-            fn(BulkModel $model) => $model->wasRecentlyCreated = $checker($model),
+            function (BulkModel $model) use ($checker): void {
+                $model->wasRecentlyCreated = $model->wasRecentlyCreated || $checker($model);
+            }
         );
     }
 

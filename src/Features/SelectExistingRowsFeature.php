@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 class SelectExistingRowsFeature
 {
     public function __construct(
-        private BulkAddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
+        private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
     )
     {
         //

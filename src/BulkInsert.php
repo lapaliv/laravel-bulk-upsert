@@ -5,12 +5,12 @@ namespace Lapaliv\BulkUpsert;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertContract;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Features\BulkConvertArrayToCollectionFeature;
-use Lapaliv\BulkUpsert\Features\BulkGetDateFieldsFeature;
-use Lapaliv\BulkUpsert\Features\BulkInsertFeature;
-use Lapaliv\BulkUpsert\Features\BulkSeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\InsertFeature;
+use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class BulkInsert implements BulkInsertContract
@@ -22,11 +22,9 @@ class BulkInsert implements BulkInsertContract
      */
     private array $selectColumns = ['*'];
 
-    private ?BulkCallback $chunkCallback = null;
-    private ?BulkCallback $creatingCallback = null;
-    private ?BulkCallback $createdCallback = null;
-    private ?BulkCallback $savedCallback = null;
-
+    /**
+     * @var string[]
+     */
     private array $events = [
         BulkEventEnum::CREATING,
         BulkEventEnum::CREATED,
@@ -34,11 +32,17 @@ class BulkInsert implements BulkInsertContract
         BulkEventEnum::SAVED,
     ];
 
+    private ?BulkCallback $chunkCallback = null;
+    private ?BulkCallback $creatingCallback = null;
+    private ?BulkCallback $createdCallback = null;
+    private ?BulkCallback $savedCallback = null;
+
     public function __construct(
-        private BulkInsertFeature $insertFeature,
-        private BulkGetDateFieldsFeature $getDateFieldsFeature,
-        private BulkConvertArrayToCollectionFeature $convertArrayToCollectionFeature,
-        private BulkSeparateIterableRowsFeature $separateIterableRowsFeature,
+        private InsertFeature $insertFeature,
+        private GetDateFieldsFeature $getDateFieldsFeature,
+        private ArrayToCollectionConverter $arrayToCollectionConverter,
+        private SeparateIterableRowsFeature $separateIterableRowsFeature,
+        private GetBulkModelFeature $getBulkModelFeature,
     )
     {
         //
@@ -46,7 +50,7 @@ class BulkInsert implements BulkInsertContract
 
     /**
      * @param int $size
-     * @param callable(Collection<BulkModel> $chunk): BulkModel[]|null $callback
+     * @param callable(Collection<BulkModel> $chunk): Collection<BulkModel>|null $callback
      * @return $this
      */
     public function chunk(int $size = 100, ?callable $callback = null): static
@@ -151,7 +155,7 @@ class BulkInsert implements BulkInsertContract
      */
     public function insert(string|BulkModel $model, array $uniqueAttributes, iterable $rows, bool $ignore = false): void
     {
-        $model = $this->getBulkModel($model);
+        $model = $this->getBulkModelFeature->handle($model);
         $selectColumns = $this->getSelectColumns($model);
         $dateFields = $this->getDateFieldsFeature->handle($model);
 
@@ -159,22 +163,22 @@ class BulkInsert implements BulkInsertContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields): void {
-                $collection = $this->convertArrayToCollectionFeature->handle($model, $chunk);
+                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
 
                 $this->insertFeature->handle(
-                    $model,
-                    $uniqueAttributes,
-                    $selectColumns,
-                    $dateFields,
-                    array_filter(
+                    eloquent: $model,
+                    uniqueAttributes: $uniqueAttributes,
+                    selectColumns: $selectColumns,
+                    dateFields: $dateFields,
+                    events: array_filter(
                         $this->getEvents(),
                         static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
                     ),
-                    $ignore,
-                    $this->creatingCallback,
-                    $this->createdCallback,
-                    $this->savedCallback,
-                    $this->chunkCallback?->handle($collection) ?? $collection
+                    ignore: $ignore,
+                    creatingCallback: $this->creatingCallback,
+                    createdCallback: $this->createdCallback,
+                    savedCallback: $this->savedCallback,
+                    collection: $this->chunkCallback?->handle($collection) ?? $collection
                 );
             }
         );
@@ -213,18 +217,5 @@ class BulkInsert implements BulkInsertContract
         }
 
         return $this->selectColumns;
-    }
-
-    protected function getBulkModel(BulkModel|string $model): BulkModel
-    {
-        if ($model instanceof BulkModel) {
-            return $model;
-        }
-
-        if (class_exists($model) === false || is_a($model, BulkModel::class) === false) {
-            throw new BulkModelIsUndefined();
-        }
-
-        return new $model();
     }
 }

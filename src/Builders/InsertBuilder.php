@@ -4,14 +4,13 @@ namespace Lapaliv\BulkUpsert\Builders;
 
 class InsertBuilder
 {
-    private string $table;
-//    private bool $ignore = false;
+    private ?string $table = null;
     private array $columns = [];
     private array $values = [];
     private bool $onConflictDoNothing = false;
     private ?UpdateBuilder $onConflictUpdateBuilder = null;
 
-    public function getInto(): string
+    public function getInto(): ?string
     {
         return $this->table;
     }
@@ -47,20 +46,6 @@ class InsertBuilder
         return $this;
     }
 
-//    public function addRows(array $rows): static
-//    {
-//        $columns = [$this->columns];
-//
-//        foreach ($rows as $row) {
-//            $columns[] = array_keys($row);
-//            $this->values[] = $row;
-//        }
-//
-//        $this->columns = array_unique(array_merge(...$columns));
-//
-//        return $this;
-//    }
-
     public function doNothingAtConflict(): bool
     {
         return $this->onConflictDoNothing;
@@ -91,6 +76,17 @@ class InsertBuilder
     {
         $this->onConflictDoNothing = false;
         $this->onConflictUpdateBuilder = $builder;
+
+        return $this;
+    }
+
+    public function reset(): static
+    {
+        $this->table = null;
+        $this->columns = [];
+        $this->values = [];
+        $this->onConflictDoNothing = false;
+        $this->onConflictUpdateBuilder = null;
 
         return $this;
     }
