@@ -22,7 +22,7 @@ class PrepareCollectionBeforeUpdatingFeature
     /**
      * @param BulkModel $eloquent
      * @param string[] $uniqueAttributes
-     * @param string[] $updateAttributes
+     * @param string[]|null $updateAttributes
      * @param string[] $selectColumns
      * @param Collection<BulkModel> $collection
      * @return Collection<BulkModel>
@@ -30,7 +30,7 @@ class PrepareCollectionBeforeUpdatingFeature
     public function handle(
         BulkModel $eloquent,
         array $uniqueAttributes,
-        array $updateAttributes,
+        ?array $updateAttributes,
         array $selectColumns,
         Collection $collection,
     ): Collection
@@ -90,15 +90,15 @@ class PrepareCollectionBeforeUpdatingFeature
     /**
      * @param BulkModel $eloquent
      * @param string[] $uniqueAttributes
-     * @param string[] $updateAttributes
+     * @param string[]|null $updateAttributes
      * @param Collection<BulkModel> $foundModels
-     * @param BulkModel[] $nonExistent
+     * @param Collection<BulkModel> $nonExistent
      * @return Collection<BulkModel>
      */
     private function fillInAttributes(
         BulkModel $eloquent,
         array $uniqueAttributes,
-        array $updateAttributes,
+        ?array $updateAttributes,
         Collection $foundModels,
         Collection $nonExistent,
     ): Collection
