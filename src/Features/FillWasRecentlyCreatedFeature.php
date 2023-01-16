@@ -24,12 +24,11 @@ class FillWasRecentlyCreatedFeature
         array $dateFields,
         ?int $lastInsertedId,
         CarbonInterface $startedAt,
-    ): void
-    {
+    ): void {
         if ($lastInsertedId !== null && $eloquent->getIncrementing()) {
-            $checker = fn(BulkModel $model) => $this->checkPrimary($model, $lastInsertedId);
+            $checker = fn (BulkModel $model) => $this->checkPrimary($model, $lastInsertedId);
         } elseif ($eloquent->usesTimestamps() || array_key_exists($eloquent->getCreatedAtColumn(), $dateFields)) {
-            $checker = fn(BulkModel $model) => $this->checkCreatedAt($model, $startedAt);
+            $checker = fn (BulkModel $model) => $this->checkCreatedAt($model, $startedAt);
         } else {
             return;
         }

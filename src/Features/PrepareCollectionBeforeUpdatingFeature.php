@@ -14,8 +14,7 @@ class PrepareCollectionBeforeUpdatingFeature
         private KeyByFeature $keyByFeature,
         private ArrayOfObjectToScalarArraysConverter $arrayOfObjectToScalarArraysConverter,
         private GetKeyForRowFeature $getKeyForRowFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -33,8 +32,7 @@ class PrepareCollectionBeforeUpdatingFeature
         ?array $updateAttributes,
         array $selectColumns,
         Collection $collection,
-    ): Collection
-    {
+    ): Collection {
         $result = $eloquent->newCollection();
 
         [
@@ -72,8 +70,7 @@ class PrepareCollectionBeforeUpdatingFeature
         array $uniqueAttributes,
         array $selectColumns,
         Collection $collection,
-    ): Collection
-    {
+    ): Collection {
         $builder = $eloquent
             ->newQuery()
             ->select($selectColumns);
@@ -101,8 +98,7 @@ class PrepareCollectionBeforeUpdatingFeature
         ?array $updateAttributes,
         Collection $foundModels,
         Collection $nonExistent,
-    ): Collection
-    {
+    ): Collection {
         $scalarRows = $this->arrayOfObjectToScalarArraysConverter->handle($nonExistent);
         $keyedRows = $this->keyByFeature->handle($scalarRows, $uniqueAttributes);
         $result = $eloquent->newCollection();

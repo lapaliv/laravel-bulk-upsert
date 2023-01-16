@@ -65,7 +65,7 @@ class GenerateUserCollectionFeature
         if ($only !== null) {
             $result = array_filter(
                 $result,
-                static fn(mixed $value, string $key) => in_array($key, $only, true),
+                static fn (mixed $value, string $key) => in_array($key, $only, true),
                 ARRAY_FILTER_USE_BOTH
             );
         }

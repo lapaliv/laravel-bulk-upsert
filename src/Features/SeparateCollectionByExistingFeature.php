@@ -18,10 +18,10 @@ class SeparateCollectionByExistingFeature
     {
         return [
             'existing' => $collection->filter(
-                fn(BulkModel $model) => $model->exists,
+                fn (BulkModel $model) => $model->exists,
             ),
             'nonExistent' => $collection->filter(
-                fn(BulkModel $model) => $model->exists === false,
+                fn (BulkModel $model) => $model->exists === false,
             ),
         ];
     }

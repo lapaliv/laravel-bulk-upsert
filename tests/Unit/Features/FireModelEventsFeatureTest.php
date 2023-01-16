@@ -61,8 +61,8 @@ class FireModelEventsFeatureTest extends TestCase
         // arrange
         Event::fake();
         $model = new MysqlUser();
-        MysqlUser::saving(static fn() => false);
-        MysqlUser::creating(static fn() => false);
+        MysqlUser::saving(static fn () => false);
+        MysqlUser::creating(static fn () => false);
 
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);

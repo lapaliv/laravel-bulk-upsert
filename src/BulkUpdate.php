@@ -44,14 +44,13 @@ class BulkUpdate implements BulkUpdateContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private GetBulkModelFeature $getBulkModelFeature,
-    )
-    {
+    ) {
         //
     }
 
     /**
      * @param int $size
-     * @param (callable(Collection<BulkModel> $chunk): Collection<BulkModel>)|null $callback
+     * @param (callable(Collection<scalar, BulkModel> $chunk): Collection<scalar, BulkModel>)|null $callback
      * @return $this
      */
     public function chunk(int $size = 100, ?callable $callback = null): static
@@ -109,7 +108,7 @@ class BulkUpdate implements BulkUpdateContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
      * @return $this
      */
     public function onUpdating(?callable $callback): static
@@ -120,7 +119,7 @@ class BulkUpdate implements BulkUpdateContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
      * @return $this
      */
     public function onUpdated(?callable $callback): static
@@ -131,7 +130,7 @@ class BulkUpdate implements BulkUpdateContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
      * @return $this
      */
     public function onSaving(?callable $callback): static
@@ -142,7 +141,7 @@ class BulkUpdate implements BulkUpdateContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
      * @return $this
      */
     public function onSaved(?callable $callback): static
@@ -154,7 +153,7 @@ class BulkUpdate implements BulkUpdateContract
 
     /**
      * @param string|BulkModel $model
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param iterable<scalar, mixed[]>|Collection<scalar, BulkModel>|array<scalar, mixed[]> $rows
      * @param string[]|null $uniqueAttributes
      * @param string[] $updateAttributes
      * @return void
@@ -164,8 +163,7 @@ class BulkUpdate implements BulkUpdateContract
         iterable $rows,
         ?array $uniqueAttributes = null,
         ?array $updateAttributes = null,
-    ): void
-    {
+    ): void {
         $model = $this->getBulkModelFeature->handle($model);
         $uniqueAttributes ??= [$model->getKeyName()];
         $selectColumns = $this->getSelectColumns($uniqueAttributes, $updateAttributes);
@@ -185,7 +183,7 @@ class BulkUpdate implements BulkUpdateContract
                     dateFields: $dateFields,
                     events: array_filter(
                         $this->getEvents(),
-                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
+                        static fn (string $event) => $model::getEventDispatcher()->hasListeners($event)
                     ),
                     updatingCallback: $this->updatingCallback,
                     updatedCallback: $this->updatedCallback,
@@ -205,8 +203,7 @@ class BulkUpdate implements BulkUpdateContract
     protected function getSelectColumns(
         array $uniqueAttributes,
         ?array $updateAttributes,
-    ): array
-    {
+    ): array {
         if (in_array('*', $this->selectColumns, true)) {
             return ['*'];
         }

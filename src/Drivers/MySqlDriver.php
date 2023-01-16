@@ -15,8 +15,7 @@ class MySqlDriver implements Driver
     public function __construct(
         private MySqlDriverInsert $insertFeature,
         private MySqlDriverUpdate $updateFeature
-    )
-    {
+    ) {
         //
     }
 
@@ -24,8 +23,7 @@ class MySqlDriver implements Driver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): int|string|null
-    {
+    ): int|string|null {
         return $this->insertFeature->handle($connection, $builder, $primaryKeyName);
     }
 

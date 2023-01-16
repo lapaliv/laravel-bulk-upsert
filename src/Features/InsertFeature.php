@@ -22,8 +22,7 @@ class InsertFeature
         private PrepareInsertBuilderFeature $prepareInsertBuilderFeature,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private FinishSaveFeature $finishSaveFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -51,8 +50,7 @@ class InsertFeature
         ?BulkCallback $createdCallback,
         ?BulkCallback $savedCallback,
         Collection $collection,
-    ): void
-    {
+    ): void {
         if ($collection->isEmpty()) {
             return;
         }
@@ -113,7 +111,7 @@ class InsertFeature
 
         if ($createdCallback !== null) {
             $insertedModel = $collection->filter(
-                fn(BulkModel $model) => $model->wasRecentlyCreated
+                fn (BulkModel $model) => $model->wasRecentlyCreated
             );
 
             if ($insertedModel->isNotEmpty()) {

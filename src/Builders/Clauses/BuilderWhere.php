@@ -13,6 +13,10 @@ trait BuilderWhere
      * @var BuilderWhereCallback[]|BuilderWhereCondition[]|BuilderWhereIn[]
      */
     private array $wheres = [];
+
+    /**
+     * @var array<string, string>
+     */
     private array $fields = [];
 
     public function where(
@@ -20,8 +24,7 @@ trait BuilderWhere
         string $operator = '=',
         mixed $value = null,
         string $boolean = 'and',
-    ): static
-    {
+    ): static {
         if ($field instanceof Closure) {
             $this->wheres[] = new BuilderWhereCallback($field, $boolean);
         } else {
@@ -37,6 +40,12 @@ trait BuilderWhere
         return $this->where($field, $operator, $value, 'or');
     }
 
+    /**
+     * @param string $field
+     * @param scalar[] $values
+     * @param string $boolean
+     * @return $this
+     */
     public function whereIn(string $field, array $values, string $boolean = 'and'): static
     {
         $this->fields[$field] = $field;
@@ -53,6 +62,9 @@ trait BuilderWhere
         return $this->wheres;
     }
 
+    /**
+     * @return string[]
+     */
     public function getFields(): array
     {
         return array_values($this->fields);

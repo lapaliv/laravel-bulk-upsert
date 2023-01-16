@@ -8,6 +8,11 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 abstract class Model extends \Illuminate\Database\Eloquent\Model implements BulkModel
 {
+    final public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+    }
+
     public function fireModelEvent($event, $halt = true)
     {
         return parent::fireModelEvent($event, $halt);

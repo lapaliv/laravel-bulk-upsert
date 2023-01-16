@@ -42,7 +42,7 @@ class GetBulkModelFeatureTest extends TestCase
 
         // act/assert
         $this->assertThrows(
-            fn() => $sut->handle($model),
+            fn () => $sut->handle($model),
             BulkModelIsUndefined::class
         );
     }

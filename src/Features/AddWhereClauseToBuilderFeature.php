@@ -18,8 +18,7 @@ class AddWhereClauseToBuilderFeature
         QueryBuilder|BuilderWhereClause $builder,
         array $uniqueAttributes,
         iterable $rows
-    ): void
-    {
+    ): void {
         $this->makeBuilder(
             $builder,
             $rows,
@@ -40,8 +39,7 @@ class AddWhereClauseToBuilderFeature
         iterable $rows,
         array $uniqueAttributes,
         int $uniqAttributeIndex
-    ): void
-    {
+    ): void {
         $column = $uniqueAttributes[$uniqAttributeIndex];
         $groups = $this->groupBy($rows, $column);
 

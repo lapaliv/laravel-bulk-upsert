@@ -9,8 +9,7 @@ class BuilderWhereCondition
         public string $operator,
         public mixed $value,
         public string $boolean
-    )
-    {
+    ) {
         //
     }
 }

@@ -49,7 +49,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
 
-        $this->app->bind('db', fn() => self::$manager->getDatabaseManager());
+        $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
@@ -65,7 +65,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $manager->addConnection([
             'driver' => 'mysql',
             'url' => env('MYSQL_URL'),
-            'host' => '127.0.0.1',
+            'host' => env('MYSQL_HOST', '127.0.0.1'),
             'port' => env('MYSQL_PORT'),
             'database' => env('MYSQL_DATABASE'),
             'username' => env('MYSQL_USERNAME'),
@@ -83,12 +83,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         ], 'mysql');
         $manager->addConnection([
             'driver' => 'pgsql',
-            'url' => env('POSTGRES_URL'),
-            'host' => '127.0.0.1',
-            'port' => env('POSTGRES_PORT'),
-            'database' => env('POSTGRES_DATABASE'),
-            'username' => env('POSTGRES_USERNAME'),
-            'password' => env('POSTGRES_PASSWORD'),
+            'url' => env('POSTGRESQL_URL'),
+            'host' => env('POSTGRESQL_HOST', '127.0.0.1'),
+            'port' => env('POSTGRESQL_PORT'),
+            'database' => env('POSTGRESQL_DATABASE'),
+            'username' => env('POSTGRESQL_USERNAME'),
+            'password' => env('POSTGRESQL_PASSWORD'),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,

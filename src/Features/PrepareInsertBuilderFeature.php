@@ -16,8 +16,7 @@ class PrepareInsertBuilderFeature
         private ArrayToScalarArrayConverter $arrayToScalarArrayConverter,
         private FreshTimestampsFeature $freshTimestampsFeature,
         private InsertBuilder $builder,
-    )
-    {
+    ) {
         //
     }
 
@@ -28,8 +27,7 @@ class PrepareInsertBuilderFeature
         array $events,
         bool $ignore,
         ?BulkCallback $creatingCallback,
-    ): ?InsertBuilder
-    {
+    ): ?InsertBuilder {
         $result = $this->builder
             ->into($eloquent->getTable())
             ->onConflictDoNothing($ignore);
@@ -62,10 +60,10 @@ class PrepareInsertBuilderFeature
     {
         return $collection
             ->filter(
-                fn(BulkModel $model) => $this->fireModelEvents($model, $events)
+                fn (BulkModel $model) => $this->fireModelEvents($model, $events)
             )
             ->each(
-                fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+                fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
@@ -86,7 +84,7 @@ class PrepareInsertBuilderFeature
     {
         return $collection
             ->transform(
-                fn(BulkModel $model) => $this->arrayToScalarArrayConverter->handle(
+                fn (BulkModel $model) => $this->arrayToScalarArrayConverter->handle(
                     $dateFields,
                     $model->getAttributes(),
                 )

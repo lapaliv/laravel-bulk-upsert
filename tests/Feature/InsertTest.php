@@ -161,7 +161,7 @@ class InsertTest extends TestCase
 
         $collection
             ->filter(
-                fn(User $user) => $existingEmails->contains($user->email) === false
+                fn (User $user) => $existingEmails->contains($user->email) === false
             )
             ->each(
                 function (User $user): void {
@@ -175,7 +175,7 @@ class InsertTest extends TestCase
 
         $collection
             ->filter(
-                fn(User $user) => $existingEmails->contains($user->email)
+                fn (User $user) => $existingEmails->contains($user->email)
             )
             ->each(
                 function (User $user): void {

@@ -43,14 +43,13 @@ class BulkInsert implements BulkInsertContract
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
-    )
-    {
+    ) {
         //
     }
 
     /**
      * @param int $size
-     * @param callable(Collection<BulkModel> $chunk): Collection<BulkModel>|null $callback
+     * @param callable(Collection<scalar, BulkModel> $chunk): Collection<scalar, BulkModel>|null $callback
      * @return $this
      */
     public function chunk(int $size = 100, ?callable $callback = null): static
@@ -95,7 +94,7 @@ class BulkInsert implements BulkInsertContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null $callback
      * @return $this
      */
     public function onCreating(?callable $callback): static
@@ -108,7 +107,7 @@ class BulkInsert implements BulkInsertContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null $callback
      * @return $this
      */
     public function onCreated(?callable $callback): static
@@ -121,7 +120,7 @@ class BulkInsert implements BulkInsertContract
     }
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null $callback
      * @return $this
      */
     public function onSaved(?callable $callback): static
@@ -147,9 +146,9 @@ class BulkInsert implements BulkInsertContract
     }
 
     /**
-     * @param string|BulkModel $model
+     * @param class-string<BulkModel>|BulkModel $model
      * @param string[] $uniqueAttributes
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param iterable|Collection<scalar, BulkModel>|array<scalar, array[]> $rows
      * @param bool $ignore
      * @return void
      */
@@ -172,7 +171,7 @@ class BulkInsert implements BulkInsertContract
                     dateFields: $dateFields,
                     events: array_filter(
                         $this->getEvents(),
-                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
+                        static fn (string $event) => $model::getEventDispatcher()->hasListeners($event)
                     ),
                     ignore: $ignore,
                     creatingCallback: $this->creatingCallback,
@@ -187,7 +186,7 @@ class BulkInsert implements BulkInsertContract
     /**
      * @param string|BulkModel $model
      * @param string[] $uniqueAttributes
-     * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param iterable|Collection<scalar, BulkModel>|array<scalar, array[]> $rows
      * @return void
      */
     public function insertOrIgnore(string|BulkModel $model, array $uniqueAttributes, iterable $rows): void

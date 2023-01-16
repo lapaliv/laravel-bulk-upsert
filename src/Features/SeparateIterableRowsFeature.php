@@ -18,8 +18,7 @@ class SeparateIterableRowsFeature
         int $chunkSize,
         iterable $rows,
         callable $callback,
-    ): void
-    {
+    ): void {
         $chunk = [];
 
         foreach ($rows as $key => $row) {

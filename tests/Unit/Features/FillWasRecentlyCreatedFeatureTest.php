@@ -24,7 +24,7 @@ class FillWasRecentlyCreatedFeatureTest extends TestCase
         // arrange
         $users = $this->generateUserCollectionFeature->handle(MysqlUser::class, 5, ['email'])
             ->each(
-                fn(MysqlUser $user, int $key) => $user->id = $key
+                fn (MysqlUser $user, int $key) => $user->id = $key
             );
 
         /** @var FillWasRecentlyCreatedFeature $sut */
@@ -54,17 +54,17 @@ class FillWasRecentlyCreatedFeatureTest extends TestCase
             // users with created_at in the past
             ...$this->generateUserCollectionFeature->handle(MysqlArticle::class, 2, ['email'])
                 ->each(
-                    fn(MysqlArticle $user, int $key) => $user->created_at = Carbon::now()->subSecond(),
+                    fn (MysqlArticle $user, int $key) => $user->created_at = Carbon::now()->subSecond(),
                 ),
             // users with created_at equals now
             ...$this->generateUserCollectionFeature->handle(MysqlArticle::class, 2, ['email'])
                 ->each(
-                    fn(MysqlArticle $user, int $key) => $user->created_at = Carbon::now(),
+                    fn (MysqlArticle $user, int $key) => $user->created_at = Carbon::now(),
                 ),
             // users with created_at in the future
             ...$this->generateUserCollectionFeature->handle(MysqlArticle::class, 2, ['email'])
                 ->each(
-                    fn(MysqlArticle $user, int $key) => $user->created_at = Carbon::now()->addSecond(),
+                    fn (MysqlArticle $user, int $key) => $user->created_at = Carbon::now()->addSecond(),
                 ),
         ]);
 

@@ -6,7 +6,7 @@ class BuilderRawExpression
 {
     public function __construct(private string $expression)
     {
-
+        // Nothing
     }
 
     public function get(): string

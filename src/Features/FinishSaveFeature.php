@@ -14,8 +14,7 @@ class FinishSaveFeature
     public function __construct(
         private FireModelEventsFeature $fireModelEventsFeature,
         private UpdateBuilder $builder,
-    )
-    {
+    ) {
         //
     }
 
@@ -33,8 +32,7 @@ class FinishSaveFeature
         ConnectionInterface $connection,
         Driver $driver,
         array $events,
-    ): void
-    {
+    ): void {
         if (empty($eloquent->getTouchedRelations())) {
             $collection->each(
                 function (BulkModel $model) use ($events): void {
@@ -59,7 +57,7 @@ class FinishSaveFeature
         }
 
         $collection->each(
-            fn(BulkModel $model) => $model->syncOriginal()
+            fn (BulkModel $model) => $model->syncOriginal()
         );
     }
 
@@ -96,8 +94,7 @@ class FinishSaveFeature
         array $relations,
         ConnectionInterface $connection,
         Driver $driver,
-    ): void
-    {
+    ): void {
         foreach ($relations as $collection) {
             if ($collection->isEmpty()) {
                 continue;
@@ -113,13 +110,13 @@ class FinishSaveFeature
 
             $collection = $collection
                 ->each(
-                    fn(BulkModel $model) => $model->updateTimestamps()
+                    fn (BulkModel $model) => $model->updateTimestamps()
                 )
                 ->filter(
-                    fn(BulkModel $model) => $model->isDirty()
+                    fn (BulkModel $model) => $model->isDirty()
                 )
                 ->each(
-                    fn(BulkModel $model) => $this->builder->addSet(
+                    fn (BulkModel $model) => $this->builder->addSet(
                         $model->getUpdatedAtColumn(),
                         [$model->getKeyName() => $model->getKey()],
                         $model->getAttribute($model->getUpdatedAtColumn())
@@ -130,7 +127,7 @@ class FinishSaveFeature
 
             if ($updateResult > 0) {
                 $collection->each(
-                    fn(BulkModel $model) => $this->fireModelEventsFeature->handle(
+                    fn (BulkModel $model) => $this->fireModelEventsFeature->handle(
                         $model,
                         [BulkEventEnum::SAVED],
                         [BulkEventEnum::SAVED]

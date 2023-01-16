@@ -26,8 +26,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
     public function testWithOneUniqueAttribute(
         ?BulkCallback $updatingCallback,
         ?BulkCallback $savingCallback,
-    ): void
-    {
+    ): void {
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
@@ -128,8 +127,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
     public function testWithSeveralUniqueAttribute(
         ?BulkCallback $updatingCallback,
         ?BulkCallback $savingCallback,
-    ): void
-    {
+    ): void {
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
@@ -173,8 +171,8 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
                 null,
             ],
             'with callbacks' => [
-                new BulkCallback(fn() => null),
-                new BulkCallback(fn() => null),
+                new BulkCallback(fn () => null),
+                new BulkCallback(fn () => null),
             ],
         ];
     }

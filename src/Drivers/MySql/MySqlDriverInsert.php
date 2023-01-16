@@ -11,8 +11,7 @@ class MySqlDriverInsert
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,
-    )
-    {
+    ) {
         //
     }
 
@@ -20,8 +19,7 @@ class MySqlDriverInsert
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): int|string|null
-    {
+    ): int|string|null {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
         $connection->beginTransaction();

@@ -10,6 +10,10 @@ class SelectBuilder implements BuilderWhereClause
     use BuilderWhere;
 
     private ?string $from = null;
+
+    /**
+     * @var string[]
+     */
     private array $columns = [];
 
     public function getFrom(): ?string
@@ -20,14 +24,22 @@ class SelectBuilder implements BuilderWhereClause
     public function from(string $table): static
     {
         $this->from = $table;
+
         return $this;
     }
 
+    /**
+     * @return string[]
+     */
     public function getSelect(): array
     {
         return $this->columns;
     }
 
+    /**
+     * @param string[] $columns
+     * @return $this
+     */
     public function select(array $columns): static
     {
         $this->columns = $columns;

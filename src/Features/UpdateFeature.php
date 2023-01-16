@@ -16,8 +16,7 @@ class UpdateFeature
         private PrepareUpdateBuilderFeature $prepareUpdateBuilderFeature,
         private DriverManager $driverManager,
         private FinishSaveFeature $finishSaveFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -47,8 +46,7 @@ class UpdateFeature
         ?BulkCallback $savingCallback,
         ?BulkCallback $savedCallback,
         Collection $collection,
-    ): void
-    {
+    ): void {
         if ($collection->isEmpty()) {
             return;
         }

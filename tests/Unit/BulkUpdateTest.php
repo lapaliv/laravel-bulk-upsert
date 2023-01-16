@@ -3,13 +3,11 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Exception;
-use Faker\Factory;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Features\SwitchDriverToNullDriverFeature;
 use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
 use Lapaliv\BulkUpsert\Tests\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -96,7 +94,7 @@ class BulkUpdateTest extends TestCase
         self::assertEmpty(
             array_filter(
                 $sut->getEvents(),
-                static fn(string $event): bool => !in_array($event, [
+                static fn (string $event): bool => !in_array($event, [
                     BulkEventEnum::SAVING,
                     BulkEventEnum::UPDATING,
                     BulkEventEnum::UPDATED,
@@ -110,9 +108,7 @@ class BulkUpdateTest extends TestCase
     {
         parent::setUp();
 
-        $this->faker = Factory::create();
         $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-        $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
     }
 
     protected function chunkCallbackDataProvider(): array

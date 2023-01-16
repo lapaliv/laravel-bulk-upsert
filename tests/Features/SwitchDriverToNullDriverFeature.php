@@ -22,6 +22,6 @@ class SwitchDriverToNullDriverFeature
             ->atLeast()
             ->once();
 
-        $this->container->singleton(DriverManager::class, fn() => $driverManagerMock);
+        $this->container->singleton(DriverManager::class, fn () => $driverManagerMock);
     }
 }

@@ -40,6 +40,12 @@ class UpdateBuilder implements BuilderWhereClause
         return $this->sets;
     }
 
+    /**
+     * @param string $field
+     * @param array<string, scalar[]|scalar> $filters
+     * @param int|float|string|bool|null $value
+     * @return $this
+     */
     public function addSet(string $field, array $filters, int|float|string|null|bool $value): static
     {
         $this->sets[$field] ??= (new BuilderCase())->else(new BuilderRawExpression($field));

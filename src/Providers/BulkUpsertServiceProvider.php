@@ -18,7 +18,7 @@ class BulkUpsertServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(DriverManager::class, fn() => new BulkDriverManager());
+        $this->app->singleton(DriverManager::class, fn () => new BulkDriverManager());
         $this->app->make(DriverManager::class)->registerDriver(
             'mysql',
             $this->app->make(MySqlDriver::class)

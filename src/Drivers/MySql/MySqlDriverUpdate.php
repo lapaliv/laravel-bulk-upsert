@@ -21,8 +21,7 @@ class MySqlDriverUpdate
     public function handle(
         ConnectionInterface $connection,
         UpdateBuilder $builder,
-    ): int
-    {
+    ): int {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
         $connection->beginTransaction();
