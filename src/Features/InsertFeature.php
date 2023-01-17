@@ -5,17 +5,16 @@ namespace Lapaliv\BulkUpsert\Features;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Expression;
-use Lapaliv\BulkUpsert\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
-use Lapaliv\BulkUpsert\Converters\ArrayOfObjectToScalarArraysConverter;
+use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class InsertFeature
 {
     public function __construct(
-        private ArrayOfObjectToScalarArraysConverter $arrayOfObjectToScalarArraysConverter,
+        private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
         private AlignFieldsFeature $alignFieldsFeature,
         private DriverManager $driverManager,
         private FillWasRecentlyCreatedFeature $fillWasRecentlyCreatedFeature,
@@ -65,7 +64,7 @@ class InsertFeature
                 ->simpleInsert(
                     $eloquent->newQuery(),
                     $this->alignFieldsFeature->handle(
-                        $this->arrayOfObjectToScalarArraysConverter->handle($collection),
+                        $this->collectionToScalarArraysConverter->handle($collection, $dateFields),
                         new Expression('default')
                     )
                 );

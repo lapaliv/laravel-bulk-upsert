@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Converters\ArrayOfObjectToScalarArraysConverter;
+use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
 
 class PrepareCollectionBeforeUpdatingFeature
 {
@@ -12,7 +12,7 @@ class PrepareCollectionBeforeUpdatingFeature
         private SeparateCollectionByExistingFeature $separateCollectionByExistingFeature,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
         private KeyByFeature $keyByFeature,
-        private ArrayOfObjectToScalarArraysConverter $arrayOfObjectToScalarArraysConverter,
+        private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
         private GetKeyForRowFeature $getKeyForRowFeature,
     ) {
         //
@@ -99,7 +99,7 @@ class PrepareCollectionBeforeUpdatingFeature
         Collection $foundModels,
         Collection $nonExistent,
     ): Collection {
-        $scalarRows = $this->arrayOfObjectToScalarArraysConverter->handle($nonExistent);
+        $scalarRows = $this->collectionToScalarArraysConverter->handle($nonExistent);
         $keyedRows = $this->keyByFeature->handle($scalarRows, $uniqueAttributes);
         $result = $eloquent->newCollection();
 

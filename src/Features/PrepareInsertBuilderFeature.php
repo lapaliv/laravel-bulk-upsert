@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Features;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Converters\ArrayToScalarArrayConverter;
+use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
@@ -13,7 +13,7 @@ class PrepareInsertBuilderFeature
 {
     public function __construct(
         private FireModelEventsFeature $fireModelEventsFeature,
-        private ArrayToScalarArrayConverter $arrayToScalarArrayConverter,
+        private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private FreshTimestampsFeature $freshTimestampsFeature,
         private InsertBuilder $builder,
     ) {

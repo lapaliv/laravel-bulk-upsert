@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Features;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Converters\ArrayToScalarArrayConverter;
+use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
@@ -14,10 +14,11 @@ class PrepareUpdateBuilderFeature
     public function __construct(
         private FireModelEventsFeature $fireModelEventsFeature,
         private FreshTimestampsFeature $freshTimestampsFeature,
-        private ArrayToScalarArrayConverter $arrayToScalarArrayConverter,
+        private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
         private UpdateBuilder $builder,
-    ) {
+    )
+    {
         //
     }
 
@@ -48,7 +49,8 @@ class PrepareUpdateBuilderFeature
         array $dateFields,
         ?BulkCallback $updatingCallback,
         ?BulkCallback $savingCallback,
-    ): ?UpdateBuilder {
+    ): ?UpdateBuilder
+    {
         if ($collection->isEmpty()) {
             return null;
         }
@@ -67,7 +69,12 @@ class PrepareUpdateBuilderFeature
                 return null;
             }
 
-            $collection = $collection->filter(fn (BulkModel $model) => $model->isDirty());
+            $collection = $eloquent->newCollection(
+                $collection
+                    ->filter(fn(BulkModel $model) => $model->isDirty())
+                    ->toArray()
+            );
+
             $collection = $updatingCallback?->handle($collection) ?? $collection;
 
             if ($collection->isEmpty()) {
@@ -78,7 +85,7 @@ class PrepareUpdateBuilderFeature
 
             if (count($uniqueAttributes) > 1) {
                 $collection->each(
-                    fn (BulkModel $model) => $this->fillInBuilderFromModel(
+                    fn(BulkModel $model) => $this->fillInBuilderFromModel(
                         $model,
                         $uniqueAttributes,
                         $updateAttributes,
@@ -118,7 +125,8 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void {
+    ): void
+    {
         /** @var BulkModel $model */
         foreach ($collection as $model) {
             if ($this->fireModelEvents($model, $events) === false) {
@@ -157,10 +165,10 @@ class PrepareUpdateBuilderFeature
     {
         return $collection
             ->filter(
-                fn (BulkModel $model) => $this->fireModelEvents($model, $events)
+                fn(BulkModel $model) => $this->fireModelEvents($model, $events)
             )
             ->each(
-                fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+                fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
@@ -176,7 +184,8 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void {
+    ): void
+    {
         $groupedValues = [];
 
         foreach ($collection as $model) {
@@ -258,7 +267,8 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void {
+    ): void
+    {
         $attributes = $this->getDirtyAttributes($model, $updateAttributes);
 
         if (empty($attributes)) {

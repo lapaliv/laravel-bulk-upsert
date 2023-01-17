@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Converters;
 
+use Illuminate\Database\Query\Expression;
+use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
+
 class MixedValueToSqlConverter
 {
     /**
@@ -11,16 +14,30 @@ class MixedValueToSqlConverter
      */
     public function handle(mixed $value, array &$bindings): string
     {
-        if (is_int($value)) {
+        if ($value instanceof Expression) {
+            $value = $value->getValue();
+
+            if (is_bool($value) || is_int($value) || $value === null) {
+                return $this->handle($value, $bindings);
+            }
+
             return $value;
         }
 
+        if ($value instanceof BuilderRawExpression) {
+            return $value->get();
+        }
+
+        if (is_int($value)) {
+            return (string)$value;
+        }
+
         if (is_bool($value)) {
-            return $value ? 'TRUE' : 'FALSE';
+            return $value ? 'true' : 'false';
         }
 
         if ($value === null) {
-            return 'NULL';
+            return 'null';
         }
 
         $bindings[] = $value;
