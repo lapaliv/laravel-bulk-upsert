@@ -1,12 +1,12 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Features;
+namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
 use Exception;
 use Faker\Factory;
-use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 class GetUserCollectionForUpdateTestsFeature
 {

@@ -17,7 +17,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Lapaliv\\BulkUpsert\\Tests\\": "tests/"
+            "Lapaliv\\BulkUpsert\\Tests\\": "tests",
+            "Lapaliv\\BulkUpsert\\Tests\\App\\": "tests/app"
         }
     },
     "authors": [

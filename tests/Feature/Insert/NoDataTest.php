@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class NoDataTest extends TestCase
@@ -13,7 +13,7 @@ class NoDataTest extends TestCase
         ['sut' => $sut] = $this->arrange();
 
         // act
-        $sut->insert(MysqlUser::class, [], []);
+        $sut->insert(MySqlUser::class, [], []);
 
         // assert
         self::assertTrue(true);
@@ -28,9 +28,9 @@ class NoDataTest extends TestCase
     {
         return [
             'sut' => $this->app->make(BulkInsert::class)
-                ->chunk(100, fn() => $this->fail())
-                ->onInserting(fn() => $this->fail())
-                ->onInserted(fn() => $this->fail())
+                ->chunk(100, fn () => $this->fail())
+                ->onInserting(fn () => $this->fail())
+                ->onInserted(fn () => $this->fail())
         ];
     }
 }

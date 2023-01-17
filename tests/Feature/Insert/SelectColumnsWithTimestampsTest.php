@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 use Faker\Factory;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Models\Article;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\Article;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class SelectColumnsWithTimestampsTest extends TestCase
@@ -36,8 +36,8 @@ class SelectColumnsWithTimestampsTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlArticle::class],
-            [PostgresArticle::class],
+            [MySqlArticle::class],
+            [PostgreSqlArticle::class],
         ];
     }
 
@@ -53,12 +53,12 @@ class SelectColumnsWithTimestampsTest extends TestCase
         $collection = $this->generateCollection($model);
 
         $actualSelectColumns = ['uuid', 'name'];
-        $expectSelectColumns = [...$actualSelectColumns, (new $model)->getCreatedAtColumn()];
+        $expectSelectColumns = [...$actualSelectColumns, (new $model())->getCreatedAtColumn()];
 
         $sut = $this->app->make(BulkInsert::class)
             ->select($actualSelectColumns)
             ->onInserted(
-                fn(Collection $users) => $this->assertChunk($users, $expectSelectColumns)
+                fn (Collection $users) => $this->assertChunk($users, $expectSelectColumns)
             );
 
         return compact('sut', 'collection');

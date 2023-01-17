@@ -4,10 +4,10 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 
 use Faker\Factory;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class InsertDuplicatesWithIgnoringTest extends TestCase
@@ -45,7 +45,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
 
         $collection
             ->filter(
-                fn(User $user) => $existingEmails->contains($user->email) === false
+                fn (User $user) => $existingEmails->contains($user->email) === false
             )
             ->each(
                 function (User $user): void {
@@ -59,7 +59,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
 
         $collection
             ->filter(
-                fn(User $user) => $existingEmails->contains($user->email)
+                fn (User $user) => $existingEmails->contains($user->email)
             )
             ->each(
                 function (User $user): void {
@@ -75,8 +75,8 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlUser::class],
-            [PostgresUser::class],
+            [MySqlUser::class],
+            [PostgreSqlUser::class],
         ];
     }
 
@@ -114,7 +114,7 @@ class InsertDuplicatesWithIgnoringTest extends TestCase
 
         return [
             'existingUsers' => $existingUsers->each(
-                fn(User $user) => $user->save()
+                fn (User $user) => $user->save()
             ),
             'existingEmails' => $existingUsers->pluck('email'),
             'collection' => $collection,

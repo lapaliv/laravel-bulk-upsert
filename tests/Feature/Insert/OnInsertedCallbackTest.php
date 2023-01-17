@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 use Faker\Factory;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
+use Lapaliv\BulkUpsert\Tests\App\Collections\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class OnInsertedCallbackTest extends TestCase
@@ -42,8 +42,8 @@ class OnInsertedCallbackTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlArticle::class],
-            [PostgresArticle::class],
+            [MySqlArticle::class],
+            [PostgreSqlArticle::class],
         ];
     }
 

@@ -1,11 +1,11 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Models;
+namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
-use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Collections\ArticleCollection;
 
 /**
  * @property string $uuid
@@ -54,7 +54,6 @@ abstract class Article extends Model
 
     public static function createTable(): void
     {
-        self::dropTable();
         self::getSchema()->create('articles', function (Blueprint $table) {
             $table->uuid()->primary();
             $table->string('name', 50);

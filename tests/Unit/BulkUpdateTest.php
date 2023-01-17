@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
@@ -114,8 +114,8 @@ class BulkUpdateTest extends TestCase
     protected function chunkCallbackDataProvider(): array
     {
         return [
-            [PostgresUser::class, 7, 3],
-            [PostgresUser::class, 12, 4],
+            [PostgreSqlUser::class, 7, 3],
+            [PostgreSqlUser::class, 12, 4],
         ];
     }
 

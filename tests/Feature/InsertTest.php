@@ -7,11 +7,11 @@ use Exception;
 use Faker\Factory;
 use Faker\Generator;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class InsertTest extends TestCase
@@ -25,7 +25,7 @@ class InsertTest extends TestCase
         $numberOfUsers = 5;
         $chunkSize = 1;
 
-        $generateUserCollectionFeature = new GenerateUserCollectionFeature(MysqlUser::class);
+        $generateUserCollectionFeature = new GenerateUserCollectionFeature(MySqlUser::class);
         $collection = $generateUserCollectionFeature->handle($numberOfUsers);
         $sut = $this->app->make(BulkInsert::class)
             ->chunk(
@@ -38,7 +38,7 @@ class InsertTest extends TestCase
             );
 
         // act
-        $sut->insert(MysqlUser::class, ['email'], $collection);
+        $sut->insert(MySqlUser::class, ['email'], $collection);
 
         // assert
         $this->assertEquals(
@@ -198,8 +198,8 @@ class InsertTest extends TestCase
     protected function models(): array
     {
         return [
-            [MysqlUser::class],
-            [PostgresUser::class],
+            [MySqlUser::class],
+            [PostgreSqlUser::class],
         ];
     }
 }

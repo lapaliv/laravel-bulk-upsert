@@ -1,11 +1,11 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Models;
+namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
-use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
 
 /**
  * @property int $id
@@ -44,7 +44,6 @@ abstract class User extends Model
 
     public static function createTable(): void
     {
-        self::dropTable();
         self::getSchema()->create('users', function (Blueprint $table) {
             $table->id();
             $table->string('email', 100)

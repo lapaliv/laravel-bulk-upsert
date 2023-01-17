@@ -1,10 +1,10 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Features;
+namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Illuminate\Contracts\Container\Container;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
-use Lapaliv\BulkUpsert\Tests\Drivers\NullDriver;
+use Lapaliv\BulkUpsert\Tests\App\Drivers\NullDriver;
 use Mockery;
 
 class SwitchDriverToNullDriverFeature

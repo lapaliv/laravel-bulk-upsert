@@ -4,8 +4,8 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
 use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class AddWhereClauseToBuilderFeatureTest extends TestCase
@@ -19,9 +19,9 @@ class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testOneField(): void
     {
         // arrange
-        $builder = MysqlUser::query();
+        $builder = MySqlUser::query();
         $uniqueAttributes = ['email'];
-        $users = $this->generateUserCollectionFeature->handle(MysqlUser::class, 5, $uniqueAttributes);
+        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 
@@ -45,9 +45,9 @@ class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testTwoFields(): void
     {
         // assert
-        $builder = MysqlUser::query();
+        $builder = MySqlUser::query();
         $uniqueAttributes = ['email', 'name'];
-        $users = $this->generateUserCollectionFeature->handle(MysqlUser::class, 5, $uniqueAttributes);
+        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 
@@ -73,9 +73,9 @@ class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testThreeFields(): void
     {
         // assert
-        $builder = MysqlUser::query();
+        $builder = MySqlUser::query();
         $uniqueAttributes = ['email', 'name', 'phone'];
-        $users = $this->generateUserCollectionFeature->handle(MysqlUser::class, 5, $uniqueAttributes);
+        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 

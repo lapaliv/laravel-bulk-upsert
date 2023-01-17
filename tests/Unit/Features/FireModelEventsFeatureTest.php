@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 use Illuminate\Support\Facades\Event;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class FireModelEventsFeatureTest extends TestCase
@@ -19,7 +19,7 @@ class FireModelEventsFeatureTest extends TestCase
     {
         // arrange
         Event::fake();
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
 
@@ -39,7 +39,7 @@ class FireModelEventsFeatureTest extends TestCase
     {
         // arrange
         Event::fake();
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
 
@@ -60,9 +60,9 @@ class FireModelEventsFeatureTest extends TestCase
     {
         // arrange
         Event::fake();
-        $model = new MysqlUser();
-        MysqlUser::saving(static fn () => false);
-        MysqlUser::creating(static fn () => false);
+        $model = new MySqlUser();
+        MySqlUser::saving(static fn () => false);
+        MySqlUser::creating(static fn () => false);
 
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);

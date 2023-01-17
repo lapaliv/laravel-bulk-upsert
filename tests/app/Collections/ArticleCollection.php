@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Collections;
+namespace Lapaliv\BulkUpsert\Tests\App\Collections;
 
 use Illuminate\Database\Eloquent\Collection;
 

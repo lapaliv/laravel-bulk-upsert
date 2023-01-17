@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Features;
+namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
 use Exception;

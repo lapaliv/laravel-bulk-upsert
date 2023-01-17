@@ -1,11 +1,11 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Support;
+namespace Lapaliv\BulkUpsert\Tests\App\Support;
 
 class Callback
 {
     public function __invoke(): void
     {
-        //
+        // Nothing
     }
 }

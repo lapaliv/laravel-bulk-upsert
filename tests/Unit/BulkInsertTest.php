@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Features\SwitchDriverToNullDriverFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\SwitchDriverToNullDriverFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
@@ -117,8 +117,8 @@ class BulkInsertTest extends TestCase
     protected function chunkCallbackDataProvider(): array
     {
         return [
-            [MysqlUser::class, 5, 1],
-            [MysqlUser::class, 10, 3],
+            [MySqlUser::class, 5, 1],
+            [MySqlUser::class, 10, 3],
         ];
     }
 

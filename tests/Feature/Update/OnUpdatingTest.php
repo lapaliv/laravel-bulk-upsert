@@ -3,11 +3,11 @@
 namespace Lapaliv\BulkUpsert\Tests\Feature\Update;
 
 use Lapaliv\BulkUpsert\BulkUpdate;
-use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
-use Lapaliv\BulkUpsert\Tests\Features\GetArticleCollectionForUpdateTestsFeature;
-use Lapaliv\BulkUpsert\Tests\Models\Article;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
+use Lapaliv\BulkUpsert\Tests\App\Collections\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Features\GetArticleCollectionForUpdateTestsFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\Article;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class OnUpdatingTest extends TestCase
@@ -36,8 +36,8 @@ class OnUpdatingTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlArticle::class],
-            [PostgresArticle::class],
+            [MySqlArticle::class],
+            [PostgreSqlArticle::class],
         ];
     }
 
@@ -59,7 +59,7 @@ class OnUpdatingTest extends TestCase
             'sut' => $this->app
                 ->make(BulkUpdate::class)
                 ->onUpdating(
-                    fn(ArticleCollection $articles) => $this->assertCollection($articles)
+                    fn (ArticleCollection $articles) => $this->assertCollection($articles)
                 )
         ];
     }
@@ -69,7 +69,7 @@ class OnUpdatingTest extends TestCase
         self::assertCount(self::NUMBER_OF_ARTICLES, $collection);
 
         $collection->each(
-            fn(Article $article) => self::assertTrue($article->isDirty())
+            fn (Article $article) => self::assertTrue($article->isDirty())
         );
     }
 }

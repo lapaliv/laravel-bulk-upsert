@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class GetDateFieldsFeatureTest extends TestCase
@@ -11,7 +11,7 @@ class GetDateFieldsFeatureTest extends TestCase
     public function test(): void
     {
         // assert
-        $model = new PostgresArticle();
+        $model = new PostgreSqlArticle();
 
         /** @var GetDateFieldsFeature $sut */
         $sut = $this->app->make(GetDateFieldsFeature::class);

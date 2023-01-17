@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 use Exception;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
@@ -30,7 +30,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name']);
 
         // act
@@ -64,7 +64,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name']);
         $updatingCallback = Mockery::spy(Callback::class);
         $savingCallback = Mockery::spy(Callback::class);
@@ -90,7 +90,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
                     self::assertCount(1, $args);
                     self::assertCount($users->count(), $args[0]);
 
-                    /** @var MysqlUser $user */
+                    /** @var MySqlUser $user */
                     foreach ($args[0] as $user) {
                         self::assertNotNull($user->created_at);
                         self::assertNotNull($user->updated_at);
@@ -107,7 +107,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
                     self::assertCount(1, $args);
                     self::assertCount($users->count(), $args[0]);
 
-                    /** @var MysqlUser $user */
+                    /** @var MySqlUser $user */
                     foreach ($args[0] as $user) {
                         self::assertTrue($user->isDirty());
                     }
@@ -131,7 +131,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name', 'phone']);
 
         // act

@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
-use Lapaliv\BulkUpsert\Tests\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;

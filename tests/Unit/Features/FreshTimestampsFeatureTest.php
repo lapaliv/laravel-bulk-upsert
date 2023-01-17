@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class FreshTimestampsFeatureTest extends TestCase
@@ -13,7 +13,7 @@ class FreshTimestampsFeatureTest extends TestCase
         // arrange
         /** @var FreshTimestampsFeature $sut */
         $sut = $this->app->make(FreshTimestampsFeature::class);
-        $model = new MysqlUser();
+        $model = new MySqlUser();
 
         // act
         $sut->handle($model);
@@ -28,7 +28,7 @@ class FreshTimestampsFeatureTest extends TestCase
         // arrange
         /** @var FreshTimestampsFeature $sut */
         $sut = $this->app->make(FreshTimestampsFeature::class);
-        $model = new MysqlUser();
+        $model = new MySqlUser();
         $model->timestamps = false;
 
         // act

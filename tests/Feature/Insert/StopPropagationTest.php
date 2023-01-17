@@ -5,10 +5,10 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 use Illuminate\Events\Dispatcher;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\Model;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\Model;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 final class StopPropagationTest extends TestCase
@@ -26,8 +26,7 @@ final class StopPropagationTest extends TestCase
         string $model,
         array  $dispatchedEvents,
         array  $notDispatchedEvents
-    ): void
-    {
+    ): void {
         [
             'collection' => $collection,
             'sut' => $sut,
@@ -43,8 +42,8 @@ final class StopPropagationTest extends TestCase
     public function data(): array
     {
         $models = [
-            MysqlUser::class,
-            PostgresUser::class,
+            MySqlUser::class,
+            PostgreSqlUser::class,
         ];
 
         $result = [];
@@ -118,7 +117,7 @@ final class StopPropagationTest extends TestCase
      * @return array{
      *     collection: \Illuminate\Database\Eloquent\Collection,
      *     sut: \Lapaliv\BulkUpsert\BulkInsert,
-     *     generateEventNameFeature: \Lapaliv\BulkUpsert\Tests\Features\GenerateEloquentEventNameFeature,
+     *     generateEventNameFeature: \Lapaliv\BulkUpsert\Tests\App\Features\GenerateEloquentEventNameFeature,
      * }
      */
     protected function arrange(string $model, array $dispatchedEvents, array $notDispatchedEvents): array
@@ -129,7 +128,7 @@ final class StopPropagationTest extends TestCase
 
         // Can't use Event::fake() because it misses the return value
         foreach ($dispatchedEvents as $event => $return) {
-            /** @var \Lapaliv\BulkUpsert\Tests\Models\Model $model */
+            /** @var \Lapaliv\BulkUpsert\Tests\App\Models\Model $model */
             $model::registerModelEvent($event, static function () use ($return) {
                 self::assertTrue(true);
                 return $return;
@@ -137,7 +136,7 @@ final class StopPropagationTest extends TestCase
         }
 
         foreach ($notDispatchedEvents as $event) {
-            $model::registerModelEvent($event, function () use($event) {
+            $model::registerModelEvent($event, function () use ($event) {
                 $this->fail();
             });
         }

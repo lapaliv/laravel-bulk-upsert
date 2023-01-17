@@ -4,10 +4,10 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 
 use Illuminate\Database\QueryException;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Features\GenerateUserCollectionFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class InsertDuplicatesWithoutIgnoringTest extends TestCase
@@ -37,8 +37,8 @@ class InsertDuplicatesWithoutIgnoringTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlUser::class],
-            [PostgresUser::class],
+            [MySqlUser::class],
+            [PostgreSqlUser::class],
         ];
     }
 
@@ -58,7 +58,7 @@ class InsertDuplicatesWithoutIgnoringTest extends TestCase
                 self::NUMBER_OF_EXISTING_ROWS
             )
             ->each(
-                fn(User $user) => $user->save()
+                fn (User $user) => $user->save()
             );
 
         // creating the collection with different not unique values in the existing rows

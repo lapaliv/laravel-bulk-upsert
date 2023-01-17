@@ -5,10 +5,10 @@ namespace Lapaliv\BulkUpsert\Tests;
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use PDO;
 
 abstract class TestCase extends \Orchestra\Testbench\TestCase
@@ -26,20 +26,20 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::readEnv();
         self::configureManager();
 
-        MysqlUser::createTable();
-        PostgresUser::createTable();
-        MysqlArticle::createTable();
-        PostgresArticle::createTable();
+        MySqlUser::createTable();
+        PostgreSqlUser::createTable();
+        MySqlArticle::createTable();
+        PostgreSqlArticle::createTable();
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
 
-//        MysqlUser::dropTable();
-//        PostgresUser::dropTable();
-//        MysqlArticle::dropTable();
-//        PostgresArticle::dropTable();
+        MysqlUser::dropTable();
+        PostgreSqlUser::dropTable();
+        MysqlArticle::dropTable();
+        PostgreSqlArticle::dropTable();
     }
 
     protected function setUp(): void

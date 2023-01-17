@@ -4,10 +4,10 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 
 use Faker\Factory;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection;
-use Lapaliv\BulkUpsert\Tests\Models\Article;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
+use Lapaliv\BulkUpsert\Tests\App\Collections\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\Article;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class NotAlignedAttributesTest extends TestCase
@@ -47,8 +47,8 @@ class NotAlignedAttributesTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlArticle::class],
-            [PostgresArticle::class],
+            [MySqlArticle::class],
+            [PostgreSqlArticle::class],
         ];
     }
 
@@ -56,7 +56,7 @@ class NotAlignedAttributesTest extends TestCase
      * @param string $model
      * @return array{
      *     sut: \Lapaliv\BulkUpsert\BulkInsert,
-     *     collection: \Lapaliv\BulkUpsert\Tests\Collections\ArticleCollection
+     *     collection: \Lapaliv\BulkUpsert\Tests\App\Collections\ArticleCollection
      * }
      */
     private function arrange(string $model): array

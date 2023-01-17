@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Feature\Update;
 
 use Lapaliv\BulkUpsert\BulkUpdate;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class NoDataTest extends TestCase
@@ -16,7 +16,7 @@ class NoDataTest extends TestCase
         ['sut' => $sut] = $this->arrange();
 
         // act
-        $sut->update(MysqlArticle::class, [], []);
+        $sut->update(MySqlArticle::class, [], []);
 
         // assert
         self::assertTrue(true);
@@ -31,9 +31,9 @@ class NoDataTest extends TestCase
     {
         return [
             'sut' => $this->app->make(BulkUpdate::class)
-                ->chunk(100, fn() => $this->fail())
-                ->onUpdating(fn() => $this->fail())
-                ->onUpdated(fn() => $this->fail())
+                ->chunk(100, fn () => $this->fail())
+                ->onUpdating(fn () => $this->fail())
+                ->onUpdated(fn () => $this->fail())
         ];
     }
 }

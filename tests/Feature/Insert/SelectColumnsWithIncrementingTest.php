@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Feature\Insert;
 use Faker\Factory;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class SelectColumnsWithIncrementingTest extends TestCase
@@ -36,8 +36,8 @@ class SelectColumnsWithIncrementingTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlUser::class],
-            [PostgresUser::class],
+            [MySqlUser::class],
+            [PostgreSqlUser::class],
         ];
     }
 
@@ -64,12 +64,12 @@ class SelectColumnsWithIncrementingTest extends TestCase
         }
 
         $actualSelectColumns = ['email', 'name'];
-        $expectSelectColumns = [...$actualSelectColumns, (new $model)->getKeyName()];
+        $expectSelectColumns = [...$actualSelectColumns, (new $model())->getKeyName()];
 
         $sut = $this->app->make(BulkInsert::class)
             ->select($actualSelectColumns)
             ->onInserted(
-                fn(Collection $users) => $this->assertChunk($users, $expectSelectColumns)
+                fn (Collection $users) => $this->assertChunk($users, $expectSelectColumns)
             );
 
         return compact('sut', 'collection');

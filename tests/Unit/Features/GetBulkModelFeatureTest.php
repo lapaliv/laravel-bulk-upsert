@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use stdClass;
 
@@ -50,8 +50,8 @@ class GetBulkModelFeatureTest extends TestCase
     protected function correctDataProvider(): array
     {
         return [
-            'string' => [MysqlUser::class],
-            'eloquent' => [new MysqlUser()],
+            'string' => [MySqlUser::class],
+            'eloquent' => [new MySqlUser()],
         ];
     }
 

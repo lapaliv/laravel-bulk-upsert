@@ -6,10 +6,10 @@ use Carbon\Carbon;
 use DateTime;
 use Faker\Factory;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\Collections\UserCollection;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
-use Lapaliv\BulkUpsert\Tests\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class TimestampFieldsTest extends TestCase
@@ -49,8 +49,8 @@ class TimestampFieldsTest extends TestCase
     public function data(): array
     {
         return [
-            [MysqlUser::class],
-            [PostgresUser::class],
+            [MySqlUser::class],
+            [PostgreSqlUser::class],
         ];
     }
 

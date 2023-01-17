@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Events\Dispatcher;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\Features\GetUserCollectionForUpdateTestsFeature;
-use Lapaliv\BulkUpsert\Tests\Models\Model;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
+use Lapaliv\BulkUpsert\Tests\App\Features\GetUserCollectionForUpdateTestsFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\Model;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 final class StopPropagationTest extends TestCase
@@ -27,8 +27,7 @@ final class StopPropagationTest extends TestCase
         string $model,
         array  $dispatchedEvents,
         array  $notDispatchedEvents
-    ): void
-    {
+    ): void {
         [
             'collection' => $collection,
             'sut' => $sut,
@@ -44,8 +43,8 @@ final class StopPropagationTest extends TestCase
     public function data(): array
     {
         $models = [
-            MysqlUser::class,
-            PostgresUser::class,
+            MySqlUser::class,
+            PostgreSqlUser::class,
         ];
 
         $result = [];
