@@ -14,7 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # need checkout before using compose-action
       - uses: actions/checkout@v3
+      - uses: isbang/compose-action@v1.4.1
+        with:
+          compose-file: "./docker-compose.yml"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -28,20 +32,6 @@ jobs:
         uses: xom9ikk/dotenv@v2
         with:
           load-mode: strict
-
-      - uses: mirromutth/mysql-action@v1.1
-        with:
-          mysql username: ${{ env.MYSQL_USERNAME }}
-          mysql database: ${{ env.MYSQL_DATABASE }}
-          mysql root password: ${{ env.MYSQL_PASSWORD }}
-
-      - name: Setup Postgres database
-        uses: Daniel-Marynicz/postgresql-action@master
-        with:
-          postgres_image_tag: 15-alpine
-          app_user: ${{ env.POSTGRESQL_USERNAME }}
-          app_user_password: ${{ env.POSTGRESQL_PASSWORD }}
-          app_db: ${{ env.POSTGRESQL_DATABASE }}
 
       - name: Cache Composer packages
         id: composer-cache
