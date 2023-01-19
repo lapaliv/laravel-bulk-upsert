@@ -15,11 +15,12 @@ jobs:
 
     steps:
       - name: Copy ENV Laravel Configuration for CI
-          run: php -r "file_exists('.env') || copy('.env', '.github/workflows/.env');"
+          run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Load .env file
         uses: xom9ikk/dotenv@v2
         with:
+          path: ../../
           load-mode: strict
 
       - uses: mirromutth/mysql-action@v1.1
