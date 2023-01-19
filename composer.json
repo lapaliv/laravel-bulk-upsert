@@ -38,7 +38,7 @@
         "ext-pdo": "*",
         "fakerphp/faker": "^1.9",
         "friendsofphp/php-cs-fixer": "^3.13",
-        "orchestra/testbench": "8.0.x-dev",
+        "orchestra/testbench": "^7.19",
         "phpstan/phpstan": "^1.9",
         "phpunit/phpunit": "9.5.x-dev",
         "vlucas/phpdotenv": "5.5.x-dev"
