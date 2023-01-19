@@ -16,17 +16,17 @@ jobs:
     steps:
       - uses: mirromutth/mysql-action@v1.1
         with:
-          mysql username: bulk-upsert
-          mysql database: 'db'
-          mysql root password: 'secret'
+          mysql username: ${{ env.MYSQL_USERNAME }}
+          mysql database: ${{ env.MYSQL_DATABASE }}
+          mysql root password: ${{ env.MYSQL_PASSWORD }}
 
       - name: Setup Postgres database
         uses: Daniel-Marynicz/postgresql-action@master
         with:
           postgres_image_tag: 15-alpine
-          app_user: bulk-upsert
-          app_user_password: secret
-          app_db: db
+          app_user: ${{ env.POSTGRESQL_USERNAME }}
+          app_user_password: ${{ env.POSTGRESQL_PASSWORD }}
+          app_db: ${{ env.POSTGRESQL_DATABASE }}
 
       - uses: actions/checkout@v3
 
@@ -47,7 +47,7 @@ jobs:
 
       - name: Waiting for MySQL
         run: |
-          while ! mysqladmin ping --host=127.0.0.1 --password=password --silent; do
+          while ! mysqladmin ping --host=${{ env.MYSQL_HOST }} --password=${{ env.MYSQL_PASSWORD }} --silent; do
             sleep 1
           done
 
