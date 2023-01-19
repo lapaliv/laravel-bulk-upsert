@@ -16,14 +16,6 @@ jobs:
     steps:
       # need checkout before using compose-action
       - uses: actions/checkout@v3
-      - uses: isbang/compose-action@v1.4.1
-        with:
-          compose-file: "./docker-compose.yml"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.0
 
       - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -32,6 +24,15 @@ jobs:
         uses: xom9ikk/dotenv@v2
         with:
           load-mode: strict
+
+      - uses: isbang/compose-action@v1.4.1
+        with:
+          compose-file: "./docker-compose.yml"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.0
 
       - name: Cache Composer packages
         id: composer-cache
