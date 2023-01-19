@@ -48,7 +48,7 @@ jobs:
 
       - name: Waiting for MySQL
         run: |
-          while ! mysqladmin ping --host=${{ env.MYSQL_HOST }} --password=${{ env.MYSQL_PASSWORD }} --silent; do
+          while ! mysqladmin ping --host=${{ env.MYSQL_HOST }} --port=${{ env.MYSQL_PORT }} --password=${{ env.MYSQL_PASSWORD }} --silent; do
             sleep 1
           done
 
