@@ -14,6 +14,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Load .env file
+        uses: xom9ikk/dotenv@v2
+        with:
+          path: ../../.env
+          mode: development
+          load-mode: strict
+
       - uses: mirromutth/mysql-action@v1.1
         with:
           mysql username: ${{ env.MYSQL_USERNAME }}
