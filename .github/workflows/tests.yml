@@ -14,7 +14,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Copy ENV Laravel Configuration for CI
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+
+      - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Load .env file
@@ -36,8 +43,6 @@ jobs:
           app_user: ${{ env.POSTGRESQL_USERNAME }}
           app_user_password: ${{ env.POSTGRESQL_PASSWORD }}
           app_db: ${{ env.POSTGRESQL_DATABASE }}
-
-      - uses: actions/checkout@v3
 
       - name: Cache Composer packages
         id: composer-cache
