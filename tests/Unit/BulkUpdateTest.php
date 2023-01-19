@@ -104,14 +104,7 @@ class BulkUpdateTest extends TestCase
         );
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-    }
-
-    protected function chunkCallbackDataProvider(): array
+    public function chunkCallbackDataProvider(): array
     {
         return [
             [PostgreSqlUser::class, 7, 3],
@@ -119,7 +112,7 @@ class BulkUpdateTest extends TestCase
         ];
     }
 
-    protected function throwBulkModelIsUndefinedDataProvider(): array
+    public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
             'random string' => ['\Abcd'],
@@ -128,7 +121,7 @@ class BulkUpdateTest extends TestCase
         ];
     }
 
-    protected function intersectEventsDataProvider(): array
+    public function intersectEventsDataProvider(): array
     {
         return [
             'correct' => [
@@ -155,5 +148,12 @@ class BulkUpdateTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
     }
 }

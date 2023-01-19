@@ -46,7 +46,7 @@ class SeparateIterableRowsFeatureTest extends TestCase
             );
     }
 
-    protected function dataProvider(): array
+    public function dataProvider(): array
     {
         return [
             '0/50' => [0, 50],

@@ -138,17 +138,17 @@ class InsertTest extends TestCase
         }
     }
 
+    public function models(): array
+    {
+        return [
+            [MySqlUser::class],
+        ];
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-    }
-
-    protected function models(): array
-    {
-        return [
-            [MySqlUser::class],
-        ];
     }
 }

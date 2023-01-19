@@ -107,14 +107,7 @@ class ArrayToScalarArrayConverterTest extends TestCase
         }
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->faker = Factory::create();
-    }
-
-    protected function datesDataProvider(): array
+    public function datesDataProvider(): array
     {
         return [
             'date' => ['Y-m-d'],
@@ -123,5 +116,12 @@ class ArrayToScalarArrayConverterTest extends TestCase
             'microseconds' => ['Y-m-d H:i:s.u'],
             'custom' => ['d.m.y s:i:h (u)'],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->faker = Factory::create();
     }
 }

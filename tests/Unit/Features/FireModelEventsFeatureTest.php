@@ -79,7 +79,7 @@ class FireModelEventsFeatureTest extends TestCase
         Event::assertNotDispatched("eloquent.{$notDispatchedEvent}: " . $model::class);
     }
 
-    protected function dispatchedDataProvider(): array
+    public function dispatchedDataProvider(): array
     {
         return [
             'creating' => [BulkEventEnum::CREATING],
@@ -89,7 +89,7 @@ class FireModelEventsFeatureTest extends TestCase
         ];
     }
 
-    protected function notDispatchedDataProvider(): array
+    public function notDispatchedDataProvider(): array
     {
         return [
             'updating' => [BulkEventEnum::UPDATING],
@@ -97,7 +97,7 @@ class FireModelEventsFeatureTest extends TestCase
         ];
     }
 
-    protected function stopPropagationDataProvider(): array
+    public function stopPropagationDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING, BulkEventEnum::CREATING],

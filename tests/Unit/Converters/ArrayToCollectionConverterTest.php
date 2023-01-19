@@ -45,18 +45,18 @@ class ArrayToCollectionConverterTest extends TestCase
         );
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-    }
-
-    protected function dataProvider(): array
+    public function dataProvider(): array
     {
         return [
             [MySqlUser::class],
             [PostgreSqlUser::class],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
     }
 }

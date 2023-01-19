@@ -42,11 +42,6 @@ abstract class Article extends Model
         'microseconds' => 'datetime:Y-m-d H:i:s.u',
     ];
 
-    public function newCollection(array $models = []): ArticleCollection
-    {
-        return new ArticleCollection($models);
-    }
-
     public static function dropTable(): void
     {
         self::getSchema()->dropIfExists('articles');
@@ -69,5 +64,10 @@ abstract class Article extends Model
             $table->timestamps();
             $table->softDeletes();
         });
+    }
+
+    public function newCollection(array $models = []): ArticleCollection
+    {
+        return new ArticleCollection($models);
     }
 }

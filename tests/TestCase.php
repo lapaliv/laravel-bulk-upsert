@@ -41,17 +41,6 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         parent::tearDownAfterClass();
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        self::$manager->setAsGlobal();
-        self::$manager->bootEloquent();
-
-        $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
-        $this->app->register(BulkUpsertServiceProvider::class);
-    }
-
     private static function readEnv(): void
     {
         $dotenv = Dotenv::createMutable(dirname(__DIR__));
@@ -99,5 +88,16 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        self::$manager->setAsGlobal();
+        self::$manager->bootEloquent();
+
+        $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
+        $this->app->register(BulkUpsertServiceProvider::class);
     }
 }

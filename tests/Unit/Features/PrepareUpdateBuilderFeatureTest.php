@@ -156,14 +156,7 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
         self::assertArrayNotHasKey('email', $builder->getSets());
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-    }
-
-    protected function fillInBuilderDataProvider(): array
+    public function fillInBuilderDataProvider(): array
     {
         return [
             'without callbacks' => [
@@ -175,5 +168,12 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
                 new BulkCallback(fn () => null),
             ],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
     }
 }

@@ -47,7 +47,7 @@ class GetBulkModelFeatureTest extends TestCase
         );
     }
 
-    protected function correctDataProvider(): array
+    public function correctDataProvider(): array
     {
         return [
             'string' => [MySqlUser::class],
@@ -55,7 +55,7 @@ class GetBulkModelFeatureTest extends TestCase
         ];
     }
 
-    protected function throwBulkModelIsUndefinedDataProvider(): array
+    public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
             'random string' => ['\Abcd'],

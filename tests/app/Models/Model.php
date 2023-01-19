@@ -2,8 +2,10 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
+use Closure;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Schema\Builder;
+use Illuminate\Events\QueuedClosure;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 abstract class Model extends \Illuminate\Database\Eloquent\Model implements BulkModel
@@ -13,9 +15,16 @@ abstract class Model extends \Illuminate\Database\Eloquent\Model implements Bulk
         parent::__construct($attributes);
     }
 
-    public function fireModelEvent($event, $halt = true)
+    /**
+     * Register a model event with the dispatcher.
+     *
+     * @param string $event
+     * @param QueuedClosure|Closure|string|array $callback
+     * @return void
+     */
+    public static function registerModelEvent($event, $callback)
     {
-        return parent::fireModelEvent($event, $halt);
+        parent::registerModelEvent($event, $callback);
     }
 
     protected static function getSchema(): Builder
@@ -23,15 +32,8 @@ abstract class Model extends \Illuminate\Database\Eloquent\Model implements Bulk
         return Manager::schema((new static())->getConnectionName());
     }
 
-    /**
-     * Register a model event with the dispatcher.
-     *
-     * @param string $event
-     * @param \Illuminate\Events\QueuedClosure|\Closure|string|array $callback
-     * @return void
-     */
-    public static function registerModelEvent($event, $callback)
+    public function fireModelEvent($event, $halt = true)
     {
-        parent::registerModelEvent($event, $callback);
+        return parent::fireModelEvent($event, $halt);
     }
 }

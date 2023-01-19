@@ -106,15 +106,7 @@ class BulkInsertTest extends TestCase
         );
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
-        $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
-    }
-
-    protected function chunkCallbackDataProvider(): array
+    public function chunkCallbackDataProvider(): array
     {
         return [
             [MySqlUser::class, 5, 1],
@@ -122,7 +114,7 @@ class BulkInsertTest extends TestCase
         ];
     }
 
-    protected function throwBulkModelIsUndefinedDataProvider(): array
+    public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
             'random string' => [base64_encode(random_bytes(3))],
@@ -130,7 +122,7 @@ class BulkInsertTest extends TestCase
         ];
     }
 
-    protected function intersectEventsDataProvider(): array
+    public function intersectEventsDataProvider(): array
     {
         return [
             'correct' => [
@@ -157,5 +149,13 @@ class BulkInsertTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
     }
 }
