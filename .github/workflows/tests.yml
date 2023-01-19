@@ -17,7 +17,6 @@ jobs:
       - name: Load .env file
         uses: xom9ikk/dotenv@v2
         with:
-          path: ../../
           load-mode: strict
 
       - uses: mirromutth/mysql-action@v1.1
