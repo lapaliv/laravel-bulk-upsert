@@ -17,8 +17,7 @@ class PrepareUpdateBuilderFeature
         private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
         private UpdateBuilder $builder,
-    )
-    {
+    ) {
         //
     }
 
@@ -49,8 +48,7 @@ class PrepareUpdateBuilderFeature
         array $dateFields,
         ?BulkCallback $updatingCallback,
         ?BulkCallback $savingCallback,
-    ): ?UpdateBuilder
-    {
+    ): ?UpdateBuilder {
         if ($collection->isEmpty()) {
             return null;
         }
@@ -72,7 +70,7 @@ class PrepareUpdateBuilderFeature
             $collection = $eloquent->newCollection(
                 $collection
                     ->filter(
-                        fn(BulkModel $model) => $model->isDirty()
+                        fn (BulkModel $model) => $model->isDirty()
                     )
                     ->all()
             );
@@ -87,7 +85,7 @@ class PrepareUpdateBuilderFeature
 
             if (count($uniqueAttributes) > 1) {
                 $collection->each(
-                    fn(BulkModel $model) => $this->fillInBuilderFromModel(
+                    fn (BulkModel $model) => $this->fillInBuilderFromModel(
                         $model,
                         $uniqueAttributes,
                         $updateAttributes,
@@ -127,8 +125,7 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void
-    {
+    ): void {
         /** @var BulkModel $model */
         foreach ($collection as $model) {
             if ($this->fireModelEvents($model, $events) === false) {
@@ -167,10 +164,10 @@ class PrepareUpdateBuilderFeature
     {
         return $collection
             ->filter(
-                fn(BulkModel $model) => $this->fireModelEvents($model, $events)
+                fn (BulkModel $model) => $this->fireModelEvents($model, $events)
             )
             ->each(
-                fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+                fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
@@ -186,8 +183,7 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void
-    {
+    ): void {
         $groupedValues = [];
 
         foreach ($collection as $model) {
@@ -269,8 +265,7 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
-    ): void
-    {
+    ): void {
         $attributes = $this->getDirtyAttributes($model, $updateAttributes);
 
         if (empty($attributes)) {

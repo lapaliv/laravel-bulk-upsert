@@ -7,10 +7,11 @@ use Lapaliv\BulkUpsert\Contracts\BulkInsertContract;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\InsertFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
-use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class BulkInsert implements BulkInsertContract
@@ -43,6 +44,7 @@ class BulkInsert implements BulkInsertContract
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
+        private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
     ) {
         //
     }
@@ -157,11 +159,17 @@ class BulkInsert implements BulkInsertContract
         $model = $this->getBulkModelFeature->handle($model);
         $selectColumns = $this->getSelectColumns($model);
         $dateFields = $this->getDateFieldsFeature->handle($model);
+        $events = array_filter(
+            $this->getEvents(),
+            fn (string $event) => $model::getEventDispatcher()->hasListeners(
+                $this->getEloquentNativeEventNameFeature->handle($model::class, $event)
+            )
+        );
 
         $this->separateIterableRowsFeature->handle(
             $this->chunkSize,
             $rows,
-            function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields): void {
+            function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields, $events): void {
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
 
                 $this->insertFeature->handle(
@@ -169,10 +177,7 @@ class BulkInsert implements BulkInsertContract
                     uniqueAttributes: $uniqueAttributes,
                     selectColumns: $selectColumns,
                     dateFields: $dateFields,
-                    events: array_filter(
-                        $this->getEvents(),
-                        static fn (string $event) => $model::getEventDispatcher()->hasListeners($event)
-                    ),
+                    events: $events,
                     ignore: $ignore,
                     creatingCallback: $this->creatingCallback,
                     createdCallback: $this->createdCallback,

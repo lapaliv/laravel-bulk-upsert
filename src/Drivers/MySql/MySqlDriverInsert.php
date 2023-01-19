@@ -66,7 +66,7 @@ class MySqlDriverInsert
 
         return [
             'sql' => sprintf(
-                'insert %s into %s %s values (%s)',
+                'insert %s into %s (%s) values (%s)',
                 $builder->doNothingAtConflict() ? 'ignore' : '',
                 $builder->getInto(),
                 implode(',', $builder->getColumns()),

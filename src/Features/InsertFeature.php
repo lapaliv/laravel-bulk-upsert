@@ -21,6 +21,8 @@ class InsertFeature
         private PrepareInsertBuilderFeature $prepareInsertBuilderFeature,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private FinishSaveFeature $finishSaveFeature,
+        private FreshTimestampsFeature $freshTimestampsFeature,
+        private FireModelEventsFeature $fireModelEventsFeature,
     ) {
         //
     }
@@ -60,19 +62,12 @@ class InsertFeature
             && $savedCallback === null
             && empty($events)
         ) {
-            $this->driverManager->getForModel($eloquent)
-                ->simpleInsert(
-                    $eloquent->newQuery(),
-                    $this->alignFieldsFeature->handle(
-                        $this->collectionToScalarArraysConverter->handle($collection, $dateFields),
-                        new Expression('default')
-                    )
-                );
+            $this->simpleInsert($eloquent, $collection, $dateFields);
 
             return;
         }
 
-        $startedAt = Carbon::now();
+        $startedAt = Carbon::now()->startOfSecond();
 
         $builder = $this->prepareInsertBuilderFeature->handle(
             $eloquent,
@@ -107,6 +102,9 @@ class InsertFeature
         );
 
         $this->fillWasRecentlyCreatedFeature->handle($eloquent, $collection, $dateFields, $lastInsertedId, $startedAt);
+        $collection->each(
+            fn (BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
+        );
 
         if ($createdCallback !== null) {
             $insertedModel = $collection->filter(
@@ -121,5 +119,27 @@ class InsertFeature
         $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);
 
         $savedCallback?->handle($collection);
+    }
+
+    /**
+     * @param BulkModel $eloquent
+     * @param Collection $collection
+     * @param string[] $dateFields
+     * @return void
+     */
+    private function simpleInsert(BulkModel $eloquent, Collection $collection, array $dateFields): void
+    {
+        $collection->map(
+            fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+        );
+
+        $this->driverManager->getForModel($eloquent)
+            ->simpleInsert(
+                $eloquent->newQuery(),
+                $this->alignFieldsFeature->handle(
+                    $this->collectionToScalarArraysConverter->handle($collection, $dateFields),
+                    new Expression('default')
+                )
+            );
     }
 }
