@@ -11,7 +11,6 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +28,7 @@ jobs:
           app_user_password: secret
           app_db: db
 
-        - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
