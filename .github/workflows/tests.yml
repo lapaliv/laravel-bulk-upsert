@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Copy ENV Laravel Configuration for CI
-          run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Load .env file
         uses: xom9ikk/dotenv@v2
