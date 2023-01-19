@@ -71,8 +71,10 @@ class PrepareUpdateBuilderFeature
 
             $collection = $eloquent->newCollection(
                 $collection
-                    ->filter(fn(BulkModel $model) => $model->isDirty())
-                    ->toArray()
+                    ->filter(
+                        fn(BulkModel $model) => $model->isDirty()
+                    )
+                    ->all()
             );
 
             $collection = $updatingCallback?->handle($collection) ?? $collection;

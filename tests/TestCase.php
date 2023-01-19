@@ -26,20 +26,19 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::readEnv();
         self::configureManager();
 
+        MySqlUser::dropTable();
         MySqlUser::createTable();
+        PostgreSqlUser::dropTable();
         PostgreSqlUser::createTable();
+        MySqlArticle::dropTable();
         MySqlArticle::createTable();
+        PostgreSqlArticle::dropTable();
         PostgreSqlArticle::createTable();
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-
-        MysqlUser::dropTable();
-        PostgreSqlUser::dropTable();
-        MysqlArticle::dropTable();
-        PostgreSqlArticle::dropTable();
     }
 
     protected function setUp(): void
