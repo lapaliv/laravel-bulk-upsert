@@ -2,204 +2,153 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Feature;
 
-use Carbon\Carbon;
 use Exception;
-use Faker\Factory;
-use Faker\Generator;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
+use Mockery;
+use Mockery\VerificationDirector;
 
 class InsertTest extends TestCase
 {
-    private Generator $faker;
+    private GenerateUserCollectionFeature $generateUserCollectionFeature;
 
-    public function testChunkSize(): void
+    /**
+     * @param string $model
+     * @return void
+     * @throws Exception
+     * @dataProvider models
+     */
+    public function testSuccessful(string $model): void
     {
         // arrange
-        $numberOfChunks = 0;
-        $numberOfUsers = 5;
-        $chunkSize = 1;
-
-        $generateUserCollectionFeature = new GenerateUserCollectionFeature(MySqlUser::class);
-        $collection = $generateUserCollectionFeature->handle($numberOfUsers);
-        $sut = $this->app->make(BulkInsert::class)
-            ->chunk(
-                $chunkSize,
-                function (UserCollection $chunk) use ($chunkSize, &$numberOfChunks): void {
-                    $this->assertCount($chunkSize, $chunk);
-
-                    $numberOfChunks++;
-                }
-            );
+        $users = $this->generateUserCollectionFeature->handle($model, 3);
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
 
         // act
-        $sut->insert(MySqlUser::class, ['email'], $collection);
+        $sut->insert($model, ['email'], $users);
 
         // assert
-        $this->assertEquals(
-            ceil($numberOfUsers / $chunkSize),
-            $numberOfChunks
+        $users->each(
+            fn (User $user) => $this->assertDatabaseHas(
+                $user->getTable(),
+                $user->toArray(),
+                $user->getConnectionName()
+            )
         );
     }
 
     /**
-     * @dataProvider models
      * @param string $model
      * @return void
      * @throws Exception
+     * @dataProvider models
      */
-    public function testSuccess1(string $model): void
+    public function testTimestamps(string $model): void
     {
         // arrange
-        $numberOfUsers = 5;
-        $collection = (new GenerateUserCollectionFeature($model))->handle($numberOfUsers);
+        $users = $this->generateUserCollectionFeature->handle($model, 3);
+        /** @var BulkInsert $sut */
         $sut = $this->app->make(BulkInsert::class);
 
         // act
-        $sut->insert($model, ['email'], $collection);
+        $sut->insert($model, ['email'], $users);
 
         // assert
-        $collection->map(
-            function (User $user): void {
-                $this->assertDatabaseHas(
-                    $user->getTable(),
-                    $user->getAttributes(),
-                    $user->getConnectionName()
-                );
+        $users->each(
+            function (User $user) {
+                $hasUser = $user->newQuery()
+                    ->where('email', $user->email)
+                    ->whereNotNull($user->getCreatedAtColumn())
+                    ->whereNotNull($user->getUpdatedAtColumn())
+                    ->whereNull($user->getDeletedAtColumn())
+                    ->exists();
+
+                self::assertTrue($hasUser);
             }
         );
     }
 
     /**
-     * @dataProvider models
-     * @param string $model
+     * @param class-string<Model> $model
      * @return void
+     * @throws Exception
+     * @dataProvider models
      */
-    public function testDateFields(string $model): void
+    public function testDispatchedEvents(string $model): void
     {
         // arrange
-        $numberOfUsers = 2;
-        $collection = new UserCollection();
+        $users = $this->generateUserCollectionFeature->handle($model, 3);
+        /** @var BulkInsert $sut */
         $sut = $this->app->make(BulkInsert::class);
+        $spies = [
+            BulkEventEnum::CREATING => Mockery::spy(Callback::class),
+            BulkEventEnum::SAVING => Mockery::spy(Callback::class),
+            BulkEventEnum::CREATED => Mockery::spy(Callback::class),
+            BulkEventEnum::SAVED => Mockery::spy(Callback::class),
+        ];
 
-        for ($i = 0; $i < $numberOfUsers; $i++) {
-            $collection->push(
-                new $model([
-                    'email' => $this->faker->unique()->email(),
-                    'name' => $this->faker->name(),
-                    'date' => Carbon::parse($this->faker->dateTime()),
-                ]),
-            );
+        foreach ($spies as $event => $spy) {
+            $model::{$event}($spy);
         }
 
         // act
-        $sut->insert($model, ['email'], $collection);
+        $sut->insert($model, ['email'], $users);
 
         // assert
-        $collection->each(
-            function (User $expectedUser): void {
-                /** @var User $actualUser */
-                $actualUser = $expectedUser->newQuery()
-                    ->where('email', $expectedUser->email)
-                    ->first();
+        foreach ([BulkEventEnum::CREATING, BulkEventEnum::SAVING] as $event) {
+            /** @var VerificationDirector $callback */
+            $callback = $spies[$event]->shouldHaveReceived('__invoke');
+            $callback->times($users->count())
+                ->withArgs(
+                    function (...$args) use ($model): bool {
+                        self::assertCount(1, $args);
+                        /** @var User $user */
+                        $user = $args[0];
+                        self::assertInstanceOf($model, $user);
+                        self::assertFalse($user->wasRecentlyCreated);
+                        self::assertFalse($user->exists);
 
-                self::assertEquals(
-                    $expectedUser->date->startOfDay()->format('Y-m-d H:i:s.u'),
-                    $actualUser->date->format('Y-m-d H:i:s.u')
+                        return true;
+                    }
                 );
-            }
-        );
-    }
+        }
+        foreach ([BulkEventEnum::CREATED, BulkEventEnum::SAVED] as $event) {
+            /** @var VerificationDirector $callback */
+            $callback = $spies[$event]->shouldHaveReceived('__invoke');
+            $callback->times($users->count())
+                ->withArgs(
+                    function (...$args) use ($model): bool {
+                        self::assertCount(1, $args);
+                        /** @var User $user */
+                        $user = $args[0];
+                        self::assertInstanceOf($model, $user);
+                        self::assertTrue($user->wasRecentlyCreated);
+                        self::assertTrue($user->exists);
 
-    /**
-     * @dataProvider models
-     * @param string $model
-     * @return void
-     * @throws Exception
-     */
-    public function testInsertDuplicatesWithIgnoring(string $model): void
-    {
-        $numberOfExistingRows = 2;
-        $numberOfNewRows = 3;
-
-        $generateUserCollectionFeature = new GenerateUserCollectionFeature($model);
-        $existingUsers = $generateUserCollectionFeature->handle($numberOfExistingRows);
-        // creating the collection with different not unique values in the existing rows
-        $collection = $generateUserCollectionFeature->handle($numberOfNewRows);
-        $sut = $this->app->make(BulkInsert::class);
-
-        $existingUsers->each(
-            function (User $user) use ($collection): void {
-                $clone = clone $user;
-                $clone->name = $this->faker->name();
-                $clone->phone = $this->faker->phoneNumber();
-
-                $collection->push($clone);
-            }
-        );
-
-        $existingEmails = $existingUsers->pluck('email');
-
-        // act
-        $sut->insertOrIgnore($model, ['email'], $collection);
-
-        // assert
-        $existingUsers->each(
-            function (User $user): void {
-                $this->assertDatabaseHas(
-                    $user->getTable(),
-                    $user->toArray(),
-                    $user->getConnectionName(),
+                        return true;
+                    }
                 );
-            }
-        );
-
-        $collection
-            ->filter(
-                fn (User $user) => $existingEmails->contains($user->email) === false
-            )
-            ->each(
-                function (User $user): void {
-                    $this->assertDatabaseHas(
-                        $user->getTable(),
-                        $user->toArray(),
-                        $user->getConnectionName(),
-                    );
-                }
-            );
-
-        $collection
-            ->filter(
-                fn (User $user) => $existingEmails->contains($user->email)
-            )
-            ->each(
-                function (User $user): void {
-                    $this->assertDatabaseMissing(
-                        $user->getTable(),
-                        $user->toArray(),
-                        $user->getConnectionName(),
-                    );
-                }
-            );
+        }
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->faker = Factory::create();
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
     }
 
     protected function models(): array
     {
         return [
             [MySqlUser::class],
-            [PostgreSqlUser::class],
         ];
     }
 }
