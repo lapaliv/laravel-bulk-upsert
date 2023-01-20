@@ -11,32 +11,15 @@ use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Features\UpdateFeature;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
+use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
+use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
+use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
+use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
+use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 
 class BulkUpdate implements BulkUpdateContract
 {
-    private int $chunkSize = 100;
-
-    /**
-     * @var string[]
-     */
-    private array $selectColumns = ['*'];
-
-    /**
-     * @var string[]
-     */
-    private array $events = [
-        BulkEventEnum::UPDATING,
-        BulkEventEnum::UPDATED,
-        BulkEventEnum::SAVING,
-        BulkEventEnum::SAVED,
-    ];
-
-    private ?BulkCallback $chunkCallback = null;
-    private ?BulkCallback $updatingCallback = null;
-    private ?BulkCallback $updatedCallback = null;
-    private ?BulkCallback $savingCallback = null;
-    private ?BulkCallback $savedCallback = null;
+    use BulkChunkTrait, BulkEventsTrait, BulkSelectTrait, BulkSaveTrait, BulkUpdateTrait;
 
     public function __construct(
         private UpdateFeature $updateFeature,
@@ -44,111 +27,9 @@ class BulkUpdate implements BulkUpdateContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private GetBulkModelFeature $getBulkModelFeature,
-    ) {
-        //
-    }
-
-    /**
-     * @param int $size
-     * @param (callable(Collection<scalar, BulkModel> $chunk): Collection<scalar, BulkModel>)|null $callback
-     * @return $this
-     */
-    public function chunk(int $size = 100, ?callable $callback = null): static
+    )
     {
-        $this->chunkSize = $size;
-        $this->chunkCallback = $callback === null
-            ? null
-            : new BulkCallback($callback);
-
-        return $this;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getEvents(): array
-    {
-        return $this->events;
-    }
-
-    /**
-     * @param string[] $events
-     * @return $this
-     */
-    public function setEvents(array $events): static
-    {
-        $this->events = array_intersect($events, [
-            BulkEventEnum::UPDATING,
-            BulkEventEnum::UPDATED,
-            BulkEventEnum::SAVING,
-            BulkEventEnum::SAVED,
-        ]);
-
-        return $this;
-    }
-
-    public function disableEvents(): static
-    {
-        $this->events = [];
-
-        return $this;
-    }
-
-    /**
-     * @param string[] $columns
-     * @return $this
-     */
-    public function select(array $columns = ['*']): static
-    {
-        $this->selectColumns = in_array('*', $columns, true)
-            ? ['*']
-            : $columns;
-
-        return $this;
-    }
-
-    /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
-     * @return $this
-     */
-    public function onUpdating(?callable $callback): static
-    {
-        $this->updatingCallback = $callback === null ? null : new BulkCallback($callback);
-
-        return $this;
-    }
-
-    /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
-     * @return $this
-     */
-    public function onUpdated(?callable $callback): static
-    {
-        $this->updatedCallback = $callback === null ? null : new BulkCallback($callback);
-
-        return $this;
-    }
-
-    /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
-     * @return $this
-     */
-    public function onSaving(?callable $callback): static
-    {
-        $this->savingCallback = $callback === null ? null : new BulkCallback($callback);
-
-        return $this;
-    }
-
-    /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
-     * @return $this
-     */
-    public function onSaved(?callable $callback): static
-    {
-        $this->savedCallback = $callback === null ? null : new BulkCallback($callback);
-
-        return $this;
+        $this->events = $this->getDefaultEvents();
     }
 
     /**
@@ -163,7 +44,8 @@ class BulkUpdate implements BulkUpdateContract
         iterable $rows,
         ?array $uniqueAttributes = null,
         ?array $updateAttributes = null,
-    ): void {
+    ): void
+    {
         $model = $this->getBulkModelFeature->handle($model);
         $uniqueAttributes ??= [$model->getKeyName()];
         $selectColumns = $this->getSelectColumns($uniqueAttributes, $updateAttributes);
@@ -183,7 +65,7 @@ class BulkUpdate implements BulkUpdateContract
                     dateFields: $dateFields,
                     events: array_filter(
                         $this->getEvents(),
-                        static fn (string $event) => $model::getEventDispatcher()->hasListeners($event)
+                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
                     ),
                     updatingCallback: $this->updatingCallback,
                     updatedCallback: $this->updatedCallback,
@@ -203,7 +85,8 @@ class BulkUpdate implements BulkUpdateContract
     protected function getSelectColumns(
         array $uniqueAttributes,
         ?array $updateAttributes,
-    ): array {
+    ): array
+    {
         if (in_array('*', $this->selectColumns, true)) {
             return ['*'];
         }
@@ -221,5 +104,18 @@ class BulkUpdate implements BulkUpdateContract
                 $updateAttributes,
             )
         );
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function getDefaultEvents(): array
+    {
+        return [
+            BulkEventEnum::UPDATING,
+            BulkEventEnum::UPDATED,
+            BulkEventEnum::SAVING,
+            BulkEventEnum::SAVED,
+        ];
     }
 }

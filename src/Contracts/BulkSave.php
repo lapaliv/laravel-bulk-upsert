@@ -2,8 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Contracts;
 
-use Lapaliv\BulkUpsert\BulkInsert;
-
 interface BulkSave
 {
     /**
