@@ -49,7 +49,7 @@ class MySqlDriverUpdate
                 $whens[] = sprintf(
                     'when %s then %s',
                     $this->getSqlWhereClause($when->getWheres(), $bindings),
-                    $when->getThen()
+                    $this->mixedValueToSqlConverter->handle($when->getThen(), $bindings)
                 );
             }
 
@@ -102,11 +102,19 @@ class MySqlDriverUpdate
                     $values[] = $this->mixedValueToSqlConverter->handle($value, $bindings);
                 }
 
-                $result[] = sprintf(
-                    '%s IN(%s)',
-                    $where->field,
-                    implode(',', $values),
-                );
+                if (count($values) === 1) {
+                    $result[] = sprintf(
+                        '%s = %s',
+                        $where->field,
+                        $values[0],
+                    );
+                } else {
+                    $result[] = sprintf(
+                        '%s IN(%s)',
+                        $where->field,
+                        implode(',', $values),
+                    );
+                }
             }
         }
 
