@@ -5,10 +5,10 @@ namespace Lapaliv\BulkUpsert\Tests;
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlArticle;
-use Lapaliv\BulkUpsert\Tests\Models\MysqlUser;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresArticle;
-use Lapaliv\BulkUpsert\Tests\Models\PostgresUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use PDO;
 
 abstract class TestCase extends \Orchestra\Testbench\TestCase
@@ -26,31 +26,19 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::readEnv();
         self::configureManager();
 
-        MysqlUser::createTable();
-        PostgresUser::createTable();
-        MysqlArticle::createTable();
-        PostgresArticle::createTable();
+        MySqlUser::dropTable();
+        MySqlUser::createTable();
+        PostgreSqlUser::dropTable();
+        PostgreSqlUser::createTable();
+        MySqlArticle::dropTable();
+        MySqlArticle::createTable();
+        PostgreSqlArticle::dropTable();
+        PostgreSqlArticle::createTable();
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-
-//        MysqlUser::dropTable();
-//        PostgresUser::dropTable();
-//        MysqlArticle::dropTable();
-//        PostgresArticle::dropTable();
-    }
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        self::$manager->setAsGlobal();
-        self::$manager->bootEloquent();
-
-        $this->app->bind('db', fn() => self::$manager->getDatabaseManager());
-        $this->app->register(BulkUpsertServiceProvider::class);
     }
 
     private static function readEnv(): void
@@ -65,7 +53,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $manager->addConnection([
             'driver' => 'mysql',
             'url' => env('MYSQL_URL'),
-            'host' => '127.0.0.1',
+            'host' => env('MYSQL_HOST', '127.0.0.1'),
             'port' => env('MYSQL_PORT'),
             'database' => env('MYSQL_DATABASE'),
             'username' => env('MYSQL_USERNAME'),
@@ -83,12 +71,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         ], 'mysql');
         $manager->addConnection([
             'driver' => 'pgsql',
-            'url' => env('POSTGRES_URL'),
-            'host' => '127.0.0.1',
-            'port' => env('POSTGRES_PORT'),
-            'database' => env('POSTGRES_DATABASE'),
-            'username' => env('POSTGRES_USERNAME'),
-            'password' => env('POSTGRES_PASSWORD'),
+            'url' => env('POSTGRESQL_URL'),
+            'host' => env('POSTGRESQL_HOST', '127.0.0.1'),
+            'port' => env('POSTGRESQL_PORT'),
+            'database' => env('POSTGRESQL_DATABASE'),
+            'username' => env('POSTGRESQL_USERNAME'),
+            'password' => env('POSTGRESQL_PASSWORD'),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
@@ -100,5 +88,16 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        self::$manager->setAsGlobal();
+        self::$manager->bootEloquent();
+
+        $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
+        $this->app->register(BulkUpsertServiceProvider::class);
     }
 }

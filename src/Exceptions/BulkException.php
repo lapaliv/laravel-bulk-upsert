@@ -6,5 +6,5 @@ use RuntimeException;
 
 abstract class BulkException extends RuntimeException
 {
-    //
+    // Nothing
 }

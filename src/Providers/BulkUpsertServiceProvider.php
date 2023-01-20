@@ -4,9 +4,9 @@ namespace Lapaliv\BulkUpsert\Providers;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\ServiceProvider;
-use Lapaliv\BulkUpsert\BulkDatabaseDriverManager;
-use Lapaliv\BulkUpsert\Database\Drivers\BulkMysqlBulkDatabaseDriver;
-use Lapaliv\BulkUpsert\Database\Drivers\BulkPostgresBulkDatabaseDriver;
+use Lapaliv\BulkUpsert\BulkDriverManager;
+use Lapaliv\BulkUpsert\Contracts\DriverManager;
+use Lapaliv\BulkUpsert\Drivers\MySqlDriver;
 
 class BulkUpsertServiceProvider extends ServiceProvider
 {
@@ -18,14 +18,10 @@ class BulkUpsertServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        BulkDatabaseDriverManager::registerDriver(
+        $this->app->singleton(DriverManager::class, fn () => new BulkDriverManager());
+        $this->app->make(DriverManager::class)->registerDriver(
             'mysql',
-            $this->app->make(BulkMysqlBulkDatabaseDriver::class)
-        );
-
-        BulkDatabaseDriverManager::registerDriver(
-            'pgsql',
-            $this->app->make(BulkPostgresBulkDatabaseDriver::class)
+            $this->app->make(MySqlDriver::class)
         );
     }
 

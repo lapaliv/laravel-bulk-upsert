@@ -1,0 +1,161 @@
+<?php
+
+namespace Lapaliv\BulkUpsert\Tests\Unit;
+
+use Exception;
+use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\BulkInsert;
+use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\SwitchDriverToNullDriverFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\TestCase;
+use Mockery;
+use Mockery\VerificationDirector;
+
+class BulkInsertTest extends TestCase
+{
+    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private SwitchDriverToNullDriverFeature $switchDriverToNullDriverFeature;
+
+    /**
+     * @dataProvider chunkCallbackDataProvider
+     * @param string $model
+     * @param int $numberOfUsers
+     * @param int $chunkSize
+     * @return void
+     * @throws Exception
+     */
+    public function testChunkCallback(string $model, int $numberOfUsers, int $chunkSize): void
+    {
+        // arrange
+        $users = $this->generateUserCollectionFeature->handle($model, $numberOfUsers, ['email', 'name']);
+        $callbackSpy = Mockery::spy(Callback::class);
+        $this->switchDriverToNullDriverFeature->handle();
+
+        /** @var BulkInsert $sut */
+        $sut = $this->app
+            ->make(BulkInsert::class)
+            ->chunk($chunkSize, $callbackSpy);
+
+        // act
+        $sut->insert($model, ['email'], $users);
+
+        // assert
+        $callbackSpy->shouldHaveBeenCalled();
+        /** @var VerificationDirector $method */
+        $method = $callbackSpy->shouldHaveReceived('__invoke');
+        $method->times((int)ceil($numberOfUsers / $chunkSize))
+            ->withArgs(
+                function (...$args) use ($chunkSize): bool {
+                    self::assertCount(1, $args);
+                    self::assertInstanceOf(Collection::class, $args[0]);
+                    self::assertLessThanOrEqual($chunkSize, $args[0]->count());
+
+                    return true;
+                }
+            );
+    }
+
+    /**
+     * @param string $model
+     * @return void
+     * @dataProvider throwBulkModelIsUndefinedDataProvider
+     */
+    public function testThrowBulkModelIsUndefined(string $model): void
+    {
+        // assert
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
+
+        // assert
+        $this->expectException(BulkModelIsUndefined::class);
+
+        // act
+        $sut->insert($model, [], []);
+    }
+
+    /**
+     * @param array $events
+     * @return void
+     * @throws Exception
+     * @dataProvider intersectEventsDataProvider
+     */
+    public function testIntersectEvents(array $events): void
+    {
+        // assert
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
+
+        // act
+        $sut->setEvents($events);
+
+        // assert
+        self::assertEmpty(
+            array_filter(
+                $sut->getEvents(),
+                static fn (string $event): bool => !in_array($event, [
+                    BulkEventEnum::SAVING,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
+                    BulkEventEnum::SAVED,
+                ], true)
+            )
+        );
+    }
+
+    public function chunkCallbackDataProvider(): array
+    {
+        return [
+            [MySqlUser::class, 5, 1],
+            [MySqlUser::class, 10, 3],
+        ];
+    }
+
+    public function throwBulkModelIsUndefinedDataProvider(): array
+    {
+        return [
+            'random string' => [base64_encode(random_bytes(3))],
+            'class does not implement BulkModel' => [self::class],
+        ];
+    }
+
+    public function intersectEventsDataProvider(): array
+    {
+        return [
+            'correct' => [
+                [
+                    BulkEventEnum::SAVING,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
+                    BulkEventEnum::SAVING,
+                ],
+            ],
+            'extra' => [
+                [
+                    BulkEventEnum::SAVING,
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
+                    BulkEventEnum::SAVING,
+                    BulkEventEnum::UPDATING,
+                ],
+            ],
+            'some' => [
+                [
+                    BulkEventEnum::CREATING,
+                    BulkEventEnum::CREATED,
+                ],
+            ],
+        ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
+    }
+}
