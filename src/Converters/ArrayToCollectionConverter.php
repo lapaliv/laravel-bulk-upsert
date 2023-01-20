@@ -4,6 +4,8 @@ namespace Lapaliv\BulkUpsert\Converters;
 
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
+use stdClass;
 
 class ArrayToCollectionConverter
 {
@@ -21,12 +23,25 @@ class ArrayToCollectionConverter
         foreach ($rows as $key => $row) {
             if ($row instanceof BulkModel) {
                 $result->put($key, $row);
-            } else {
-                $item = new $model();
-                $item->setRawAttributes($row);
-
-                $result->put($key, $item);
+                continue;
             }
+
+            if (is_object($row)) {
+                if (method_exists($row, 'toArray')) {
+                    $row = $row->toArray();
+                } elseif ($row instanceof stdClass) {
+                    $row = (array)$row;
+                }
+            }
+
+            if (is_array($row) === false) {
+                throw new BulkModelIsUndefined();
+            }
+
+            $item = new $model();
+            $item->setRawAttributes($row);
+
+            $result->put($key, $item);
         }
 
         return $result;
