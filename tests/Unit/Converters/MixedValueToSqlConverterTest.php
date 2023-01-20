@@ -15,7 +15,6 @@ class MixedValueToSqlConverterTest extends TestCase
      * @param string $expectedResult
      * @param array $expectedBindings
      * @return void
-     * @group 123
      */
     public function test(mixed $value, string $expectedResult, array $expectedBindings): void
     {
