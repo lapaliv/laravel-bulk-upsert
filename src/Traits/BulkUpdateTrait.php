@@ -41,8 +41,7 @@ trait BulkUpdateTrait
     protected function getSelectColumns(
         array $uniqueAttributes,
         ?array $updateAttributes,
-    ): array
-    {
+    ): array {
         if (in_array('*', $this->selectColumns, true)) {
             return ['*'];
         }

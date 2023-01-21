@@ -41,11 +41,10 @@ trait BulkEventsTrait
     protected function getIntersectEventsWithDispatcher(
         BulkModel $model,
         GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
-    ): array
-    {
+    ): array {
         return array_filter(
             $this->getEvents(),
-            static fn(string $event) => $model::getEventDispatcher()->hasListeners(
+            static fn (string $event) => $model::getEventDispatcher()->hasListeners(
                 $getEloquentNativeEventNameFeature->handle(get_class($model), $event)
             )
         );

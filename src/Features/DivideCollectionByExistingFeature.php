@@ -11,8 +11,7 @@ class DivideCollectionByExistingFeature
     public function __construct(
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private KeyByFeature $keyByFeature,
-    )
-    {
+    ) {
         // Nothing
     }
 
@@ -21,14 +20,13 @@ class DivideCollectionByExistingFeature
         Collection $collection,
         array $uniqueAttributes,
         array $selectColumns,
-    ): DividedCollectionByExistingEntity
-    {
+    ): DividedCollectionByExistingEntity {
         $existing = $collection->filter(
-            fn(BulkModel $model) => $model->exists
+            fn (BulkModel $model) => $model->exists
         );
 
         $undefined = $collection->filter(
-            fn(BulkModel $model) => $model->exists === false
+            fn (BulkModel $model) => $model->exists === false
         );
 
         if ($undefined->isNotEmpty()) {
@@ -59,8 +57,7 @@ class DivideCollectionByExistingFeature
         Collection $collection,
         Collection $existing,
         array $uniqueAttributes,
-    ): Collection
-    {
+    ): Collection {
         $keyedCollection = $this->keyByFeature->handle($collection, $uniqueAttributes);
         $keyedExisting = $this->keyByFeature->handle($existing, $uniqueAttributes);
 

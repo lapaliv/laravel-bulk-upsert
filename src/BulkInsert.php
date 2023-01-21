@@ -20,7 +20,11 @@ use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
 
 class BulkInsert implements BulkInsertContract
 {
-    use BulkInsertTrait, BulkSelectTrait, BulkEventsTrait, BulkChunkTrait, BulkSavedTrait;
+    use BulkInsertTrait;
+    use BulkSelectTrait;
+    use BulkEventsTrait;
+    use BulkChunkTrait;
+    use BulkSavedTrait;
 
     public function __construct(
         private InsertFeature $insertFeature,
@@ -29,8 +33,7 @@ class BulkInsert implements BulkInsertContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
-    )
-    {
+    ) {
         $this->events = $this->getDefaultEvents();
     }
 

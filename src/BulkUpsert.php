@@ -20,7 +20,12 @@ use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 
 class BulkUpsert implements BulkUpsertContract
 {
-    use BulkChunkTrait, BulkSelectTrait, BulkEventsTrait, BulkSaveTrait, BulkInsertTrait, BulkUpdateTrait;
+    use BulkChunkTrait;
+    use BulkSelectTrait;
+    use BulkEventsTrait;
+    use BulkSaveTrait;
+    use BulkInsertTrait;
+    use BulkUpdateTrait;
 
     public function __construct(
         private GetBulkModelFeature $getBulkModelFeature,
@@ -28,8 +33,7 @@ class BulkUpsert implements BulkUpsertContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private UpsertScenario $scenario,
-    )
-    {
+    ) {
         $this->setEvents($this->getDefaultEvents());
     }
 
@@ -38,8 +42,7 @@ class BulkUpsert implements BulkUpsertContract
         iterable $rows,
         array $uniqueAttributes,
         ?array $updateAttributes = null,
-    ): void
-    {
+    ): void {
         $model = $this->getBulkModelFeature->handle($model);
         $this->scenario->setEloquent($model);
         $config = $this->getConfig($model, $uniqueAttributes, $updateAttributes);

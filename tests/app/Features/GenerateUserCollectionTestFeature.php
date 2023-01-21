@@ -9,8 +9,7 @@ class GenerateUserCollectionTestFeature
 {
     public function __construct(
         private GenerateUserTestFeature $generateUserFeature,
-    )
-    {
+    ) {
         // Nothing
     }
 

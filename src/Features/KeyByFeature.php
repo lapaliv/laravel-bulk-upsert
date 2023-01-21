@@ -9,8 +9,7 @@ class KeyByFeature
 {
     public function __construct(
         private GetKeyForRowFeature $getKeyForRowFeature
-    )
-    {
+    ) {
         // Nothing
     }
 

@@ -23,8 +23,7 @@ class InsertFeature
         private FinishSaveFeature $finishSaveFeature,
         private FreshTimestampsFeature $freshTimestampsFeature,
         private FireModelEventsFeature $fireModelEventsFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -52,8 +51,7 @@ class InsertFeature
         ?BulkCallback $createdCallback,
         ?BulkCallback $savedCallback,
         Collection $collection,
-    ): void
-    {
+    ): void {
         if ($collection->isEmpty()) {
             return;
         }
@@ -105,12 +103,12 @@ class InsertFeature
 
         $this->fillWasRecentlyCreatedFeature->handle($eloquent, $collection, $dateFields, $lastInsertedId, $startedAt);
         $collection->each(
-            fn(BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
+            fn (BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
         );
 
         if ($createdCallback !== null) {
             $insertedModels = $collection->filter(
-                fn(BulkModel $model) => $model->wasRecentlyCreated
+                fn (BulkModel $model) => $model->wasRecentlyCreated
             );
 
             if ($insertedModels->isNotEmpty()) {
@@ -132,7 +130,7 @@ class InsertFeature
     private function simpleInsert(BulkModel $eloquent, Collection $collection, array $dateFields): void
     {
         $collection->map(
-            fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+            fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
         );
 
         $this->driverManager->getForModel($eloquent)

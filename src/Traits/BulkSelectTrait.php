@@ -6,7 +6,6 @@ use Lapaliv\BulkUpsert\BulkInsert;
 
 trait BulkSelectTrait
 {
-
     /**
      * @var string[]
      */

@@ -21,8 +21,7 @@ class UpsertScenario
         private GetBulkModelFeature $getBulkModelFeature,
         private BulkInsert $bulkInsert,
         private BulkUpdate $bulkUpdate,
-    )
-    {
+    ) {
         // Nothing
     }
 
@@ -30,8 +29,7 @@ class UpsertScenario
         BulkModel $eloquent,
         Collection $collection,
         UpsertConfig $config
-    ): static
-    {
+    ): static {
         if ($collection->isEmpty()) {
             return $this;
         }
@@ -61,7 +59,7 @@ class UpsertScenario
                 ->onSaved(
                     function (Collection $collection) use ($config): void {
                         $grouped = $collection->groupBy(
-                            fn(BulkModel $model) => $model->wasRecentlyCreated ? 1 : 0
+                            fn (BulkModel $model) => $model->wasRecentlyCreated ? 1 : 0
                         );
 
                         if ($grouped->has(0) && $grouped->get(0)->isNotEmpty()) {

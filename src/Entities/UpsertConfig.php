@@ -33,8 +33,7 @@ class UpsertConfig
         public ?BulkCallback $updatedCallback,
         public ?BulkCallback $savingCallback,
         public ?BulkCallback $savedCallback,
-    )
-    {
+    ) {
         // Nothing
     }
 }
