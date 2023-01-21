@@ -18,9 +18,7 @@ trait BulkChunkTrait
     public function chunk(int $size = 100, ?callable $callback = null): static
     {
         $this->chunkSize = $size;
-        $this->chunkCallback = $callback === null
-            ? null
-            : new BulkCallback($callback);
+        $this->chunkCallback = $callback === null ? null : new BulkCallback($callback);
 
         return $this;
     }

@@ -17,9 +17,7 @@ trait BulkInsertTrait
      */
     public function onCreating(?callable $callback): static
     {
-        $this->creatingCallback = $callback === null
-            ? $callback
-            : new BulkCallback($callback);
+        $this->creatingCallback = $callback === null ? null : new BulkCallback($callback);
 
         return $this;
     }
@@ -30,9 +28,7 @@ trait BulkInsertTrait
      */
     public function onCreated(?callable $callback): static
     {
-        $this->createdCallback = $callback === null
-            ? $callback
-            : new BulkCallback($callback);
+        $this->createdCallback = $callback === null ? null : new BulkCallback($callback);
 
         return $this;
     }

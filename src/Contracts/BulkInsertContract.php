@@ -28,6 +28,7 @@ interface BulkInsertContract extends BulkSave
      * @param string|BulkModel $model
      * @param string[] $uniqueAttributes
      * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
+     * @param bool $ignore
      * @return void
      */
     public function insert(string|BulkModel $model, array $uniqueAttributes, iterable $rows, bool $ignore): void;

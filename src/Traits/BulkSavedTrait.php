@@ -16,9 +16,7 @@ trait BulkSavedTrait
      */
     public function onSaved(?callable $callback): static
     {
-        $this->createdCallback = $callback === null
-            ? $callback
-            : new BulkCallback($callback);
+        $this->savedCallback = $callback === null ? null : new BulkCallback($callback);
 
         return $this;
     }

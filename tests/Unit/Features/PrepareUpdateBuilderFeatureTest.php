@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 use Exception;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -14,7 +14,7 @@ use Mockery\VerificationDirector;
 
 class PrepareUpdateBuilderFeatureTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @param BulkCallback|null $updatingCallback
@@ -174,6 +174,6 @@ class PrepareUpdateBuilderFeatureTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

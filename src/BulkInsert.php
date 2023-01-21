@@ -46,12 +46,7 @@ class BulkInsert implements BulkInsertContract
         $model = $this->getBulkModelFeature->handle($model);
         $selectColumns = $this->getSelectColumns($model);
         $dateFields = $this->getDateFieldsFeature->handle($model);
-        $events = array_filter(
-            $this->getEvents(),
-            fn(string $event) => $model::getEventDispatcher()->hasListeners(
-                $this->getEloquentNativeEventNameFeature->handle($model::class, $event)
-            )
-        );
+        $events = $this->getIntersectEventsWithDispatcher($model, $this->getEloquentNativeEventNameFeature);
 
         $this->separateIterableRowsFeature->handle(
             $this->chunkSize,

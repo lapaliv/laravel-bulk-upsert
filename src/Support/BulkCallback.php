@@ -6,7 +6,7 @@ use Closure;
 
 class BulkCallback
 {
-    private Closure $target;
+    public Closure $target;
 
     public function __construct(callable $callback)
     {

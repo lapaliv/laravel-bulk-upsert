@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -17,7 +17,7 @@ use stdClass;
 
 class BulkUpdateTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @dataProvider chunkCallbackDataProvider
@@ -154,6 +154,6 @@ class BulkUpdateTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

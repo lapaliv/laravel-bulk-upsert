@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\SwitchDriverToNullDriverFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
@@ -17,7 +17,7 @@ use Mockery\VerificationDirector;
 
 class BulkInsertTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
     private SwitchDriverToNullDriverFeature $switchDriverToNullDriverFeature;
 
     /**
@@ -155,7 +155,7 @@ class BulkInsertTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
         $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
     }
 }

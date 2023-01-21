@@ -9,6 +9,7 @@ use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Features\UpdateFeature;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
@@ -24,6 +25,7 @@ class BulkUpdate implements BulkUpdateContract
     public function __construct(
         private UpdateFeature $updateFeature,
         private GetDateFieldsFeature $getDateFieldsFeature,
+        private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private GetBulkModelFeature $getBulkModelFeature,
@@ -50,11 +52,12 @@ class BulkUpdate implements BulkUpdateContract
         $uniqueAttributes ??= [$model->getKeyName()];
         $selectColumns = $this->getSelectColumns($uniqueAttributes, $updateAttributes);
         $dateFields = $this->getDateFieldsFeature->handle($model);
+        $events = $this->getIntersectEventsWithDispatcher($model, $this->getEloquentNativeEventNameFeature);
 
         $this->separateIterableRowsFeature->handle(
             $this->chunkSize,
             $rows,
-            function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields): void {
+            function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields, $events): void {
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
 
                 $this->updateFeature->handle(
@@ -63,10 +66,7 @@ class BulkUpdate implements BulkUpdateContract
                     updateAttributes: $updateAttributes,
                     selectColumns: $selectColumns,
                     dateFields: $dateFields,
-                    events: array_filter(
-                        $this->getEvents(),
-                        static fn(string $event) => $model::getEventDispatcher()->hasListeners($event)
-                    ),
+                    events: $events,
                     updatingCallback: $this->updatingCallback,
                     updatedCallback: $this->updatedCallback,
                     savingCallback: $this->savingCallback,
@@ -74,35 +74,6 @@ class BulkUpdate implements BulkUpdateContract
                     collection: $this->chunkCallback?->handle($collection) ?? $collection,
                 );
             }
-        );
-    }
-
-    /**
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @return string[]
-     */
-    protected function getSelectColumns(
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-    ): array
-    {
-        if (in_array('*', $this->selectColumns, true)) {
-            return ['*'];
-        }
-
-        // the case then we have select(<not all>) and we need to update all attributes
-        // looks really strange. The additional fields would mark like a change
-        if (empty($updateAttributes)) {
-            return ['*'];
-        }
-
-        return array_unique(
-            array_merge(
-                $this->selectColumns,
-                $uniqueAttributes,
-                $updateAttributes,
-            )
         );
     }
 

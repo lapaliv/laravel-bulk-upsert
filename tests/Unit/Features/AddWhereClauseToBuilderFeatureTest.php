@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
 use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class AddWhereClauseToBuilderFeatureTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @return void
@@ -98,6 +98,6 @@ class AddWhereClauseToBuilderFeatureTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

@@ -6,7 +6,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
@@ -16,7 +16,7 @@ use Mockery\VerificationDirector;
 
 class InsertTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @param string $model
@@ -149,6 +149,6 @@ class InsertTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

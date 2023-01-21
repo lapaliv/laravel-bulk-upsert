@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Exception;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -12,7 +12,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 
 class ArrayToCollectionConverterTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @param string $model
@@ -57,6 +57,6 @@ class ArrayToCollectionConverterTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }
