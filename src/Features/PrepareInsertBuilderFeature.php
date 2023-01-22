@@ -29,6 +29,7 @@ class PrepareInsertBuilderFeature
         ?BulkCallback $creatingCallback,
     ): ?InsertBuilder {
         $result = $this->builder
+            ->reset()
             ->into($eloquent->getTable())
             ->onConflictDoNothing($ignore);
 
