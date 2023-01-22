@@ -12,7 +12,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-class PrepareUpdateBuilderFeatureTest extends TestCase
+final class PrepareUpdateBuilderFeatureTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

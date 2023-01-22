@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class ArrayToCollectionConverterTest extends TestCase
+final class ArrayToCollectionConverterTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

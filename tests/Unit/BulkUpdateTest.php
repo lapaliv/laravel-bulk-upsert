@@ -15,7 +15,7 @@ use Mockery;
 use Mockery\VerificationDirector;
 use stdClass;
 
-class BulkUpdateTest extends TestCase
+final class BulkUpdateTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

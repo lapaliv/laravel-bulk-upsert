@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class AddWhereClauseToBuilderFeatureTest extends TestCase
+final class AddWhereClauseToBuilderFeatureTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

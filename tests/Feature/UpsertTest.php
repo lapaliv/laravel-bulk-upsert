@@ -20,7 +20,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-class UpsertTest extends TestCase
+final class UpsertTest extends TestCase
 {
     use CheckEntityInDatabase;
 
@@ -258,12 +258,13 @@ class UpsertTest extends TestCase
     public function testChunk(string $model): void
     {
         // arrange
+        $chunkSize = 2;
         $entities = $this->generateEntityCollectionTestFeature->handle($model, 11);
         $this->saveAndFillEntityCollectionTestFeature->handle($entities, 5);
         $callback = Mockery::spy(Callback::class);
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
-        $sut->chunk(2, $callback);
+        $sut->chunk($chunkSize, $callback);
 
         // act
         $sut->upsert($model, $entities, ['uuid']);
@@ -273,8 +274,8 @@ class UpsertTest extends TestCase
         $spy = $callback->shouldHaveReceived('__invoke');
         $spy->times(6)
             ->withArgs(
-                function (EntityCollection $chunk): bool {
-                    return count($chunk) <= 2;
+                function (EntityCollection $chunk) use ($chunkSize): bool {
+                    return $chunk->count() <= $chunkSize;
                 }
             );
     }

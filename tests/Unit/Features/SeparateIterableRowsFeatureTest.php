@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-class SeparateIterableRowsFeatureTest extends TestCase
+final class SeparateIterableRowsFeatureTest extends TestCase
 {
     /**
      * @param int $chunkSize

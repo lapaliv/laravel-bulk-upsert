@@ -14,7 +14,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-class InsertTest extends TestCase
+final class InsertTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

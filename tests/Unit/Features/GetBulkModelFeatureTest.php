@@ -9,7 +9,7 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use stdClass;
 
-class GetBulkModelFeatureTest extends TestCase
+final class GetBulkModelFeatureTest extends TestCase
 {
     /**
      * @param string|BulkModel $model

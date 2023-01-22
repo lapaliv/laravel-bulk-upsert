@@ -15,7 +15,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-class BulkInsertTest extends TestCase
+final class BulkInsertTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
     private SwitchDriverToNullDriverFeature $switchDriverToNullDriverFeature;

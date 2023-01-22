@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class FillWasRecentlyCreatedFeatureTest extends TestCase
+final class FillWasRecentlyCreatedFeatureTest extends TestCase
 {
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 

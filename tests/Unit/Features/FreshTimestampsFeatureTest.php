@@ -6,7 +6,7 @@ use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class FreshTimestampsFeatureTest extends TestCase
+final class FreshTimestampsFeatureTest extends TestCase
 {
     public function testWithTimestamps(): void
     {
