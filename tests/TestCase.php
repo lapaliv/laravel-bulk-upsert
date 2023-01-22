@@ -6,6 +6,8 @@ use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
@@ -25,6 +27,9 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
         self::readEnv();
         self::configureManager();
+
+        MySqlEntityWithAutoIncrement::createTable();
+        MySqlEntityWithoutAutoIncrement::createTable();
 
         MySqlUser::dropTable();
         MySqlUser::createTable();

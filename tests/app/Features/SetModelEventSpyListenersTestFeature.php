@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Mockery\MockInterface;
 
-class SetUserEventSpyListenersTestFeature
+class SetModelEventSpyListenersTestFeature
 {
     /**
      * @param string $model

@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Contracts\Driver;
 
 class NullDriver implements Driver
 {
-    public function insert(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): int|string|null
+    public function insert(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
     {
         return null;
     }

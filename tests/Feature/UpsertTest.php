@@ -5,156 +5,133 @@ namespace Lapaliv\BulkUpsert\Tests\Feature;
 use Exception;
 use Lapaliv\BulkUpsert\BulkUpsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\App\Collections\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Collections\EntityCollection;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\GenerateSpyListenersTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\SaveAndFillUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\SetUserEventSpyListenersTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Features\SaveAndFillEntityCollectionTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\SetModelEventSpyListenersTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
+use Lapaliv\BulkUpsert\Tests\App\Traits\CheckEntityInDatabase;
 use Lapaliv\BulkUpsert\Tests\TestCase;
+use Mockery;
 use Mockery\VerificationDirector;
 
 class UpsertTest extends TestCase
 {
+    use CheckEntityInDatabase;
+
     private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
-    private SaveAndFillUserCollectionTestFeature $saveAndFillUserCollectionTestFeature;
-    private SetUserEventSpyListenersTestFeature $setUserEventSpyListenersTestFeature;
+    private SetModelEventSpyListenersTestFeature $setModelEventSpyListenersTestFeature;
     private GenerateSpyListenersTestFeature $generateSpyListenersTestFeature;
+    private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;
+    private SaveAndFillEntityCollectionTestFeature $saveAndFillEntityCollectionTestFeature;
 
     /**
-     * @param string $model
+     * @param class-string<Entity> $model
      * @return void
      * @throws Exception
-     * @dataProvider users
+     * @dataProvider entities
      */
     public function testSuccessful(string $model): void
     {
         // arrange
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
-        $users = $this->generateUserCollectionFeature->handle($model, 4);
-        $this->saveAndFillUserCollectionTestFeature->handle($users, 2);
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 4);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 2);
 
         // act
-        $sut->upsert($model, $users, ['email']);
+        $sut->upsert($model, $entities, ['uuid']);
 
         // assert
-        $users->each(
-            function (User $user) {
-                $this->assertDatabaseHas(
-                    $user->getTable(),
-                    [
-                        'email' => $user->email,
-                        'name' => $user->name,
-                        'phone' => $user->phone,
-                        'date' => $user->date->toDateString(),
-                        'microseconds' => $user->microseconds->format('Y-m-d H:i:s.u'),
-                    ],
-                    $user->getConnectionName(),
-                );
+        $entities->each(
+            function (Entity $entity) {
+                $this->assertDatabaseHasEntity($entity);
 
                 $this->assertDatabaseMissing(
-                    $user->getTable(),
+                    $entity->getTable(),
                     [
-                        'email' => $user->email,
+                        'uuid' => $entity->uuid,
                         'created_at' => null,
                         'updated_at' => null,
                     ],
-                    $user->getConnectionName(),
+                    $entity->getConnectionName(),
                 );
             }
         );
     }
 
     /**
-     * @param string $model
+     * @param class-string<Entity> $model
      * @return void
      * @throws Exception
-     * @dataProvider users
+     * @dataProvider entities
      */
     public function testWithoutInserting(string $model): void
     {
         // arrange
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
-        $users = $this->generateUserCollectionFeature->handle($model, 4);
-        $this->saveAndFillUserCollectionTestFeature->handle($users, 4);
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 4);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 4);
 
         // act
-        $sut->upsert($model, $users, ['email']);
+        $sut->upsert($model, $entities, ['uuid']);
 
         // assert
-        $users->each(
-            function (User $user) {
-                $this->assertDatabaseHas(
-                    $user->getTable(),
-                    [
-                        'id' => $user->id,
-                        'email' => $user->email,
-                        'name' => $user->name,
-                        'phone' => $user->phone,
-                        'date' => $user->date->toDateString(),
-                        'microseconds' => $user->microseconds->format('Y-m-d H:i:s.u'),
-                    ],
-                    $user->getConnectionName(),
-                );
+        $entities->each(
+            function (Entity $entity) {
+                $this->assertDatabaseHasEntity($entity);
             }
         );
     }
 
     /**
-     * @param string $model
+     * @param class-string<Entity> $model
      * @return void
      * @throws Exception
-     * @dataProvider users
+     * @dataProvider entities
      */
     public function testWithoutUpdating(string $model): void
     {
         // arrange
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
-        $users = $this->generateUserCollectionFeature->handle($model, 4);
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 4);
 
         // act
-        $sut->upsert($model, $users, ['email']);
+        $sut->upsert($model, $entities, ['uuid']);
 
         // assert
-        $users->each(
-            function (User $user) {
-                $this->assertDatabaseHas(
-                    $user->getTable(),
-                    [
-                        'email' => $user->email,
-                        'name' => $user->name,
-                        'phone' => $user->phone,
-                        'date' => $user->date->toDateString(),
-                        'microseconds' => $user->microseconds->format('Y-m-d H:i:s.u'),
-                    ],
-                    $user->getConnectionName(),
-                );
+        $entities->each(
+            function (Entity $entity) {
+                $this->assertDatabaseHasEntity($entity);
             }
         );
     }
 
     /**
-     * @param string $model
+     * @param class-string<Entity> $model
      * @return void
      * @throws Exception
-     * @dataProvider users
+     * @dataProvider entities
      */
     public function testEvents(string $model): void
     {
         // arrange
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
-        $users = $this->generateUserCollectionFeature->handle($model, 4);
-        $this->saveAndFillUserCollectionTestFeature->handle($users, 2);
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 4);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 2);
         $listeners = $this->generateSpyListenersTestFeature->handle();
-        $this->setUserEventSpyListenersTestFeature->handle($model, $listeners);
+        $this->setModelEventSpyListenersTestFeature->handle($model, $listeners);
 
         // act
-        $sut->upsert($model, $users, ['email']);
+        $sut->upsert($model, $entities, ['uuid']);
 
         // assert
         foreach ([BulkEventEnum::CREATING, BulkEventEnum::CREATED] as $event) {
@@ -162,9 +139,9 @@ class UpsertTest extends TestCase
             $callback = $listeners[$event]->shouldHaveReceived('__invoke');
             $callback->times(2)
                 ->withArgs(
-                    function (User $user) use ($users): bool {
-                        return $users->slice(2)
-                            ->where('email', $user->email)
+                    function (Entity $entity) use ($entities): bool {
+                        return $entities->slice(2)
+                            ->where('uuid', $entity->uuid)
                             ->isNotEmpty();
                     }
                 );
@@ -175,9 +152,9 @@ class UpsertTest extends TestCase
             $callback = $listeners[$event]->shouldHaveReceived('__invoke');
             $callback->times(2)
                 ->withArgs(
-                    function (User $user) use ($users): bool {
-                        return $users->slice(0, 2)
-                            ->where('email', $user->email)
+                    function (Entity $entity) use ($entities): bool {
+                        return $entities->slice(0, 2)
+                            ->where('uuid', $entity->uuid)
                             ->isNotEmpty();
                     }
                 );
@@ -186,22 +163,22 @@ class UpsertTest extends TestCase
         foreach ([BulkEventEnum::SAVING, BulkEventEnum::SAVED] as $event) {
             /** @var VerificationDirector $callback */
             $callback = $listeners[$event]->shouldHaveReceived('__invoke');
-            $callback->times($users->count())
+            $callback->times($entities->count())
                 ->withAnyArgs();
         }
     }
 
     /**
-     * @param string $model
+     * @param class-string<Entity> $model
      * @return void
      * @throws Exception
-     * @dataProvider users
+     * @dataProvider entities
      */
     public function testCallbacks(string $model): void
     {
         // arrange
-        $users = $this->generateUserCollectionFeature->handle($model, 4);
-        $this->saveAndFillUserCollectionTestFeature->handle($users, 2);
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 4);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 2);
         $listeners = $this->generateSpyListenersTestFeature->handle();
         /** @var BulkUpsert $sut */
         $sut = $this->app->make(BulkUpsert::class);
@@ -213,7 +190,7 @@ class UpsertTest extends TestCase
             ->onSaved($listeners[BulkEventEnum::SAVED]);
 
         // act
-        $sut->upsert($model, $users, ['email']);
+        $sut->upsert($model, $entities, ['uuid']);
 
         // assert
         foreach ([BulkEventEnum::CREATING, BulkEventEnum::CREATED] as $event) {
@@ -221,13 +198,18 @@ class UpsertTest extends TestCase
             $callback = $listeners[$event]->shouldHaveReceived('__invoke');
             $callback->once()
                 ->withArgs(
-                    function (UserCollection $collection) use ($users): bool {
+                    function (EntityCollection $collection) use ($entities): bool {
                         if ($collection->count() !== 2) {
                             return false;
                         }
 
-                        $expectedEmails = $users->slice(2)->pluck('email')->sort()->join(',');
-                        $actualEmails = $collection->pluck('email')->sort()->join(',');
+                        $expectedEmails = $entities->slice(2)
+                            ->pluck('uuid')
+                            ->sort()
+                            ->join(',');
+                        $actualEmails = $collection->pluck('uuid')
+                            ->sort()
+                            ->join(',');
 
                         return $expectedEmails === $actualEmails;
                     }
@@ -239,13 +221,18 @@ class UpsertTest extends TestCase
             $callback = $listeners[$event]->shouldHaveReceived('__invoke');
             $callback->once()
                 ->withArgs(
-                    function (UserCollection $collection) use ($users): bool {
+                    function (EntityCollection $collection) use ($entities): bool {
                         if ($collection->count() !== 2) {
                             return false;
                         }
 
-                        $expectedEmails = $users->slice(0, 2)->pluck('email')->sort()->join(',');
-                        $actualEmails = $collection->pluck('email')->sort()->join(',');
+                        $expectedEmails = $entities->slice(0, 2)
+                            ->pluck('uuid')
+                            ->sort()
+                            ->join(',');
+                        $actualEmails = $collection->pluck('uuid')
+                            ->sort()
+                            ->join(',');
 
                         return $expectedEmails === $actualEmails;
                     }
@@ -256,21 +243,70 @@ class UpsertTest extends TestCase
         $callback = $listeners[BulkEventEnum::SAVED]->shouldHaveReceived('__invoke');
         $callback->twice()
             ->withArgs(
-                function (UserCollection $collection): bool {
+                function (EntityCollection $collection): bool {
                     return $collection->count() === 2;
                 }
             );
     }
 
     /**
-     * Data provider.
-     *
-     * @return string[][]
+     * @param class-string<Entity> $model
+     * @return void
+     * @throws Exception
+     * @dataProvider entities
      */
-    public function users(): array
+    public function testChunk(string $model): void
+    {
+        // arrange
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 11);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 5);
+        $callback = Mockery::spy(Callback::class);
+        /** @var BulkUpsert $sut */
+        $sut = $this->app->make(BulkUpsert::class);
+        $sut->chunk(2, $callback);
+
+        // act
+        $sut->upsert($model, $entities, ['uuid']);
+
+        // assert
+        /** @var VerificationDirector $spy */
+        $spy = $callback->shouldHaveReceived('__invoke');
+        $spy->times(6)
+            ->withArgs(
+                function (EntityCollection $chunk): bool {
+                    return count($chunk) <= 2;
+                }
+            );
+    }
+
+    /**
+     * @param class-string<Entity> $model
+     * @return void
+     * @throws Exception
+     * @dataProvider entities
+     */
+    public function testUpdatingAttributes(string $model): void
+    {
+        // arrange
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 2);
+        $this->saveAndFillEntityCollectionTestFeature->handle($entities, 1);
+        /** @var BulkUpsert $sut */
+        $sut = $this->app->make(BulkUpsert::class);
+
+        // act
+        $sut->upsert($model, $entities, ['uuid'], ['string']);
+
+        // assert
+        $this->assertDatabaseHasEntity($entities->first(), only: ['id', 'uuid', 'string']);
+        $this->assertDatabaseMissingEntity($entities->first(), except: ['string']);
+        $this->assertDatabaseHasEntity($entities->last());
+    }
+
+    public function entities(): array
     {
         return [
-            [MySqlUser::class]
+            [MySqlEntityWithAutoIncrement::class],
+            [MySqlEntityWithoutAutoIncrement::class],
         ];
     }
 
@@ -278,9 +314,9 @@ class UpsertTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
-        $this->saveAndFillUserCollectionTestFeature = $this->app->make(SaveAndFillUserCollectionTestFeature::class);
-        $this->setUserEventSpyListenersTestFeature = $this->app->make(SetUserEventSpyListenersTestFeature::class);
+        $this->setModelEventSpyListenersTestFeature = $this->app->make(SetModelEventSpyListenersTestFeature::class);
         $this->generateSpyListenersTestFeature = $this->app->make(GenerateSpyListenersTestFeature::class);
+        $this->generateEntityCollectionTestFeature = $this->app->make(GenerateEntityCollectionTestFeature::class);
+        $this->saveAndFillEntityCollectionTestFeature = $this->app->make(SaveAndFillEntityCollectionTestFeature::class);
     }
 }
