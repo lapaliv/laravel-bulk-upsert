@@ -13,11 +13,16 @@ class SaveAndFillEntityCollectionTestFeature
         // Nothing
     }
 
-    public function handle(EntityCollection $collection, int $count): void
+    public function handle(EntityCollection $collection, int $count, array $timestamps = []): void
     {
         for ($i = 0; $i < $count; $i++) {
             /** @var Entity $entity */
             $entity = $collection->get($i);
+
+            foreach ($timestamps as $timestamp => $value) {
+                $entity->{$timestamp} = $value;
+            }
+
             $entity->save();
 
             $raw = $this->generateEntityTestFeature->handle(get_class($entity));
