@@ -13,7 +13,7 @@ interface Driver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): int|string|null;
+    ): ?int;
 
     public function update(
         ConnectionInterface $connection,

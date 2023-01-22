@@ -82,7 +82,7 @@ class UpdateFeature
             $savingCallback,
         );
 
-        if ($builder === null) {
+        if ($builder === null || empty($builder->getSets())) {
             return;
         }
 

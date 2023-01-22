@@ -23,7 +23,7 @@ class MySqlDriver implements Driver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): int|string|null {
+    ): ?int {
         return $this->insertFeature->handle($connection, $builder, $primaryKeyName);
     }
 

@@ -54,7 +54,7 @@ class MySqlDriverUpdate
             }
 
             $sets[] = sprintf(
-                '%s = case %s else %s end',
+                '`%s` = case %s else `%s` end',
                 $field,
                 implode(' ', $whens),
                 $this->mixedValueToSqlConverter->handle($set->getElse(), $bindings),
@@ -91,7 +91,7 @@ class MySqlDriverUpdate
                 $result[] = '(' . $this->getSqlWhereClause($selectBuilder->getWheres(), $bindings) . ')';
             } elseif ($where instanceof BuilderWhereCondition) {
                 $result[] = sprintf(
-                    '%s %s %s',
+                    '`%s` %s %s',
                     $where->field,
                     $where->operator,
                     $this->mixedValueToSqlConverter->handle($where->value, $bindings),
@@ -104,13 +104,13 @@ class MySqlDriverUpdate
 
                 if (count($values) === 1) {
                     $result[] = sprintf(
-                        '%s = %s',
+                        '`%s` = %s',
                         $where->field,
                         $values[0],
                     );
                 } else {
                     $result[] = sprintf(
-                        '%s IN(%s)',
+                        '`%s` IN(%s)',
                         $where->field,
                         implode(',', $values),
                     );

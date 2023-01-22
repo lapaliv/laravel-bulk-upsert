@@ -7,6 +7,10 @@ use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 
 class GetBulkModelFeature
 {
+    /**
+     * @param class-string<BulkModel>|BulkModel $model
+     * @return BulkModel
+     */
     public function handle(string|BulkModel $model): BulkModel
     {
         if ($model instanceof BulkModel) {

@@ -74,7 +74,7 @@ class BulkInsert implements BulkInsertContract
     }
 
     /**
-     * @param string|BulkModel $model
+     * @param class-string<BulkModel>|BulkModel $model
      * @param string[] $uniqueAttributes
      * @param iterable|Collection<scalar, BulkModel>|array<scalar, array[]> $rows
      * @return void

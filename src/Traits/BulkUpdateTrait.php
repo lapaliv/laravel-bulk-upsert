@@ -12,7 +12,7 @@ trait BulkUpdateTrait
     private ?BulkCallback $updatedCallback = null;
 
     /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdating(?callable $callback): static
@@ -23,7 +23,7 @@ trait BulkUpdateTrait
     }
 
     /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel> $callback
+     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdated(?callable $callback): static

@@ -38,7 +38,7 @@ class BulkUpdate implements BulkUpdateContract
     }
 
     /**
-     * @param string|BulkModel $model
+     * @param class-string<BulkModel>|BulkModel $model
      * @param iterable<scalar, mixed[]>|Collection<scalar, BulkModel>|array<scalar, mixed[]> $rows
      * @param string[]|null $uniqueAttributes
      * @param string[] $updateAttributes

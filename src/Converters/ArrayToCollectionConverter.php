@@ -22,7 +22,7 @@ class ArrayToCollectionConverter
 
         foreach ($rows as $key => $row) {
             if ($row instanceof BulkModel) {
-                $result->put($key, $row);
+                $result->put($key, clone $row);
                 continue;
             }
 

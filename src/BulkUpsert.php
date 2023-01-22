@@ -17,6 +17,7 @@ use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
 use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
+use stdClass;
 
 class BulkUpsert implements BulkUpsertContract
 {
@@ -37,6 +38,13 @@ class BulkUpsert implements BulkUpsertContract
         $this->setEvents($this->getDefaultEvents());
     }
 
+    /**
+     * @param class-string<BulkModel>|BulkModel $model
+     * @param iterable<mixed[][]|BulkModel|stdClass[][]> $rows
+     * @param string[] $uniqueAttributes
+     * @param string[]|null $updateAttributes
+     * @return void
+     */
     public function upsert(
         string|BulkModel $model,
         iterable $rows,
@@ -66,6 +74,9 @@ class BulkUpsert implements BulkUpsertContract
             ->update($config, force: true);
     }
 
+    /**
+     * @return string[]
+     */
     protected function getDefaultEvents(): array
     {
         return [
@@ -78,6 +89,12 @@ class BulkUpsert implements BulkUpsertContract
         ];
     }
 
+    /**
+     * @param BulkModel $eloquent
+     * @param string[] $uniqueAttributes
+     * @param string[]|null $updateAttributes
+     * @return UpsertConfig
+     */
     private function getConfig(BulkModel $eloquent, array $uniqueAttributes, ?array $updateAttributes): UpsertConfig
     {
         return new UpsertConfig(

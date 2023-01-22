@@ -43,7 +43,15 @@ class PrepareCollectionBeforeUpdatingFeature
             $expectedModel = $keyedExpected[$key];
 
             if (empty($updateAttributes)) {
-                $actualModel->fill($expectedModel->getDirty());
+                // Saving the correct format of the attributeValue.
+                // For example, if the attributeValue is a json string
+                // then it will be  a string with string (""[..]"") not a string with json ("[]")
+                foreach ($expectedModel->getDirty() as $attributeName => $attributeValue) {
+                    $actualModel->setAttribute(
+                        $attributeName,
+                        $expectedModel->getAttribute($attributeName)
+                    );
+                }
             } else {
                 foreach ($updateAttributes as $attribute) {
                     $actualModel->setAttribute(

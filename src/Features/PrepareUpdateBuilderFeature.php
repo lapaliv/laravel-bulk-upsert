@@ -200,7 +200,8 @@ class PrepareUpdateBuilderFeature
                     continue;
                 }
 
-                $valueHash = md5($value);
+                // divide almost the same values but with different type (ex. false and null)
+                $valueHash = hash('crc32c', $value . ':' . gettype($value));
 
                 $groupedValues[$key] ??= [];
                 $groupedValues[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
@@ -229,7 +230,11 @@ class PrepareUpdateBuilderFeature
         $result = $model->getDirty();
 
         if (empty($updateAttributes) === false) {
-            $result = array_intersect_key($result, $updateAttributes);
+            $result = array_filter(
+                $result,
+                static fn (string $key) => in_array($key, $updateAttributes, true),
+                ARRAY_FILTER_USE_KEY
+            );
         }
 
         return $result;

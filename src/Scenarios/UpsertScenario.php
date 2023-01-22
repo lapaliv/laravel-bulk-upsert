@@ -53,7 +53,7 @@ class UpsertScenario
 
         if ($collection->isNotEmpty()) {
             $this->bulkInsert
-                ->chunk($config->chunkSize, $config->chunkCallback?->target)
+                ->chunk($config->chunkSize)
                 ->onCreating($config->creatingCallback?->target)
                 ->onCreated($config->createdCallback?->target)
                 ->onSaved(
@@ -101,7 +101,7 @@ class UpsertScenario
 
         if ($collection->isNotEmpty()) {
             $this->bulkUpdate
-                ->chunk($config->chunkSize, $config->chunkCallback?->target)
+                ->chunk($config->chunkSize)
                 ->onUpdating($config->updatingCallback?->target)
                 ->onUpdated($config->updatedCallback?->target)
                 ->onSaving($config->savingCallback?->target)
