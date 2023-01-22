@@ -43,6 +43,27 @@ interface BulkUpsertContract extends BulkSave
     public function onSaved(?callable $callback): static;
 
     /**
+     * @param string[] $events
+     * @return $this
+     */
+    public function setEvents(array $events): static;
+
+    public function disableEvents(): static;
+
+    /**
+     * @param string[] $columns
+     * @return $this
+     */
+    public function select(array $columns = ['*']): static;
+
+    /**
+     * @param int $size
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @return $this
+     */
+    public function chunk(int $size = 100, ?callable $callback = null): static;
+
+    /**
      * @param class-string<BulkModel>|BulkModel $model
      * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
      * @param string[] $uniqueAttributes
