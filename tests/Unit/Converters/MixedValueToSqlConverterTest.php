@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 use Illuminate\Database\Query\Expression;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class MixedValueToSqlConverterTest extends TestCase
+final class MixedValueToSqlConverterTest extends UnitTestCase
 {
     /**
      * @dataProvider dataProvider

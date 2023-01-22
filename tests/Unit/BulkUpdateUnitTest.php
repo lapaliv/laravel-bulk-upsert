@@ -1,62 +1,18 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Exception;
-use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Mockery;
-use Mockery\VerificationDirector;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 use stdClass;
 
-final class BulkUpdateTest extends TestCase
+final class BulkUpdateUnitTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
-
-    /**
-     * @dataProvider chunkCallbackDataProvider
-     * @param string $model
-     * @param int $numberOfUsers
-     * @param int $chunkSize
-     * @return void
-     * @throws Exception
-     */
-    public function testChunkCallback(string $model, int $numberOfUsers, int $chunkSize): void
-    {
-        // arrange
-        $users = $this->generateUserCollectionFeature->handle($model, $numberOfUsers, ['email', 'name']);
-        $callbackSpy = Mockery::spy(Callback::class);
-
-        /** @var BulkUpdate $sut */
-        $sut = $this->app
-            ->make(BulkUpdate::class)
-            ->chunk($chunkSize, $callbackSpy);
-
-        // act
-        $sut->update($model, $users, ['email']);
-
-        // assert
-        $callbackSpy->shouldHaveBeenCalled();
-        /** @var VerificationDirector $method */
-        $method = $callbackSpy->shouldHaveReceived('__invoke');
-        $method->times((int)ceil($numberOfUsers / $chunkSize))
-            ->withArgs(
-                function (...$args) use ($chunkSize): bool {
-                    self::assertCount(1, $args);
-                    self::assertInstanceOf(Collection::class, $args[0]);
-                    self::assertLessThanOrEqual($chunkSize, $args[0]->count());
-
-                    return true;
-                }
-            );
-    }
-
     /**
      * @param string $model
      * @return void
@@ -104,14 +60,9 @@ final class BulkUpdateTest extends TestCase
         );
     }
 
-    public function chunkCallbackDataProvider(): array
-    {
-        return [
-            [PostgreSqlUser::class, 7, 3],
-            [PostgreSqlUser::class, 12, 4],
-        ];
-    }
-
+    /**
+     * @return string[][]
+     */
     public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
@@ -121,6 +72,9 @@ final class BulkUpdateTest extends TestCase
         ];
     }
 
+    /**
+     * @return array[][]
+     */
     public function intersectEventsDataProvider(): array
     {
         return [
@@ -148,12 +102,5 @@ final class BulkUpdateTest extends TestCase
                 ],
             ],
         ];
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

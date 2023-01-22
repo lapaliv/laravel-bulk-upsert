@@ -1,21 +1,25 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Carbon\Carbon;
 use Faker\Factory;
 use Faker\Generator;
+use JsonException;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 use stdClass;
 
-final class ArrayToScalarArrayConverterTest extends TestCase
+final class ArrayToScalarArrayConverterTest extends UnitTestCase
 {
     private Generator $faker;
 
     /**
      * @return void
+     * @throws JsonException
      */
     public function testScalarsWithoutDates(): void
     {
@@ -42,6 +46,7 @@ final class ArrayToScalarArrayConverterTest extends TestCase
 
     /**
      * @return void
+     * @throws JsonException
      */
     public function testStdClass(): void
     {
@@ -61,29 +66,10 @@ final class ArrayToScalarArrayConverterTest extends TestCase
     }
 
     /**
-     * @return void
-     */
-    public function testArray(): void
-    {
-        // assert
-        /** @var AttributesToScalarArrayConverter $sut */
-        $sut = $this->app->make(AttributesToScalarArrayConverter::class);
-        $attributes = [
-            'stdClass' => [],
-            'null' => null,
-        ];
-
-        // assert
-        $this->expectException(BulkAttributeTypeIsNotScalar::class);
-
-        // act
-        $sut->handle([], $attributes);
-    }
-
-    /**
      * @dataProvider datesDataProvider
      * @param string $dateFormat
      * @return void
+     * @throws JsonException
      */
     public function testDate(string $dateFormat): void
     {
@@ -107,6 +93,9 @@ final class ArrayToScalarArrayConverterTest extends TestCase
         }
     }
 
+    /**
+     * @return string[][]
+     */
     public function datesDataProvider(): array
     {
         return [

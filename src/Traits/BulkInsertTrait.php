@@ -12,7 +12,7 @@ trait BulkInsertTrait
     private ?BulkCallback $createdCallback = null;
 
     /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
+     * @param null|callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function onCreating(?callable $callback): static
@@ -23,7 +23,7 @@ trait BulkInsertTrait
     }
 
     /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
+     * @param null|callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function onCreated(?callable $callback): static

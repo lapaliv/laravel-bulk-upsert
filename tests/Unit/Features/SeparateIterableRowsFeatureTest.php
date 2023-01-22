@@ -1,14 +1,16 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-final class SeparateIterableRowsFeatureTest extends TestCase
+final class SeparateIterableRowsFeatureTest extends UnitTestCase
 {
     /**
      * @param int $chunkSize
@@ -46,6 +48,9 @@ final class SeparateIterableRowsFeatureTest extends TestCase
             );
     }
 
+    /**
+     * @return int[][]
+     */
     public function dataProvider(): array
     {
         return [

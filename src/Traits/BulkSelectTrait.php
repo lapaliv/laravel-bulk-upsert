@@ -2,8 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Traits;
 
-use Lapaliv\BulkUpsert\BulkInsert;
-
 trait BulkSelectTrait
 {
     /**

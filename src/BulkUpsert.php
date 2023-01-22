@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+
 namespace Lapaliv\BulkUpsert;
 
 use Lapaliv\BulkUpsert\Contracts\BulkModel;

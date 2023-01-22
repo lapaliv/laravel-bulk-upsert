@@ -1,20 +1,23 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Collections\EntityCollection;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-final class PrepareUpdateBuilderFeatureTest extends TestCase
+final class PrepareUpdateBuilderFeatureTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
+    private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;
 
     /**
      * @param BulkCallback|null $updatingCallback
@@ -30,15 +33,15 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MySqlUser();
-        $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name']);
+        $model = new MySqlEntityWithAutoIncrement();
+        $entities = $this->generateEntityCollectionTestFeature->handle($model::class, 4, ['uuid', 'string']);
 
         // act
         $builder = $sut->handle(
             eloquent: $model,
-            collection: $users,
+            collection: $entities,
             events: [],
-            uniqueAttributes: ['email'],
+            uniqueAttributes: ['uuid'],
             updateAttributes: null,
             dateFields: [],
             updatingCallback: $updatingCallback,
@@ -48,11 +51,13 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         // assert
         self::assertNotNull($builder);
         self::assertEquals($builder->getTable(), $model->getTable());
-        self::assertCount($builder->getLimit(), $users);
+        self::assertCount($builder->getLimit(), $entities);
 
-        // name, created_at, updated_at
         self::assertCount(3, $builder->getSets());
-        self::assertArrayNotHasKey('email', $builder->getSets());
+        self::assertArrayHasKey('string', $builder->getSets());
+        self::assertArrayHasKey('created_at', $builder->getSets());
+        self::assertArrayHasKey('updated_at', $builder->getSets());
+        self::assertArrayNotHasKey('uuid', $builder->getSets());
     }
 
     /**
@@ -64,17 +69,17 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MySqlUser();
-        $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name']);
+        $model = new MySqlEntityWithAutoIncrement();
+        $entities = $this->generateEntityCollectionTestFeature->handle($model::class, 4, ['uuid', 'string']);
         $updatingCallback = Mockery::spy(Callback::class);
         $savingCallback = Mockery::spy(Callback::class);
 
         // act
         $sut->handle(
             eloquent: $model,
-            collection: $users,
+            collection: $entities,
             events: [],
-            uniqueAttributes: ['email'],
+            uniqueAttributes: ['uuid'],
             updateAttributes: null,
             dateFields: [],
             updatingCallback: new BulkCallback($updatingCallback),
@@ -86,15 +91,15 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         $callback = $savingCallback->shouldHaveReceived('__invoke');
         $callback->times(1)
             ->withArgs(
-                function (...$args) use ($users): bool {
-                    self::assertCount(1, $args);
-                    self::assertCount($users->count(), $args[0]);
+                function (EntityCollection $collection) use ($entities): bool {
+                    self::assertCount($entities->count(), $collection);
 
-                    /** @var MySqlUser $user */
-                    foreach ($args[0] as $user) {
-                        self::assertNotNull($user->created_at);
-                        self::assertNotNull($user->updated_at);
-                    }
+                    $collection->each(
+                        function (MySqlEntityWithAutoIncrement $entity): void {
+                            self::assertNotNull($entity->created_at);
+                            self::assertNotNull($entity->updated_at);
+                        }
+                    );
 
                     return true;
                 }
@@ -103,14 +108,14 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         $callback = $updatingCallback->shouldHaveReceived('__invoke');
         $callback->times(1)
             ->withArgs(
-                function (...$args) use ($users): bool {
-                    self::assertCount(1, $args);
-                    self::assertCount($users->count(), $args[0]);
+                function (EntityCollection $collection) use ($entities): bool {
+                    self::assertCount($entities->count(), $collection);
 
-                    /** @var MySqlUser $user */
-                    foreach ($args[0] as $user) {
-                        self::assertTrue($user->isDirty());
-                    }
+                    $collection->each(
+                        function (MySqlEntityWithAutoIncrement $entity): void {
+                            self::assertTrue($entity->isDirty());
+                        }
+                    );
 
                     return true;
                 }
@@ -131,15 +136,15 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         // arrange
         /** @var PrepareUpdateBuilderFeature $sut */
         $sut = $this->app->make(PrepareUpdateBuilderFeature::class);
-        $model = new MySqlUser();
-        $users = $this->generateUserCollectionFeature->handle($model::class, 4, ['email', 'name', 'phone']);
+        $model = new MySqlEntityWithAutoIncrement();
+        $entities = $this->generateEntityCollectionTestFeature->handle($model::class, 4, ['uuid', 'string', 'integer']);
 
         // act
         $builder = $sut->handle(
             eloquent: $model,
-            collection: $users,
+            collection: $entities,
             events: [],
-            uniqueAttributes: ['email', 'name'],
+            uniqueAttributes: ['uuid', 'string'],
             updateAttributes: null,
             dateFields: [],
             updatingCallback: $updatingCallback,
@@ -149,13 +154,19 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         // assert
         self::assertNotNull($builder);
         self::assertEquals($builder->getTable(), $model->getTable());
-        self::assertCount($builder->getLimit(), $users);
+        self::assertCount($builder->getLimit(), $entities);
 
-        // name, created_at, updated_at
         self::assertCount(3, $builder->getSets());
-        self::assertArrayNotHasKey('email', $builder->getSets());
+        self::assertArrayHasKey('integer', $builder->getSets());
+        self::assertArrayHasKey('created_at', $builder->getSets());
+        self::assertArrayHasKey('updated_at', $builder->getSets());
+        self::assertArrayNotHasKey('uuid', $builder->getSets());
+        self::assertArrayNotHasKey('string', $builder->getSets());
     }
 
+    /**
+     * @return array[]
+     */
     public function fillInBuilderDataProvider(): array
     {
         return [
@@ -174,6 +185,6 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
+        $this->generateEntityCollectionTestFeature = $this->app->make(GenerateEntityCollectionTestFeature::class);
     }
 }

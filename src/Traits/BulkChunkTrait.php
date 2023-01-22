@@ -12,7 +12,7 @@ trait BulkChunkTrait
 
     /**
      * @param int $size
-     * @param callable(Collection<scalar, BulkModel> $chunk): Collection<scalar, BulkModel>|null|void $callback
+     * @param null|callable(Collection<scalar, BulkModel> $chunk): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function chunk(int $size = 100, ?callable $callback = null): static

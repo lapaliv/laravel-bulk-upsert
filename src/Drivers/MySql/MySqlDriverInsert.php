@@ -1,5 +1,8 @@
 <?php
 
+/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Drivers\MySql;
 
 use Illuminate\Database\ConnectionInterface;
@@ -48,6 +51,13 @@ class MySqlDriverInsert
         }
     }
 
+    /**
+     * @param InsertBuilder $builder
+     * @return array{
+     *     sql: string,
+     *     bindings: mixed[],
+     * }
+     */
     private function generateSql(InsertBuilder $builder): array
     {
         $bindings = [];

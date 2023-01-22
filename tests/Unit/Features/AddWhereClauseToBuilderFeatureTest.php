@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
 use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class AddWhereClauseToBuilderFeatureTest extends TestCase
+final class AddWhereClauseToBuilderFeatureTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
+    private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;
 
     /**
      * @return void
@@ -19,20 +19,21 @@ final class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testOneField(): void
     {
         // arrange
-        $builder = MySqlUser::query();
-        $uniqueAttributes = ['email'];
-        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
+        $model = MySqlEntityWithAutoIncrement::class;
+        $builder = $model::query();
+        $uniqueAttributes = ['uuid'];
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 
         // act
-        $sut->handle($builder, $uniqueAttributes, $users);
+        $sut->handle($builder, $uniqueAttributes, $entities);
 
         // assert
         self::assertStringContainsString(
             sprintf(
-                '`email` in (%s)',
-                implode(', ', array_fill(0, $users->count(), '?'))
+                '`uuid` in (%s)',
+                implode(', ', array_fill(0, $entities->count(), '?'))
             ),
             $builder->toSql()
         );
@@ -45,23 +46,24 @@ final class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testTwoFields(): void
     {
         // assert
-        $builder = MySqlUser::query();
-        $uniqueAttributes = ['email', 'name'];
-        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
+        $model = MySqlEntityWithAutoIncrement::class;
+        $builder = $model::query();
+        $uniqueAttributes = ['uuid', 'integer'];
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 
         // act
-        $sut->handle($builder, $uniqueAttributes, $users);
+        $sut->handle($builder, $uniqueAttributes, $entities);
 
         // assert
         $condition = implode(
             ' or ',
-            array_fill(0, $users->count(), '(`email` = ? and `name` = ?)')
+            array_fill(0, $entities->count(), '(`uuid` = ? and `integer` = ?)')
         );
 
         self::assertStringContainsString(
-            sprintf('(%s)', $condition),
+            $condition,
             $builder->toSql()
         );
     }
@@ -73,23 +75,24 @@ final class AddWhereClauseToBuilderFeatureTest extends TestCase
     public function testThreeFields(): void
     {
         // assert
-        $builder = MySqlUser::query();
-        $uniqueAttributes = ['email', 'name', 'phone'];
-        $users = $this->generateUserCollectionFeature->handle(MySqlUser::class, 5, $uniqueAttributes);
+        $model = MySqlEntityWithAutoIncrement::class;
+        $builder = $model::query();
+        $uniqueAttributes = ['uuid', 'string', 'integer'];
+        $entities = $this->generateEntityCollectionTestFeature->handle($model, 5, $uniqueAttributes);
         /** @var AddWhereClauseToBuilderFeature $sut */
         $sut = $this->app->make(AddWhereClauseToBuilderFeature::class);
 
         // act
-        $sut->handle($builder, $uniqueAttributes, $users);
+        $sut->handle($builder, $uniqueAttributes, $entities);
 
         // assert
         $condition = implode(
             ' or ',
-            array_fill(0, $users->count(), '(`email` = ? and ((`name` = ? and `phone` = ?)))')
+            array_fill(0, $entities->count(), '(`uuid` = ? and ((`string` = ? and `integer` = ?)))')
         );
 
         self::assertStringContainsString(
-            sprintf('(%s)', $condition),
+            $condition,
             $builder->toSql()
         );
     }
@@ -98,6 +101,6 @@ final class AddWhereClauseToBuilderFeatureTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
+        $this->generateEntityCollectionTestFeature = $this->app->make(GenerateEntityCollectionTestFeature::class);
     }
 }

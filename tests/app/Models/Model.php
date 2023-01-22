@@ -22,7 +22,7 @@ abstract class Model extends \Illuminate\Database\Eloquent\Model implements Bulk
      * @param QueuedClosure|Closure|string|array $callback
      * @return void
      */
-    public static function registerModelEvent($event, $callback)
+    public static function registerModelEvent($event, $callback): void
     {
         parent::registerModelEvent($event, $callback);
     }

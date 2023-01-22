@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;

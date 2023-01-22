@@ -13,4 +13,9 @@ interface DriverManager
     public function registerDriver(string $name, Driver $driver): void;
 
     public function get(string $name): ?Driver;
+
+    /**
+     * @return array<string, Driver>
+     */
+    public function all(): array;
 }

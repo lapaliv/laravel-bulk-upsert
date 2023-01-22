@@ -15,11 +15,11 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\App\Traits\CheckEntityInDatabase;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-final class BulkUpdateTest extends TestCase
+final class BulkUpdateTest extends FeatureTestCase
 {
     use CheckEntityInDatabase;
 

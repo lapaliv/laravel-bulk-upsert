@@ -13,7 +13,7 @@ trait BulkSaveTrait
     private ?BulkCallback $savingCallback = null;
 
     /**
-     * @param callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
+     * @param null|callable(Collection<scalar, BulkModel>): Collection<scalar, BulkModel>|null|void $callback
      * @return $this
      */
     public function onSaving(?callable $callback): static

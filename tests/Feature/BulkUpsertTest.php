@@ -8,7 +8,6 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collections\EntityCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\GenerateSpyListenersTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\SaveAndFillEntityCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Features\SetModelEventSpyListenersTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
@@ -16,15 +15,14 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\App\Traits\CheckEntityInDatabase;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-final class BulkUpsertTest extends TestCase
+final class BulkUpsertTest extends FeatureTestCase
 {
     use CheckEntityInDatabase;
 
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
     private SetModelEventSpyListenersTestFeature $setModelEventSpyListenersTestFeature;
     private GenerateSpyListenersTestFeature $generateSpyListenersTestFeature;
     private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;

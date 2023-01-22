@@ -1,8 +1,9 @@
 <?php
 
+/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+
 namespace Lapaliv\BulkUpsert\Features;
 
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
@@ -11,7 +12,7 @@ class SeparateIterableRowsFeature
     /**
      * @param int $chunkSize
      * @param array<int, BulkModel|mixed[]>|Collection<int, BulkModel>|iterable $rows
-     * @param Closure $callback
+     * @param callable $callback
      * @return void
      */
     public function handle(

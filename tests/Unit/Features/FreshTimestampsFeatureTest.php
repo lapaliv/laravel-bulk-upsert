@@ -3,17 +3,17 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class FreshTimestampsFeatureTest extends TestCase
+final class FreshTimestampsFeatureTest extends UnitTestCase
 {
     public function testWithTimestamps(): void
     {
         // arrange
         /** @var FreshTimestampsFeature $sut */
         $sut = $this->app->make(FreshTimestampsFeature::class);
-        $model = new MySqlUser();
+        $model = new MySqlEntityWithAutoIncrement();
 
         // act
         $sut->handle($model);
@@ -28,7 +28,7 @@ final class FreshTimestampsFeatureTest extends TestCase
         // arrange
         /** @var FreshTimestampsFeature $sut */
         $sut = $this->app->make(FreshTimestampsFeature::class);
-        $model = new MySqlUser();
+        $model = new MySqlEntityWithAutoIncrement();
         $model->timestamps = false;
 
         // act

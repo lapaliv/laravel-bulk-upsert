@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
+use Exception;
 use Lapaliv\BulkUpsert\Tests\App\Collections\EntityCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
 
@@ -13,6 +14,9 @@ class SaveAndFillEntityCollectionTestFeature
         // Nothing
     }
 
+    /**
+     * @throws Exception
+     */
     public function handle(EntityCollection $collection, int $count, array $timestamps = []): void
     {
         for ($i = 0; $i < $count; $i++) {
@@ -26,6 +30,7 @@ class SaveAndFillEntityCollectionTestFeature
             $entity->save();
 
             $raw = $this->generateEntityTestFeature->handle(get_class($entity));
+
             $entity->string = $raw->string;
             $entity->nullable_string = $raw->nullable_string;
             $entity->integer = $raw->integer;
