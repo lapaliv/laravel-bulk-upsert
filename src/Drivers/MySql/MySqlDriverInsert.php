@@ -15,11 +15,8 @@ class MySqlDriverInsert
         //
     }
 
-    public function handle(
-        ConnectionInterface $connection,
-        InsertBuilder $builder,
-        ?string $primaryKeyName,
-    ): int|string|null {
+    public function handle(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
+    {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
         $connection->beginTransaction();
@@ -41,9 +38,9 @@ class MySqlDriverInsert
             $connection->insert($sql, $bindings);
             $connection->commit();
 
-            return is_numeric($lastPrimaryBeforeInserting)
+            return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
                 ? (int)$lastPrimaryBeforeInserting
-                : $lastPrimaryBeforeInserting;
+                : null;
         } catch (Throwable $throwable) {
             $connection->rollBack();
 
@@ -66,10 +63,10 @@ class MySqlDriverInsert
 
         return [
             'sql' => sprintf(
-                'insert %s into %s (%s) values (%s)',
+                'insert %s into %s (`%s`) values (%s)',
                 $builder->doNothingAtConflict() ? 'ignore' : '',
                 $builder->getInto(),
-                implode(',', $builder->getColumns()),
+                implode('`,`', $builder->getColumns()),
                 implode('),(', $values),
             ),
             'bindings' => $bindings,

@@ -13,6 +13,7 @@ class UpdateFeature
     public function __construct(
         private PrepareCollectionBeforeUpdatingFeature $prepareCollectionForUpdatingFeature,
         private FireModelEventsFeature $fireModelEventsFeature,
+        private DivideCollectionByExistingFeature $divideCollectionByExistingFeature,
         private PrepareUpdateBuilderFeature $prepareUpdateBuilderFeature,
         private DriverManager $driverManager,
         private FinishSaveFeature $finishSaveFeature,
@@ -51,11 +52,22 @@ class UpdateFeature
             return;
         }
 
+        $dividedRows = $this->divideCollectionByExistingFeature->handle(
+            $eloquent,
+            $collection,
+            $uniqueAttributes,
+            $selectColumns,
+        );
+
+        if ($dividedRows->existing->isEmpty()) {
+            return;
+        }
+
         $collection = $this->prepareCollectionForUpdatingFeature->handle(
             $eloquent,
             $uniqueAttributes,
             $updateAttributes,
-            $selectColumns,
+            $dividedRows->existing,
             $collection,
         );
 
@@ -70,7 +82,7 @@ class UpdateFeature
             $savingCallback,
         );
 
-        if ($builder === null) {
+        if ($builder === null || empty($builder->getSets())) {
             return;
         }
 

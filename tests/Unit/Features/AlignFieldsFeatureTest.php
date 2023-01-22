@@ -6,7 +6,7 @@ use Illuminate\Database\Query\Expression;
 use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class AlignFieldsFeatureTest extends TestCase
+final class AlignFieldsFeatureTest extends TestCase
 {
     /**
      * @param array $data

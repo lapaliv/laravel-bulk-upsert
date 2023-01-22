@@ -6,7 +6,7 @@ use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class GetDateFieldsFeatureTest extends TestCase
+final class GetDateFieldsFeatureTest extends TestCase
 {
     public function test(): void
     {

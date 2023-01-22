@@ -1,20 +1,19 @@
-name: PHP Composer
+name: Tests
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "master" ]
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "develop", "master" ]
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
-      # need checkout before using compose-action
       - uses: actions/checkout@v3
 
       - name: Copy .env
@@ -53,4 +52,4 @@ jobs:
           done
 
       - name: PHPUnit
-        run: ./vendor/bin/phpunit
+        run: ./vendor/bin/phpunit --repeat 10

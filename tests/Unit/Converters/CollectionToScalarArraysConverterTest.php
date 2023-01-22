@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Exception;
 use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class CollectionToScalarArraysConverterTest extends TestCase
+final class CollectionToScalarArraysConverterTest extends TestCase
 {
-    private GenerateUserCollectionFeature $generateUserCollectionFeature;
+    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
 
     /**
      * @return void
@@ -45,6 +45,6 @@ class CollectionToScalarArraysConverterTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionFeature::class);
+        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
     }
 }

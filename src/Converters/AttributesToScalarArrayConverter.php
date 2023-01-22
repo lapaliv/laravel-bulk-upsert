@@ -17,7 +17,7 @@ class AttributesToScalarArrayConverter
         $result = [];
 
         foreach ($attributes as $key => $value) {
-            if (array_key_exists($key, $dateFields)) {
+            if ($value !== null && array_key_exists($key, $dateFields)) {
                 $value = Carbon::parse($value)->format($dateFields[$key]);
             }
 

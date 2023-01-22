@@ -42,7 +42,7 @@ class FillWasRecentlyCreatedFeature
 
     private function checkPrimary(BulkModel $model, int $lastInsertedId): bool
     {
-        return is_int($model->getKey()) && $model->getKey() >= $lastInsertedId;
+        return is_int($model->getKey()) && $model->getKey() > $lastInsertedId;
     }
 
     private function checkCreatedAt(BulkModel $model, CarbonInterface $startedAt): bool

@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use stdClass;
 
-class ArrayToScalarArrayConverterTest extends TestCase
+final class ArrayToScalarArrayConverterTest extends TestCase
 {
     private Generator $faker;
 

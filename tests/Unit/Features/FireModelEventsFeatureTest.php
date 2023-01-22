@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class FireModelEventsFeatureTest extends TestCase
+final class FireModelEventsFeatureTest extends TestCase
 {
     /**
      * @param string $event

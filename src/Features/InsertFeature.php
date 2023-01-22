@@ -107,12 +107,12 @@ class InsertFeature
         );
 
         if ($createdCallback !== null) {
-            $insertedModel = $collection->filter(
+            $insertedModels = $collection->filter(
                 fn (BulkModel $model) => $model->wasRecentlyCreated
             );
 
-            if ($insertedModel->isNotEmpty()) {
-                $createdCallback->handle($insertedModel);
+            if ($insertedModels->isNotEmpty()) {
+                $createdCallback->handle($insertedModels);
             }
         }
 

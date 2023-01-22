@@ -7,7 +7,7 @@ use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
-class MixedValueToSqlConverterTest extends TestCase
+final class MixedValueToSqlConverterTest extends TestCase
 {
     /**
      * @dataProvider dataProvider

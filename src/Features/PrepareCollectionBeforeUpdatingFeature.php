@@ -4,16 +4,12 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 
 class PrepareCollectionBeforeUpdatingFeature
 {
     public function __construct(
-        private SeparateCollectionByExistingFeature $separateCollectionByExistingFeature,
-        private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
         private KeyByFeature $keyByFeature,
-        private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
-        private GetKeyForRowFeature $getKeyForRowFeature,
     ) {
         //
     }
@@ -22,106 +18,50 @@ class PrepareCollectionBeforeUpdatingFeature
      * @param BulkModel $eloquent
      * @param string[] $uniqueAttributes
      * @param string[]|null $updateAttributes
-     * @param string[] $selectColumns
-     * @param Collection<BulkModel> $collection
+     * @param Collection $actual
+     * @param Collection $expected
      * @return Collection<BulkModel>
      */
     public function handle(
         BulkModel $eloquent,
         array $uniqueAttributes,
         ?array $updateAttributes,
-        array $selectColumns,
-        Collection $collection,
+        Collection $actual,
+        Collection $expected,
     ): Collection {
+        $keyedActual = $this->keyByFeature->handle($actual, $uniqueAttributes);
+        $keyedExpected = $this->keyByFeature->handle($expected, $uniqueAttributes);
         $result = $eloquent->newCollection();
 
-        [
-            'existing' => $existing,
-            'nonExistent' => $nonExistent,
-        ] = $this->separateCollectionByExistingFeature->handle($collection);
-
-        $result->push(...$existing);
-
-        if ($nonExistent->isNotEmpty()) {
-            $foundRows = $this->select(
-                $eloquent,
-                $uniqueAttributes,
-                $selectColumns,
-                $nonExistent,
-            );
-
-            $result->push(
-                ...$this->fillInAttributes($eloquent, $uniqueAttributes, $updateAttributes, $foundRows, $nonExistent),
-            );
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[] $selectColumns
-     * @param Collection $collection
-     * @return Collection<BulkModel>
-     */
-    private function select(
-        BulkModel $eloquent,
-        array $uniqueAttributes,
-        array $selectColumns,
-        Collection $collection,
-    ): Collection {
-        $builder = $eloquent
-            ->newQuery()
-            ->select($selectColumns);
-
-        $this->addWhereClauseToBuilderFeature->handle(
-            $builder,
-            $uniqueAttributes,
-            $collection
-        );
-
-        return $builder->get();
-    }
-
-    /**
-     * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param Collection<BulkModel> $foundModels
-     * @param Collection<BulkModel> $nonExistent
-     * @return Collection<BulkModel>
-     */
-    private function fillInAttributes(
-        BulkModel $eloquent,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        Collection $foundModels,
-        Collection $nonExistent,
-    ): Collection {
-        $scalarRows = $this->collectionToScalarArraysConverter->handle($nonExistent);
-        $keyedRows = $this->keyByFeature->handle($scalarRows, $uniqueAttributes);
-        $result = $eloquent->newCollection();
-
-        /** @var BulkModel $item */
-        foreach ($foundModels as $item) {
-            $key = $this->getKeyForRowFeature->handle($item->getAttributes(), $uniqueAttributes);
-
-            if (array_key_exists($key, $keyedRows) === false) {
-                continue;
+        /** @var BulkModel $actualModel */
+        foreach ($keyedActual as $key => $actualModel) {
+            if (array_key_exists($key, $keyedExpected) === false) {
+                throw new BulkModelIsUndefined();
             }
 
+            /** @var BulkModel $expectedModel */
+            $expectedModel = $keyedExpected[$key];
+
             if (empty($updateAttributes)) {
-                $item->fill($keyedRows[$key]);
+                // Saving the correct format of the attributeValue.
+                // For example, if the attributeValue is a json string
+                // then it will be  a string with string (""[..]"") not a string with json ("[]")
+                foreach ($expectedModel->getDirty() as $attributeName => $attributeValue) {
+                    $actualModel->setAttribute(
+                        $attributeName,
+                        $expectedModel->getAttribute($attributeName)
+                    );
+                }
             } else {
                 foreach ($updateAttributes as $attribute) {
-                    if (array_key_exists($attribute, $keyedRows[$key])) {
-                        $item->setAttribute($attribute, $keyedRows[$key][$attribute]);
-                    }
+                    $actualModel->setAttribute(
+                        $attribute,
+                        $expectedModel->getAttribute($attribute)
+                    );
                 }
             }
 
-            $result->push($item);
+            $result->push($actualModel);
         }
 
         return $result;
