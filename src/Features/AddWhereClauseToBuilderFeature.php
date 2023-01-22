@@ -29,7 +29,7 @@ class AddWhereClauseToBuilderFeature
 
     /**
      * @param QueryBuilder|BuilderWhereClause $builder
-     * @param array<scalar, array<int, array<string, mixed>>> $groups
+     * @param iterable $rows
      * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
      * @return void

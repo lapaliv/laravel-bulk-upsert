@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
@@ -156,6 +158,9 @@ final class PrepareUpdateBuilderFeatureTest extends TestCase
         self::assertArrayNotHasKey('email', $builder->getSets());
     }
 
+    /**
+     * @return array[]
+     */
     public function fillInBuilderDataProvider(): array
     {
         return [

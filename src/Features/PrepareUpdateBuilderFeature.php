@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;

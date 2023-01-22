@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+
 namespace Lapaliv\BulkUpsert\Converters;
 
 use Carbon\Carbon;

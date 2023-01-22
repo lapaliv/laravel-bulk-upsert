@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
@@ -10,7 +12,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 class GetUserCollectionForUpdateTestsFeature
 {
-    public function handle(string $model, int $count)
+    /**
+     * @throws Exception
+     */
+    public function handle(string $model, int $count): UserCollection
     {
         /** @var User|string $model */
 
@@ -55,9 +60,7 @@ class GetUserCollectionForUpdateTestsFeature
             'phone' => $faker->phoneNumber(),
             'date' => Carbon::parse($faker->dateTime)->toDateString(),
             'microseconds' => Carbon::now()
-                ->subSeconds(
-                    random_int(1, 999_999)
-                )
+                ->subSeconds(random_int(1, 999_999))
                 ->format('Y-m-d H:i:s.u'),
         ];
     }

@@ -6,7 +6,7 @@ interface BulkSave
 {
     /**
      * @param int $size
-     * @param callable(Collection<BulkModel> $chunk): Collection<BulkModel>|null $callback
+     * @param null|callable(Collection<BulkModel> $chunk): Collection<BulkModel>|null $callback
      * @return $this
      */
     public function chunk(int $size = 100, ?callable $callback = null): static;

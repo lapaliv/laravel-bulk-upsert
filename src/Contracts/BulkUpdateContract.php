@@ -7,25 +7,25 @@ use Illuminate\Database\Eloquent\Collection;
 interface BulkUpdateContract extends BulkSave
 {
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|null $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdating(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdated(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onSaving(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onSaved(?callable $callback): static;

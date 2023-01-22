@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Carbon\Carbon;
@@ -107,6 +109,9 @@ final class ArrayToScalarArrayConverterTest extends TestCase
         }
     }
 
+    /**
+     * @return string[][]
+     */
     public function datesDataProvider(): array
     {
         return [

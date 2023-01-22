@@ -1,15 +1,20 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Illuminate\Support\Facades\Event;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 final class FireModelEventsFeatureTest extends TestCase
 {
+    private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature;
+
     /**
      * @param string $event
      * @return void
@@ -27,7 +32,9 @@ final class FireModelEventsFeatureTest extends TestCase
         $sut->handle($model, [$event], [$event]);
 
         // assert
-        Event::assertDispatched("eloquent.{$event}: " . $model::class);
+        Event::assertDispatched(
+            $this->getEloquentNativeEventNameFeature->handle($model::class, $event)
+        );
     }
 
     /**
@@ -47,7 +54,9 @@ final class FireModelEventsFeatureTest extends TestCase
         $sut->handle($model, [], [$event]);
 
         // assert
-        Event::assertNotDispatched("eloquent.{$event}: " . $model::class);
+        Event::assertNotDispatched(
+            $this->getEloquentNativeEventNameFeature->handle($model, $event)
+        );
     }
 
     /**
@@ -75,10 +84,17 @@ final class FireModelEventsFeatureTest extends TestCase
         );
 
         // assert
-        Event::assertDispatched("eloquent.{$dispatchedEvent}: " . $model::class);
-        Event::assertNotDispatched("eloquent.{$notDispatchedEvent}: " . $model::class);
+        Event::assertDispatched(
+            $this->getEloquentNativeEventNameFeature->handle($model::class, $dispatchedEvent)
+        );
+        Event::assertNotDispatched(
+            $this->getEloquentNativeEventNameFeature->handle($model::class, $notDispatchedEvent)
+        );
     }
 
+    /**
+     * @return array[]
+     */
     public function dispatchedDataProvider(): array
     {
         return [
@@ -89,6 +105,9 @@ final class FireModelEventsFeatureTest extends TestCase
         ];
     }
 
+    /**
+     * @return array[]
+     */
     public function notDispatchedDataProvider(): array
     {
         return [
@@ -97,11 +116,21 @@ final class FireModelEventsFeatureTest extends TestCase
         ];
     }
 
+    /**
+     * @return array[]
+     */
     public function stopPropagationDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING, BulkEventEnum::CREATING],
             'creating' => [BulkEventEnum::CREATING, BulkEventEnum::CREATED],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->getEloquentNativeEventNameFeature = $this->app->make(GetEloquentNativeEventNameFeature::class);
     }
 }

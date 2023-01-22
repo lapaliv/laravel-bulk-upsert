@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
@@ -15,6 +17,7 @@ final class GetBulkModelFeatureTest extends TestCase
      * @param string|BulkModel $model
      * @return void
      * @dataProvider correctDataProvider
+     * @noinspection UnnecessaryAssertionInspection
      */
     public function testCorrect(string|BulkModel $model): void
     {
@@ -47,6 +50,9 @@ final class GetBulkModelFeatureTest extends TestCase
         );
     }
 
+    /**
+     * @return array[]
+     */
     public function correctDataProvider(): array
     {
         return [
@@ -55,6 +61,9 @@ final class GetBulkModelFeatureTest extends TestCase
         ];
     }
 
+    /**
+     * @return string[][]
+     */
     public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [

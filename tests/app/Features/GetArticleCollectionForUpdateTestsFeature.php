@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
@@ -18,6 +20,9 @@ class GetArticleCollectionForUpdateTestsFeature
         $this->faker = Factory::create();
     }
 
+    /**
+     * @throws Exception
+     */
     public function handle(string $model, int $count): ArticleCollection
     {
         /** @var Model|string $model */

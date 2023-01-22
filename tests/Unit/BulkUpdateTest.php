@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Exception;
@@ -112,6 +114,9 @@ final class BulkUpdateTest extends TestCase
         ];
     }
 
+    /**
+     * @return string[][]
+     */
     public function throwBulkModelIsUndefinedDataProvider(): array
     {
         return [
@@ -121,6 +126,9 @@ final class BulkUpdateTest extends TestCase
         ];
     }
 
+    /**
+     * @return array[][]
+     */
     public function intersectEventsDataProvider(): array
     {
         return [

@@ -1,5 +1,9 @@
 <?php
 
+/** @noinspection ReturnTypeCanBeDeclaredInspection */
+/** @noinspection PhpMissingParamTypeInspection */
+/** @noinspection PhpMissingReturnTypeInspection */
+
 namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Contracts\Events\Dispatcher;
@@ -30,7 +34,7 @@ interface BulkModel
     public function getAttribute($key);
 
     /**
-     * Get all of the current attributes on the model.
+     * Get all the current attributes on the model.
      *
      * @return array
      */
@@ -101,7 +105,7 @@ interface BulkModel
     public function getConnection();
 
     /**
-     * Get the attributes that should be converted to dates.
+     * Get the attributes that should be converted to date.
      *
      * @return string[]
      */

@@ -9,6 +9,7 @@ use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\Driver;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsert;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverUpdate;
+use Throwable;
 
 class MySqlDriver implements Driver
 {
@@ -19,6 +20,9 @@ class MySqlDriver implements Driver
         //
     }
 
+    /**
+     * @throws Throwable
+     */
     public function insert(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
     {
         return $this->insertFeature->handle($connection, $builder, $primaryKeyName);
@@ -29,6 +33,9 @@ class MySqlDriver implements Driver
         $builder->insert($values);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function update(ConnectionInterface $connection, UpdateBuilder $builder): int
     {
         return $this->updateFeature->handle($connection, $builder);

@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
+use Exception;
 use Faker\Factory;
 use Faker\Generator;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -16,6 +17,9 @@ class GenerateUserTestFeature
         $this->faker = Factory::create();
     }
 
+    /**
+     * @throws Exception
+     */
     public function handle(string $model, ?array $only = null, array $nullable = []): User
     {
         $result = [
@@ -24,9 +28,7 @@ class GenerateUserTestFeature
             'phone' => $this->faker->phoneNumber(),
             'date' => Carbon::parse($this->faker->dateTime)->toDateString(),
             'microseconds' => Carbon::now()
-                ->subSeconds(
-                    random_int(1, 999_999)
-                )
+                ->subSeconds(random_int(1, 999_999))
                 ->format('Y-m-d H:i:s.u'),
         ];
 

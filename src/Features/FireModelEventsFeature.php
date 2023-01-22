@@ -18,6 +18,7 @@ class FireModelEventsFeature
         $finalEvents = array_intersect($events, $allowedEvents);
 
         foreach ($finalEvents as $event) {
+            /** @noinspection NotOptimalIfConditionsInspection */
             if (in_array($event, $this->getHaltEvents(), true)
                 && $model->fireModelEvent($event) === false
             ) {

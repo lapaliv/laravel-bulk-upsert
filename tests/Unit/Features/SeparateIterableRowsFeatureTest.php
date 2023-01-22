@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
+
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -46,6 +48,9 @@ final class SeparateIterableRowsFeatureTest extends TestCase
             );
     }
 
+    /**
+     * @return int[][]
+     */
     public function dataProvider(): array
     {
         return [

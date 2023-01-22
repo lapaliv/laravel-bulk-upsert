@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpDocSignatureInspection */
+
 namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\Eloquent\Collection;

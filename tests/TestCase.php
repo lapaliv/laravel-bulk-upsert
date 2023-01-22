@@ -41,11 +41,6 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         PostgreSqlArticle::createTable();
     }
 
-    public static function tearDownAfterClass(): void
-    {
-        parent::tearDownAfterClass();
-    }
-
     private static function readEnv(): void
     {
         $dotenv = Dotenv::createMutable(dirname(__DIR__));

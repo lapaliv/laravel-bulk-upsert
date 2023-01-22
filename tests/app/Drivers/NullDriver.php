@@ -22,6 +22,6 @@ class NullDriver implements Driver
 
     public function simpleInsert(Builder $builder, array $values): void
     {
-        return;
+        // Nothing
     }
 }

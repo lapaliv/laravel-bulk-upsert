@@ -7,37 +7,37 @@ use Illuminate\Database\Eloquent\Collection;
 interface BulkUpsertContract extends BulkSave
 {
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onCreating(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onCreated(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdating(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onUpdated(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onSaving(?callable $callback): static;
 
     /**
-     * @param callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
+     * @param ?callable(Collection<BulkModel>): Collection<BulkModel>|null|void $callback
      * @return $this
      */
     public function onSaved(?callable $callback): static;
