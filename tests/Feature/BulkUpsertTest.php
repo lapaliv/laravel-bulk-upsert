@@ -303,6 +303,9 @@ final class BulkUpsertTest extends TestCase
         $this->assertDatabaseHasEntity($entities->last());
     }
 
+    /**
+     * @return string[][]
+     */
     public function entities(): array
     {
         return [

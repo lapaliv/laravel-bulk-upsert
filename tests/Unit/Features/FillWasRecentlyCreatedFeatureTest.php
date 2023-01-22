@@ -35,7 +35,7 @@ final class FillWasRecentlyCreatedFeatureTest extends TestCase
         // assert
         $users->each(
             function (MySqlUser $user) {
-                self::assertEquals($user->id >= 3, $user->wasRecentlyCreated);
+                self::assertEquals($user->id > 3, $user->wasRecentlyCreated);
             }
         );
     }

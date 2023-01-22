@@ -47,7 +47,7 @@ final class BulkUpdateTest extends TestCase
 
         // assert
         $entities->each(
-            fn(Entity $entity) => $this->assertDatabaseHasEntity($entity),
+            fn (Entity $entity) => $this->assertDatabaseHasEntity($entity),
         );
     }
 
