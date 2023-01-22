@@ -15,11 +15,8 @@ class MySqlDriverInsert
         //
     }
 
-    public function handle(
-        ConnectionInterface $connection,
-        InsertBuilder $builder,
-        ?string $primaryKeyName,
-    ): int|string|null {
+    public function handle(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
+    {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
         $connection->beginTransaction();

@@ -19,11 +19,8 @@ class MySqlDriver implements Driver
         //
     }
 
-    public function insert(
-        ConnectionInterface $connection,
-        InsertBuilder $builder,
-        ?string $primaryKeyName,
-    ): ?int {
+    public function insert(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
+    {
         return $this->insertFeature->handle($connection, $builder, $primaryKeyName);
     }
 
