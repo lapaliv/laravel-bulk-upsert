@@ -20,7 +20,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
-final class UpsertTest extends TestCase
+final class BulkUpsertTest extends TestCase
 {
     use CheckEntityInDatabase;
 
