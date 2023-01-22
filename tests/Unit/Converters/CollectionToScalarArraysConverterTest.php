@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Exception;
 use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class CollectionToScalarArraysConverterTest extends TestCase
+final class CollectionToScalarArraysConverterTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
+    private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;
 
     /**
      * @return void
@@ -21,10 +21,12 @@ final class CollectionToScalarArraysConverterTest extends TestCase
         // arrange
         /** @var CollectionToScalarArraysConverter $sut */
         $sut = $this->app->make(CollectionToScalarArraysConverter::class);
-        $columns = ['email', 'name', 'phone', 'date', 'microseconds'];
         $rows = [
-            ...$this->generateUserCollectionFeature->handle(MySqlUser::class, 1, $columns),
-            ...$this->generateUserCollectionFeature->handle(MySqlUser::class, 1, $columns)->toArray(),
+            ...$this->generateEntityCollectionTestFeature
+                ->handle(MySqlEntityWithAutoIncrement::class, 1, ['string', 'integer', 'decimal', 'json']),
+            ...$this->generateEntityCollectionTestFeature
+                ->handle(MySqlEntityWithAutoIncrement::class, 1, ['string', 'integer', 'decimal', 'json'])
+                ->toArray(),
         ];
 
         // act
@@ -45,6 +47,6 @@ final class CollectionToScalarArraysConverterTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
+        $this->generateEntityCollectionTestFeature = $this->app->make(GenerateEntityCollectionTestFeature::class);
     }
 }

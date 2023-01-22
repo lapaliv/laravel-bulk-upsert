@@ -2,6 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
+use Lapaliv\BulkUpsert\Tests\App\Collections\EntityWithoutAutoIncrementCollection;
+
 class MySqlEntityWithoutAutoIncrement extends Entity
 {
     public $incrementing = false;
@@ -10,4 +12,9 @@ class MySqlEntityWithoutAutoIncrement extends Entity
     protected $table = 'entities_without_auto_increment';
     protected $primaryKey = 'uuid';
     protected $keyType = 'string';
+
+    public function newCollection(array $models = []): EntityWithoutAutoIncrementCollection
+    {
+        return new EntityWithoutAutoIncrementCollection($models);
+    }
 }

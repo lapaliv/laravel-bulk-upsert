@@ -4,9 +4,9 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Illuminate\Database\Query\Expression;
 use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class AlignFieldsFeatureTest extends TestCase
+final class AlignFieldsFeatureTest extends UnitTestCase
 {
     /**
      * @param array $data

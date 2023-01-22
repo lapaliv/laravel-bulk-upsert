@@ -5,15 +5,12 @@ namespace Lapaliv\BulkUpsert\Tests;
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlArticle;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlArticle;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Orchestra\Testbench\TestCase;
 use PDO;
 
-abstract class TestCase extends \Orchestra\Testbench\TestCase
+abstract class FeatureTestCase extends TestCase
 {
     private static Manager $manager;
 
@@ -25,26 +22,13 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
             return;
         }
 
-        self::readEnv();
+        $dotenv = Dotenv::createMutable(dirname(__DIR__));
+        $dotenv->load();
+
         self::configureManager();
 
         MySqlEntityWithAutoIncrement::createTable();
         MySqlEntityWithoutAutoIncrement::createTable();
-
-        MySqlUser::dropTable();
-        MySqlUser::createTable();
-        PostgreSqlUser::dropTable();
-        PostgreSqlUser::createTable();
-        MySqlArticle::dropTable();
-        MySqlArticle::createTable();
-        PostgreSqlArticle::dropTable();
-        PostgreSqlArticle::createTable();
-    }
-
-    private static function readEnv(): void
-    {
-        $dotenv = Dotenv::createMutable(dirname(__DIR__));
-        $dotenv->load();
     }
 
     private static function configureManager(): void

@@ -8,12 +8,16 @@ use Illuminate\Support\Facades\Event;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateSpyListenersTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Features\SetModelEventSpyListenersTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class FireModelEventsFeatureTest extends TestCase
+final class FireModelEventsFeatureTest extends UnitTestCase
 {
     private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature;
+    private GenerateSpyListenersTestFeature $generateSpyListenersTestFeature;
+    private SetModelEventSpyListenersTestFeature $setModelEventSpyListenersTestFeature;
 
     /**
      * @param string $event
@@ -24,7 +28,7 @@ final class FireModelEventsFeatureTest extends TestCase
     {
         // arrange
         Event::fake();
-        $model = new MySqlUser();
+        $model = new MySqlEntityWithAutoIncrement();
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
 
@@ -46,7 +50,7 @@ final class FireModelEventsFeatureTest extends TestCase
     {
         // arrange
         Event::fake();
-        $model = new MySqlUser();
+        $model = new MySqlEntityWithAutoIncrement();
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
 
@@ -68,28 +72,23 @@ final class FireModelEventsFeatureTest extends TestCase
     public function testStopPropagation(string $dispatchedEvent, string $notDispatchedEvent): void
     {
         // arrange
-        Event::fake();
-        $model = new MySqlUser();
-        MySqlUser::saving(static fn () => false);
-        MySqlUser::creating(static fn () => false);
+        $model = MySqlEntityWithAutoIncrement::class;
+        $listeners = $this->generateSpyListenersTestFeature->handle();
+        $this->setModelEventSpyListenersTestFeature->handle($model, $listeners);
 
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
 
         // act
         $sut->handle(
-            $model,
+            new $model(),
             [BulkEventEnum::SAVING, BulkEventEnum::CREATING, BulkEventEnum::CREATED, BulkEventEnum::SAVED],
             [$dispatchedEvent]
         );
 
         // assert
-        Event::assertDispatched(
-            $this->getEloquentNativeEventNameFeature->handle($model::class, $dispatchedEvent)
-        );
-        Event::assertNotDispatched(
-            $this->getEloquentNativeEventNameFeature->handle($model::class, $notDispatchedEvent)
-        );
+        $listeners[$dispatchedEvent]->shouldHaveReceived('__invoke');
+        $listeners[$notDispatchedEvent]->shouldNotHaveReceived('__invoke');
     }
 
     /**
@@ -132,5 +131,7 @@ final class FireModelEventsFeatureTest extends TestCase
         parent::setUp();
 
         $this->getEloquentNativeEventNameFeature = $this->app->make(GetEloquentNativeEventNameFeature::class);
+        $this->generateSpyListenersTestFeature = $this->app->make(GenerateSpyListenersTestFeature::class);
+        $this->setModelEventSpyListenersTestFeature = $this->app->make(SetModelEventSpyListenersTestFeature::class);
     }
 }

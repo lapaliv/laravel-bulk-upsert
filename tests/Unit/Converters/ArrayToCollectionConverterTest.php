@@ -4,15 +4,15 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Converters;
 
 use Exception;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\App\Features\GenerateEntityCollectionTestFeature;
+use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class ArrayToCollectionConverterTest extends TestCase
+final class ArrayToCollectionConverterTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
+    private GenerateEntityCollectionTestFeature $generateEntityCollectionTestFeature;
 
     /**
      * @param string $model
@@ -25,12 +25,11 @@ final class ArrayToCollectionConverterTest extends TestCase
         // arrange
         /** @var ArrayToCollectionConverter $sut */
         $sut = $this->app->make(ArrayToCollectionConverter::class);
-        $columns = ['email', 'name', 'phone', 'date', 'microseconds'];
-        /** @var User $eloquent */
+        /** @var Entity $eloquent */
         $eloquent = new $model();
         $rows = [
-            ...$this->generateUserCollectionFeature->handle($model, 1, $columns),
-            ...$this->generateUserCollectionFeature->handle($model, 1, $columns)->toArray(),
+            ...$this->generateEntityCollectionTestFeature->handle($model, 1),
+            ...$this->generateEntityCollectionTestFeature->handle($model, 1)->toArray(),
         ];
 
         // act
@@ -45,11 +44,14 @@ final class ArrayToCollectionConverterTest extends TestCase
         );
     }
 
+    /**
+     * @return string[][]
+     */
     public function dataProvider(): array
     {
         return [
-            [MySqlUser::class],
-            [PostgreSqlUser::class],
+            [MySqlEntityWithAutoIncrement::class],
+            [MySqlEntityWithoutAutoIncrement::class],
         ];
     }
 
@@ -57,6 +59,6 @@ final class ArrayToCollectionConverterTest extends TestCase
     {
         parent::setUp();
 
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
+        $this->generateEntityCollectionTestFeature = $this->app->make(GenerateEntityCollectionTestFeature::class);
     }
 }

@@ -5,6 +5,7 @@
 namespace Lapaliv\BulkUpsert\Converters;
 
 use Carbon\Carbon;
+use JsonException;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
 
 class AttributesToScalarArrayConverter
@@ -13,6 +14,7 @@ class AttributesToScalarArrayConverter
      * @param string[] $dateFields
      * @param scalar[] $attributes
      * @return mixed[]
+     * @throws JsonException
      */
     public function handle(array $dateFields, array $attributes): array
     {
@@ -32,7 +34,7 @@ class AttributesToScalarArrayConverter
                     throw new BulkAttributeTypeIsNotScalar($key);
                 }
             } elseif (is_array($value)) {
-                throw new BulkAttributeTypeIsNotScalar($key);
+                $value = json_encode($value, JSON_THROW_ON_ERROR);
             }
 
             $result[$key] = $value;

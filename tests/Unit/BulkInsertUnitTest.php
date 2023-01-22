@@ -5,62 +5,13 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Exception;
-use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
-use Lapaliv\BulkUpsert\Tests\App\Features\GenerateUserCollectionTestFeature;
-use Lapaliv\BulkUpsert\Tests\App\Features\SwitchDriverToNullDriverFeature;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Mockery;
-use Mockery\VerificationDirector;
+use Lapaliv\BulkUpsert\Tests\UnitTestCase;
 
-final class BulkInsertTest extends TestCase
+final class BulkInsertUnitTest extends UnitTestCase
 {
-    private GenerateUserCollectionTestFeature $generateUserCollectionFeature;
-    private SwitchDriverToNullDriverFeature $switchDriverToNullDriverFeature;
-
-    /**
-     * @dataProvider chunkCallbackDataProvider
-     * @param string $model
-     * @param int $numberOfUsers
-     * @param int $chunkSize
-     * @return void
-     * @throws Exception
-     */
-    public function testChunkCallback(string $model, int $numberOfUsers, int $chunkSize): void
-    {
-        // arrange
-        $users = $this->generateUserCollectionFeature->handle($model, $numberOfUsers, ['email', 'name']);
-        $callbackSpy = Mockery::spy(Callback::class);
-        $this->switchDriverToNullDriverFeature->handle();
-
-        /** @var BulkInsert $sut */
-        $sut = $this->app
-            ->make(BulkInsert::class)
-            ->chunk($chunkSize, $callbackSpy);
-
-        // act
-        $sut->insert($model, ['email'], $users);
-
-        // assert
-        $callbackSpy->shouldHaveBeenCalled();
-        /** @var VerificationDirector $method */
-        $method = $callbackSpy->shouldHaveReceived('__invoke');
-        $method->times((int)ceil($numberOfUsers / $chunkSize))
-            ->withArgs(
-                function (...$args) use ($chunkSize): bool {
-                    self::assertCount(1, $args);
-                    self::assertInstanceOf(Collection::class, $args[0]);
-                    self::assertLessThanOrEqual($chunkSize, $args[0]->count());
-
-                    return true;
-                }
-            );
-    }
-
     /**
      * @param string $model
      * @return void
@@ -109,17 +60,6 @@ final class BulkInsertTest extends TestCase
     }
 
     /**
-     * @return array[]
-     */
-    public function chunkCallbackDataProvider(): array
-    {
-        return [
-            [MySqlUser::class, 5, 1],
-            [MySqlUser::class, 10, 3],
-        ];
-    }
-
-    /**
      * @return array<string, string>
      * @throws Exception
      */
@@ -161,13 +101,5 @@ final class BulkInsertTest extends TestCase
                 ],
             ],
         ];
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->generateUserCollectionFeature = $this->app->make(GenerateUserCollectionTestFeature::class);
-        $this->switchDriverToNullDriverFeature = $this->app->make(SwitchDriverToNullDriverFeature::class);
     }
 }
