@@ -57,7 +57,7 @@ class PrepareCollectionBeforeUpdatingFeature
                 }
             } else {
                 foreach ($updateAttributes as $attribute) {
-                    if (array_key_exists($attributeName, $expectedModelAttributes)) {
+                    if (array_key_exists($attribute, $expectedModelAttributes)) {
                         $actualModel->setAttribute(
                             $attribute,
                             $expectedModelAttributes[$attribute]
