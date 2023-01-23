@@ -3,19 +3,20 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 class AddWhereClauseToBuilderFeature
 {
     /**
-     * @param QueryBuilder|BuilderWhereClause $builder
+     * @param QueryBuilder|EloquentBuilder|BuilderWhereClause $builder
      * @param string[] $uniqueAttributes
      * @param array<int, array<string, scalar|BulkModel>> $rows
      * @return void
      */
     public function handle(
-        QueryBuilder|BuilderWhereClause $builder,
+        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
         array $uniqueAttributes,
         iterable $rows
     ): void {
@@ -46,7 +47,7 @@ class AddWhereClauseToBuilderFeature
         if (array_key_exists($uniqAttributeIndex + 1, $uniqueAttributes)) {
             foreach ($groups as $value => $children) {
                 $builder->orWhere(
-                    function (QueryBuilder|BuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
+                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
                         $this->addCondition($builder, $column, $value);
 
                         // the latest child
@@ -59,7 +60,7 @@ class AddWhereClauseToBuilderFeature
                             );
                         } else {
                             $builder->where(
-                                function (QueryBuilder|BuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
+                                function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
                                     $this->makeBuilder(
                                         $builder,
                                         $children,
@@ -77,7 +78,11 @@ class AddWhereClauseToBuilderFeature
         }
     }
 
-    private function addCondition(QueryBuilder|BuilderWhereClause $builder, string $column, mixed $value): void
+    private function addCondition(
+        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
+        string $column,
+        mixed $value
+    ): void
     {
         if (is_scalar($value)) {
             $builder->where($column, '=', $value);
