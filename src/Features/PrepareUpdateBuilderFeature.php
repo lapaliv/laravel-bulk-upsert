@@ -205,9 +205,12 @@ class PrepareUpdateBuilderFeature
                 // divide almost the same values but with different type (ex. false and null)
                 $valueHash = hash('crc32c', $value . ':' . gettype($value));
 
+                $uniqueAttributeValues = $this->getUniqueAttributeValues($model, $uniqueAttributes);
+                $firstUniqueAttributeKey = array_keys($uniqueAttributeValues)[0];
+
                 $groupedValues[$key] ??= [];
                 $groupedValues[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
-                $groupedValues[$key][$valueHash]['filters'][] = $this->getUniqueAttributeValues($model, $uniqueAttributes)[0];
+                $groupedValues[$key][$valueHash]['filters'][] = $uniqueAttributeValues[$firstUniqueAttributeKey];
             }
         }
 
@@ -252,7 +255,7 @@ class PrepareUpdateBuilderFeature
         $result = [];
 
         foreach ($uniqueAttributes as $uniqueAttribute) {
-            $result[] = $model instanceof BulkModel
+            $result[$uniqueAttribute] = $model instanceof BulkModel
                 ? $model->getAttribute($uniqueAttribute)
                 : $model[$uniqueAttribute];
         }

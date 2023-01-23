@@ -49,14 +49,14 @@ class PrepareCollectionBeforeUpdatingFeature
                 foreach ($expectedModel->getDirty() as $attributeName => $attributeValue) {
                     $actualModel->setAttribute(
                         $attributeName,
-                        $expectedModel->getAttribute($attributeName)
+                        $expectedModel->getAttribute($attributeName),
                     );
                 }
             } else {
                 foreach ($updateAttributes as $attribute) {
                     $actualModel->setAttribute(
                         $attribute,
-                        $expectedModel->getAttribute($attribute)
+                        $expectedModel->getAttribute($attribute),
                     );
                 }
             }

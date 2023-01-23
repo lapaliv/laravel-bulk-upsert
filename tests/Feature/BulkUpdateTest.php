@@ -173,13 +173,13 @@ final class BulkUpdateTest extends FeatureTestCase
         $sut = $this->app->make(BulkUpdate::class);
 
         // act
-        $sut->update($model, $entities, null, ['string', 'integer']);
+        $sut->update($model, $entities, null, ['string', 'integer', 'json', 'date', 'custom_datetime']);
 
         // assert
         $entities->each(
             function (Entity $entity) {
-                $this->assertDatabaseHasEntity($entity, only: ['id', 'uuid', 'string', 'integer']);
-                $this->assertDatabaseMissingEntity($entity, except: ['string', 'integer']);
+                $this->assertDatabaseHasEntity($entity, only: ['id', 'uuid', 'string', 'integer', 'json', 'date', 'custom_datetime']);
+                $this->assertDatabaseMissingEntity($entity, except: ['string', 'integer', 'json', 'date', 'custom_datetime']);
             }
         );
     }
