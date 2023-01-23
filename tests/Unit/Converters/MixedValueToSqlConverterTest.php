@@ -38,7 +38,7 @@ final class MixedValueToSqlConverterTest extends UnitTestCase
             'string' => ['John', '?', ['John']],
             'true' => [true, 'true', []],
             'false' => [false, 'false', []],
-            'float' => [1.23, '?', [1.23]],
+            'float' => [1.23, '1.23', []],
             'null' => [null, 'null', []],
             'Expression(string)' => [new Expression('raw'), 'raw', []],
             'Expression(int)' => [new Expression(10), '10', []],
