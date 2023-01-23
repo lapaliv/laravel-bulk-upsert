@@ -252,7 +252,7 @@ class PrepareUpdateBuilderFeature
         $result = [];
 
         foreach ($uniqueAttributes as $uniqueAttribute) {
-            $result[] = $model instanceof BulkModel
+            $result[$uniqueAttribute] = $model instanceof BulkModel
                 ? $model->getAttribute($uniqueAttribute)
                 : $model[$uniqueAttribute];
         }

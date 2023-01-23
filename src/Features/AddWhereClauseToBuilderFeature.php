@@ -56,7 +56,7 @@ class AddWhereClauseToBuilderFeature
                             $this->addCondition(
                                 $builder,
                                 $uniqueAttributes[$uniqAttributeIndex + 1],
-                                array_values($childrenGroups)
+                                array_keys($childrenGroups)
                             );
                         } else {
                             $builder->where(
@@ -82,8 +82,7 @@ class AddWhereClauseToBuilderFeature
         QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
         string $column,
         mixed $value
-    ): void
-    {
+    ): void {
         if (is_scalar($value)) {
             $builder->where($column, '=', $value);
         } elseif (count($value) === 1) {
