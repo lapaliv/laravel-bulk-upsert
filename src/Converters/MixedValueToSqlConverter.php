@@ -30,7 +30,7 @@ class MixedValueToSqlConverter
             return $value->get();
         }
 
-        if (is_int($value)) {
+        if (is_int($value) || is_float($value)) {
             return (string)$value;
         }
 
