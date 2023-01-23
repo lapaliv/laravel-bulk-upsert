@@ -41,28 +41,23 @@ class PrepareCollectionBeforeUpdatingFeature
 
             /** @var BulkModel $expectedModel */
             $expectedModel = $keyedExpected[$key];
-            $expectedModelAttributes = $expectedModel->getAttributes();
 
             if (empty($updateAttributes)) {
                 // Saving the correct format of the attributeValue.
                 // For example, if the attributeValue is a json string
                 // then it will be  a string with string (""[..]"") not a string with json ("[]")
                 foreach ($expectedModel->getDirty() as $attributeName => $attributeValue) {
-                    if (array_key_exists($attributeName, $expectedModelAttributes)) {
-                        $actualModel->setAttribute(
-                            $attributeName,
-                            $expectedModelAttributes[$attributeName]
-                        );
-                    }
+                    $actualModel->setAttribute(
+                        $attributeName,
+                        $expectedModel->getAttribute($attributeName),
+                    );
                 }
             } else {
                 foreach ($updateAttributes as $attribute) {
-                    if (array_key_exists($attribute, $expectedModelAttributes)) {
-                        $actualModel->setAttribute(
-                            $attribute,
-                            $expectedModelAttributes[$attribute]
-                        );
-                    }
+                    $actualModel->setAttribute(
+                        $attribute,
+                        $expectedModel->getAttribute($attribute),
+                    );
                 }
             }
 
