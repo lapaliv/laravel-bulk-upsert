@@ -61,55 +61,36 @@ class PrepareUpdateBuilderFeature
             ->reset()
             ->table($eloquent->getTable());
 
+        $builderSets = [];
+
         if ($updatingCallback === null && $savingCallback === null) {
-            $this->processCollection($collection, $events, $uniqueAttributes, $updateAttributes, $dateFields);
-        } else {
-            $collection = $this->prepareModels($collection, $events);
-            $collection = $savingCallback?->handle($collection) ?? $collection;
-
-            if ($collection->isEmpty()) {
-                return null;
-            }
-
-            $collection = $eloquent->newCollection(
-                $collection
-                    ->filter(
-                        fn (BulkModel $model) => $model->isDirty()
-                    )
-                    ->all()
-            );
-
-            $collection = $updatingCallback?->handle($collection) ?? $collection;
-
-            if ($collection->isEmpty()) {
-                return null;
-            }
-
-            $this->builder->limit($collection->count());
-
-            if (count($uniqueAttributes) > 1) {
-                $collection->each(
-                    fn (BulkModel $model) => $this->fillInBuilderFromModel(
-                        $model,
-                        $uniqueAttributes,
-                        $updateAttributes,
-                        $dateFields,
-                    )
-                );
-            }
-        }
-
-        // if $uniqueAttributes contains only one field then
-        // we can make cases more compact
-        if (count($uniqueAttributes) === 1) {
-            $this->fillInBuilderFromCollectionForSingularUniqueAttribute(
+            $this->processCollection(
                 $collection,
+                $events,
                 $uniqueAttributes,
                 $updateAttributes,
                 $dateFields,
+                $builderSets
             );
+        } else {
+            $eachModelResult = $this->processEachModel(
+                $eloquent,
+                $collection,
+                $events,
+                $uniqueAttributes,
+                $updateAttributes,
+                $dateFields,
+                $builderSets,
+                $updatingCallback,
+                $savingCallback,
+            );
+
+            if ($eachModelResult === false) {
+                return null;
+            }
         }
 
+        $this->addPreparedSetsToTheBuilder($builderSets, $collection->count());
         $this->addWhereClauseToBuilderFeature->handle($this->builder, $uniqueAttributes, $collection);
 
         return $this->builder;
@@ -121,8 +102,8 @@ class PrepareUpdateBuilderFeature
      * @param string[] $uniqueAttributes
      * @param string[]|null $updateAttributes
      * @param string[] $dateFields
+     * @param mixed[] $sets
      * @return void
-     * @throws JsonException
      */
     private function processCollection(
         Collection $collection,
@@ -130,6 +111,7 @@ class PrepareUpdateBuilderFeature
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
+        array &$sets,
     ): void {
         /** @var BulkModel $model */
         foreach ($collection as $model) {
@@ -141,10 +123,69 @@ class PrepareUpdateBuilderFeature
 
             $this->builder->limit($this->builder->getLimit() + 1);
 
-            if (count($uniqueAttributes) > 1) {
-                $this->fillInBuilderFromModel($model, $uniqueAttributes, $updateAttributes, $dateFields);
-            }
+            $this->prepareBuildersSets($model, $uniqueAttributes, $updateAttributes, $dateFields, $sets);
         }
+    }
+
+    /**
+     * @param BulkModel $eloquent
+     * @param Collection $collection
+     * @param array $events
+     * @param array $uniqueAttributes
+     * @param array|null $updateAttributes
+     * @param array $dateFields
+     * @param array $sets
+     * @param BulkCallback|null $updatingCallback
+     * @param BulkCallback|null $savingCallback
+     * @return bool
+     */
+    private function processEachModel(
+        BulkModel $eloquent,
+        Collection $collection,
+        array $events,
+        array $uniqueAttributes,
+        ?array $updateAttributes,
+        array $dateFields,
+        array &$sets,
+        ?BulkCallback $updatingCallback,
+        ?BulkCallback $savingCallback,
+    ): bool {
+        $collection = $this->prepareModels($collection, $events);
+        $collection = $savingCallback?->handle($collection) ?? $collection;
+
+        if ($collection->isEmpty()) {
+            return false;
+        }
+
+        $collection = $eloquent->newCollection(
+            $collection
+                ->filter(
+                    fn (BulkModel $model) => $model->isDirty()
+                )
+                ->all()
+        );
+
+        $collection = $updatingCallback?->handle($collection) ?? $collection;
+
+        if ($collection->isEmpty()) {
+            return false;
+        }
+
+        $this->builder->limit($collection->count());
+
+        $collection->each(
+            function (BulkModel $model) use ($uniqueAttributes, $updateAttributes, $dateFields, &$sets): void {
+                $this->prepareBuildersSets(
+                    $model,
+                    $uniqueAttributes,
+                    $updateAttributes,
+                    $dateFields,
+                    $sets
+                );
+            }
+        );
+
+        return true;
     }
 
     /**
@@ -174,58 +215,6 @@ class PrepareUpdateBuilderFeature
             ->each(
                 fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
-    }
-
-    /**
-     * @param Collection<BulkModel> $collection
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $dateFields
-     * @return void
-     */
-    private function fillInBuilderFromCollectionForSingularUniqueAttribute(
-        Collection $collection,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
-    ): void {
-        $groupedValues = [];
-
-        foreach ($collection as $model) {
-            $attributes = $this->getDirtyAttributes($model, $updateAttributes);
-
-            if (empty($attributes)) {
-                continue;
-            }
-
-            $row = $this->arrayToScalarArrayConverter->handle($dateFields, $attributes);
-
-            foreach ($row as $key => $value) {
-                if (in_array($key, $uniqueAttributes, true)) {
-                    continue;
-                }
-
-                // divide almost the same values but with different type (ex. false and null)
-                $valueHash = hash('crc32c', $value . ':' . gettype($value));
-
-                $uniqueAttributeValues = $this->getUniqueAttributeValues($model, $uniqueAttributes);
-                $firstUniqueAttributeKey = array_keys($uniqueAttributeValues)[0];
-
-                $groupedValues[$key] ??= [];
-                $groupedValues[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
-                $groupedValues[$key][$valueHash]['filters'][] = $uniqueAttributeValues[$firstUniqueAttributeKey];
-            }
-        }
-
-        foreach ($groupedValues as $field => $values) {
-            foreach ($values as $item) {
-                $this->builder->addSet(
-                    $field,
-                    [$uniqueAttributes[0] => $item['filters']],
-                    $item['value'],
-                );
-            }
-        }
     }
 
     /**
@@ -268,17 +257,19 @@ class PrepareUpdateBuilderFeature
 
     /**
      * @param BulkModel $model
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $dateFields
+     * @param array $uniqueAttributes
+     * @param array|null $updateAttributes
+     * @param array $dateFields
+     * @param array $sets
      * @return void
      * @throws JsonException
      */
-    private function fillInBuilderFromModel(
+    private function prepareBuildersSets(
         BulkModel $model,
         array $uniqueAttributes,
         ?array $updateAttributes,
         array $dateFields,
+        array &$sets,
     ): void {
         $attributes = $this->getDirtyAttributes($model, $updateAttributes);
 
@@ -290,7 +281,33 @@ class PrepareUpdateBuilderFeature
 
         foreach ($row as $key => $value) {
             if (in_array($key, $uniqueAttributes, true) === false) {
-                $this->builder->addSet($key, $this->getUniqueAttributeValues($model, $uniqueAttributes), $value);
+                $valueHash = hash('crc32c', $value . ':' . gettype($value));
+
+                $sets[$key] ??= [];
+                $sets[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
+                $sets[$key][$valueHash]['filters'][] = $this->getUniqueAttributeValues($model, $uniqueAttributes);
+            }
+        }
+    }
+
+    /**
+     * @param array $sets
+     * @param int $numberOfRows
+     * @return void
+     */
+    private function addPreparedSetsToTheBuilder(array $sets, int $numberOfRows): void
+    {
+        foreach ($sets as $field => $values) {
+            foreach ($values as $item) {
+                ['value' => $value, 'filters' => $filters] = $item;
+
+                if (count($filters) === $numberOfRows) {
+                    $this->builder->addSetWithoutFilters($field, $value);
+                } else {
+                    foreach ($filters as $filterValues) {
+                        $this->builder->addSet($field, $filterValues, $value);
+                    }
+                }
             }
         }
     }
