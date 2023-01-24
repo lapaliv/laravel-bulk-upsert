@@ -5,6 +5,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
+use JsonException;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
@@ -40,6 +41,7 @@ class PrepareUpdateBuilderFeature
      * @param BulkCallback|null $updatingCallback
      * @param BulkCallback|null $savingCallback
      * @return UpdateBuilder|null
+     * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
@@ -120,6 +122,7 @@ class PrepareUpdateBuilderFeature
      * @param string[]|null $updateAttributes
      * @param string[] $dateFields
      * @return void
+     * @throws JsonException
      */
     private function processCollection(
         Collection $collection,
@@ -269,6 +272,7 @@ class PrepareUpdateBuilderFeature
      * @param string[]|null $updateAttributes
      * @param string[] $dateFields
      * @return void
+     * @throws JsonException
      */
     private function fillInBuilderFromModel(
         BulkModel $model,

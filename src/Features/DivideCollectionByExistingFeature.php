@@ -35,40 +35,42 @@ class DivideCollectionByExistingFeature
             );
         }
 
-        if ($existing->count() < $collection->count()) {
-            return new DividedCollectionByExistingEntity(
-                $existing,
-                $this->getNonexistent($eloquent, $collection, $existing, $uniqueAttributes)
-            );
-        }
-
-        return new DividedCollectionByExistingEntity($collection, $eloquent->newCollection());
+        return $this->getDividedCollection($eloquent, $collection, $existing, $uniqueAttributes);
     }
 
-    /**
-     * @param BulkModel $eloquent
-     * @param Collection $collection
-     * @param Collection $existing
-     * @param string[] $uniqueAttributes
-     * @return Collection
-     */
-    private function getNonexistent(
+    private function getDividedCollection(
         BulkModel $eloquent,
         Collection $collection,
         Collection $existing,
         array $uniqueAttributes,
-    ): Collection {
+    ): DividedCollectionByExistingEntity {
+        /** @var array<string, BulkModel> $keyedCollection */
         $keyedCollection = $this->keyByFeature->handle($collection, $uniqueAttributes);
+        /** @var array<string, BulkModel> $keyedExisting */
         $keyedExisting = $this->keyByFeature->handle($existing, $uniqueAttributes);
 
-        $result = $eloquent->newCollection();
+        $nonexistent = $eloquent->newCollection();
 
+        /**
+         * @var string $key
+         * @var BulkModel $model
+         */
         foreach ($keyedCollection as $key => $model) {
-            if (array_key_exists($key, $keyedExisting) === false) {
-                $result->push($model);
+            if (array_key_exists($key, $keyedExisting)) {
+                foreach ($model->getAttributes() as $attribute => $value) {
+                    $keyedExisting[$key]->setAttribute(
+                        $attribute,
+                        $model->getAttribute($attribute)
+                    );
+                }
+            } else {
+                $nonexistent->push($model);
             }
         }
 
-        return $result;
+        return new DividedCollectionByExistingEntity(
+            $eloquent->newCollection(array_values($keyedExisting)),
+            $nonexistent
+        );
     }
 }
