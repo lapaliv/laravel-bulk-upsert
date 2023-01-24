@@ -29,14 +29,14 @@ class AddWhereClauseToBuilderFeature
     }
 
     /**
-     * @param QueryBuilder|BuilderWhereClause $builder
+     * @param QueryBuilder|EloquentBuilder|BuilderWhereClause $builder
      * @param iterable $rows
      * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
      * @return void
      */
     protected function makeBuilder(
-        QueryBuilder|BuilderWhereClause $builder,
+        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
         iterable $rows,
         array $uniqueAttributes,
         int $uniqAttributeIndex

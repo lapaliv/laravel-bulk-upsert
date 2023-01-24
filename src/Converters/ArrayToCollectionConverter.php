@@ -39,7 +39,10 @@ class ArrayToCollectionConverter
             }
 
             $item = new $model();
-            $item->setRawAttributes($row);
+
+            foreach ($row as $field => $value) {
+                $item->setAttribute($field, $value);
+            }
 
             $result->put($key, $item);
         }

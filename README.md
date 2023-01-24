@@ -1,22 +1,24 @@
+# Laravel bulk upsert
+
 ## Annotation
 
-How often do you need to create a collection of models? I have this task quite often.
-Laravel has a solution for mass create/update/upsert, but it uses a different algorithm than eloquent.
-For example, when we are using `$model->create()` we can supplement the data in observers, and it
+How often do you need to insert a collection of models? I have this task quite often.
+Laravel has a solution for mass insert/update/upsert, but it uses a different algorithm than eloquent.
+For example, when we are using `$model->create()` we can supplement the data in the observers, and it
 doesn't work when we use `Model::query()->insert()`.
 
-The second problem is in number of fields. We need to align number of fields before transmitting them
+The second problem is in the number of fields. We need to align the fields before passing them
 to insert/update/upsert method of the builder. This is not always convenient.
 
-The third problem is in the way get the inserted rows back after `Model::query()->insert()`. 
-Laravel doesn't return them. It won't be a big deal if you have only one unique column, but
+The third problem is in the way get the inserted rows back after inserting. 
+Laravel doesn't return them. Of course, it won't be a big deal if you have only one unique column, but
 you will need some time to write quite large SQL query to select them in another case.
 
-Because of the above I have written this library which solves these problems. Use this library you can
+Because of the above I have written this library which solves these problems. Using this library you can
 save a collection of your models and use eloquent events such as `creating`, `created`, `updating`,
 `updated`, `saving`, `saved` at the same time. And you don't need to prepare the number of fields before.
 
-In simple terms, this library makes something like this:
+In simple terms, this library runs something like this:
 
 ```php
 foreach($models as $model){

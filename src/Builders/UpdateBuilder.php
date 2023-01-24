@@ -16,7 +16,7 @@ class UpdateBuilder implements BuilderWhereClause
     private ?int $limit = null;
 
     /**
-     * @var array<string, BuilderCase>
+     * @var array<string, BuilderCase|scalar>
      */
     private array $sets = [];
 
@@ -33,11 +33,18 @@ class UpdateBuilder implements BuilderWhereClause
     }
 
     /**
-     * @return array<string, BuilderCase>
+     * @return array<string, BuilderCase|string>
      */
     public function getSets(): array
     {
         return $this->sets;
+    }
+
+    public function addSetWithoutFilters(string $field, int|float|string|null|bool $value): static
+    {
+        $this->sets[$field] = $value;
+
+        return $this;
     }
 
     /**
