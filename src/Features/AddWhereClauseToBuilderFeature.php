@@ -48,15 +48,16 @@ class AddWhereClauseToBuilderFeature
             foreach ($groups as $value => $children) {
                 $builder->orWhere(
                     function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
-                        $this->addCondition($builder, $column, $value);
+                        $this->addCondition($builder, $column, $children['original']);
 
                         // the latest child
                         if (array_key_exists($uniqAttributeIndex + 2, $uniqueAttributes) === false) {
-                            $childrenGroups = $this->groupBy($children, $uniqueAttributes[$uniqAttributeIndex + 1]);
+                            $childrenGroups = $this->groupBy($children['children'], $uniqueAttributes[$uniqAttributeIndex + 1]);
+
                             $this->addCondition(
                                 $builder,
                                 $uniqueAttributes[$uniqAttributeIndex + 1],
-                                array_keys($childrenGroups)
+                                $this->getOriginalsFromGroup($childrenGroups)
                             );
                         } else {
                             $builder->where(
@@ -74,7 +75,7 @@ class AddWhereClauseToBuilderFeature
                 );
             }
         } else {
-            $this->addCondition($builder, $column, array_keys($groups));
+            $this->addCondition($builder, $column, $this->getOriginalsFromGroup($groups));
         }
     }
 
@@ -108,8 +109,25 @@ class AddWhereClauseToBuilderFeature
                 $value = $row[$column] ?? null;
             }
 
-            $result[$value] ??= [];
-            $result[$value][] = $row;
+            $result[$value] ??= ['original' => $value, 'children' => []];
+            $result[$value]['children'][] = $row;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns values from groups with original type.
+     *
+     * @param mixed[] $groups
+     * @return scalar[]
+     */
+    private function getOriginalsFromGroup(array $groups): array
+    {
+        $result = [];
+
+        foreach ($groups as $group) {
+            $result[] = $group['original'];
         }
 
         return $result;
