@@ -45,9 +45,9 @@ class AddWhereClauseToBuilderFeature
         $groups = $this->groupBy($rows, $column);
 
         if (array_key_exists($uniqAttributeIndex + 1, $uniqueAttributes)) {
-            foreach ($groups as $value => $children) {
+            foreach ($groups as $children) {
                 $builder->orWhere(
-                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
+                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $children, $uniqueAttributes, $uniqAttributeIndex): void {
                         $this->addCondition($builder, $column, $children['original']);
 
                         // the latest child
@@ -64,7 +64,7 @@ class AddWhereClauseToBuilderFeature
                                 function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
                                     $this->makeBuilder(
                                         $builder,
-                                        $children,
+                                        $children['children'],
                                         $uniqueAttributes,
                                         $uniqAttributeIndex + 1,
                                     );
@@ -84,7 +84,7 @@ class AddWhereClauseToBuilderFeature
         string $column,
         mixed $value
     ): void {
-        if (is_scalar($value)) {
+        if (is_scalar($value) || $value === null) {
             $builder->where($column, '=', $value);
         } elseif (count($value) === 1) {
             $builder->where($column, '=', $value[0]);
@@ -109,8 +109,10 @@ class AddWhereClauseToBuilderFeature
                 $value = $row[$column] ?? null;
             }
 
-            $result[$value] ??= ['original' => $value, 'children' => []];
-            $result[$value]['children'][] = $row;
+            $valueHash = hash('crc32c', $value . ':' . gettype($value));
+
+            $result[$valueHash] ??= ['original' => $value, 'children' => []];
+            $result[$valueHash]['children'][] = $row;
         }
 
         return $result;
