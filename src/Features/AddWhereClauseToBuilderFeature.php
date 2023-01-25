@@ -45,25 +45,26 @@ class AddWhereClauseToBuilderFeature
         $groups = $this->groupBy($rows, $column);
 
         if (array_key_exists($uniqAttributeIndex + 1, $uniqueAttributes)) {
-            foreach ($groups as $value => $children) {
+            foreach ($groups as $children) {
                 $builder->orWhere(
-                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $value, $children, $uniqueAttributes, $uniqAttributeIndex): void {
-                        $this->addCondition($builder, $column, $value);
+                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $children, $uniqueAttributes, $uniqAttributeIndex): void {
+                        $this->addCondition($builder, $column, $children['original']);
 
                         // the latest child
                         if (array_key_exists($uniqAttributeIndex + 2, $uniqueAttributes) === false) {
-                            $childrenGroups = $this->groupBy($children, $uniqueAttributes[$uniqAttributeIndex + 1]);
+                            $childrenGroups = $this->groupBy($children['children'], $uniqueAttributes[$uniqAttributeIndex + 1]);
+
                             $this->addCondition(
                                 $builder,
                                 $uniqueAttributes[$uniqAttributeIndex + 1],
-                                array_keys($childrenGroups)
+                                $this->getOriginalsFromGroup($childrenGroups)
                             );
                         } else {
                             $builder->where(
                                 function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
                                     $this->makeBuilder(
                                         $builder,
-                                        $children,
+                                        $children['children'],
                                         $uniqueAttributes,
                                         $uniqAttributeIndex + 1,
                                     );
@@ -74,7 +75,7 @@ class AddWhereClauseToBuilderFeature
                 );
             }
         } else {
-            $this->addCondition($builder, $column, array_keys($groups));
+            $this->addCondition($builder, $column, $this->getOriginalsFromGroup($groups));
         }
     }
 
@@ -83,7 +84,7 @@ class AddWhereClauseToBuilderFeature
         string $column,
         mixed $value
     ): void {
-        if (is_scalar($value)) {
+        if (is_scalar($value) || $value === null) {
             $builder->where($column, '=', $value);
         } elseif (count($value) === 1) {
             $builder->where($column, '=', $value[0]);
@@ -108,8 +109,27 @@ class AddWhereClauseToBuilderFeature
                 $value = $row[$column] ?? null;
             }
 
-            $result[$value] ??= [];
-            $result[$value][] = $row;
+            $valueHash = hash('crc32c', $value . ':' . gettype($value));
+
+            $result[$valueHash] ??= ['original' => $value, 'children' => []];
+            $result[$valueHash]['children'][] = $row;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns values from groups with original type.
+     *
+     * @param mixed[] $groups
+     * @return scalar[]
+     */
+    private function getOriginalsFromGroup(array $groups): array
+    {
+        $result = [];
+
+        foreach ($groups as $group) {
+            $result[] = $group['original'];
         }
 
         return $result;
