@@ -2,10 +2,12 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Countable;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 
 class AddWhereClauseToBuilderFeature
 {
@@ -86,10 +88,16 @@ class AddWhereClauseToBuilderFeature
     ): void {
         if (is_scalar($value) || $value === null) {
             $builder->where($column, '=', $value);
-        } elseif (count($value) === 1) {
+        } elseif (is_object($value) && PHP_VERSION_ID >= 80100 && enum_exists(get_class($value))) {
+            $builder->where($column, $value->value);
+        } elseif (is_object($value) && method_exists($value, '__toString')) {
+            $builder->where($column, $value->__toString());
+        } elseif ($value instanceof Countable && count($value) === 1) {
             $builder->where($column, '=', $value[0]);
-        } else {
+        } elseif (is_array($value)) {
             $builder->whereIn($column, $value);
+        } else {
+            throw new BulkValueTypeIsNotSupported($value);
         }
     }
 

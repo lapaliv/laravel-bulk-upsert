@@ -9,8 +9,7 @@ class SelectExistingRowsFeature
 {
     public function __construct(
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -19,8 +18,7 @@ class SelectExistingRowsFeature
         Collection $collection,
         array $selectColumns,
         array $uniqueAttributes,
-    ): Collection
-    {
+    ): Collection {
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();
         }
