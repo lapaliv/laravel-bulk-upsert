@@ -15,7 +15,6 @@ class PrepareInsertBuilderFeature
         private FireModelEventsFeature $fireModelEventsFeature,
         private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private FreshTimestampsFeature $freshTimestampsFeature,
-        private InsertBuilder $builder,
     ) {
         //
     }
@@ -28,22 +27,24 @@ class PrepareInsertBuilderFeature
         bool $ignore,
         ?BulkCallback $creatingCallback,
     ): ?InsertBuilder {
-        $result = $this->builder
-            ->reset()
-            ->into($eloquent->getTable())
+        $result = new InsertBuilder();
+        $result->into($eloquent->getTable())
             ->onConflictDoNothing($ignore);
 
         if ($creatingCallback === null) {
-            $this->fillInBuilderFromCollection($collection, $dateFields, $events);
+            $this->fillInBuilderFromCollection($result, $collection, $dateFields, $events);
         } else {
             $collection = $this->prepareModels($collection, $events);
             $collection = $creatingCallback->handle($collection) ?? $collection;
 
             if ($collection->isEmpty()) {
+                $result->reset();
+
                 return null;
             }
 
             $this->fillInBuilderFromArray(
+                $result,
                 $this->convertCollectionToArray($collection, $dateFields)
             );
         }
@@ -93,8 +94,12 @@ class PrepareInsertBuilderFeature
             ->toArray();
     }
 
-    private function fillInBuilderFromCollection(Collection $collection, array $dateFields, array $events): void
-    {
+    private function fillInBuilderFromCollection(
+        InsertBuilder $builder,
+        Collection $collection,
+        array $dateFields,
+        array $events,
+    ): void {
         $columns = [];
 
         foreach ($collection as $model) {
@@ -113,24 +118,24 @@ class PrepareInsertBuilderFeature
                 $columns[$key] = $key;
             }
 
-            $this->builder->addValue($row);
+            $builder->addValue($row);
         }
 
-        $this->builder->columns($columns);
+        $builder->columns($columns);
     }
 
-    private function fillInBuilderFromArray(array $rows): void
+    private function fillInBuilderFromArray(InsertBuilder $builder, array $rows): void
     {
         $columns = [];
 
         foreach ($rows as $row) {
-            $this->builder->addValue($row);
+            $builder->addValue($row);
 
             foreach ($row as $key => $value) {
                 $columns[$key] = $key;
             }
         }
 
-        $this->builder->columns($columns);
+        $builder->columns($columns);
     }
 }

@@ -1,14 +1,20 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Features;
+namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Illuminate\Database\Eloquent\Collection;
+use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\DivideCollectionByExistingFeature;
+use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
+use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
+use Lapaliv\BulkUpsert\Features\PrepareCollectionBeforeUpdatingFeature;
+use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class UpdateFeature
+class UpdateScenario
 {
     public function __construct(
         private PrepareCollectionBeforeUpdatingFeature $prepareCollectionForUpdatingFeature,
@@ -34,6 +40,7 @@ class UpdateFeature
      * @param BulkCallback|null $savedCallback
      * @param Collection<BulkModel> $collection
      * @return void
+     * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
@@ -70,6 +77,7 @@ class UpdateFeature
             $dividedRows->existing,
             $collection,
         );
+        unset($dividedRows);
 
         $builder = $this->prepareUpdateBuilderFeature->handle(
             $eloquent,
@@ -88,6 +96,7 @@ class UpdateFeature
 
         $driver = $this->driverManager->getForModel($eloquent);
         $updateResult = $driver->update($eloquent->getConnection(), $builder);
+        unset($builder);
 
         if ($updateResult === 0) {
             return;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Features;
+namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -9,9 +9,16 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
+use Lapaliv\BulkUpsert\Features\FillWasRecentlyCreatedFeature;
+use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
+use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
+use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
+use Lapaliv\BulkUpsert\Features\PrepareInsertBuilderFeature;
+use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class InsertFeature
+class InsertScenario
 {
     public function __construct(
         private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
@@ -83,7 +90,12 @@ class InsertFeature
         }
 
         $driver = $this->driverManager->getForModel($eloquent);
-        $lastInsertedId = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
+        $lastInsertedId = $driver->insert(
+            $eloquent->getConnection(),
+            $builder,
+            $eloquent->getIncrementing() ? $eloquent->getKeyName() : null,
+        );
+        unset($builder);
 
         // there aren't any callbacks and events after creating
         if ($createdCallback === null
@@ -102,6 +114,7 @@ class InsertFeature
         );
 
         $this->fillWasRecentlyCreatedFeature->handle($eloquent, $collection, $dateFields, $lastInsertedId, $startedAt);
+        unset($startedAt, $lastInsertedId);
         $collection->each(
             fn (BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
         );
@@ -114,6 +127,8 @@ class InsertFeature
             if ($insertedModels->isNotEmpty()) {
                 $createdCallback->handle($insertedModels);
             }
+
+            unset($insertedModels);
         }
 
         $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);

@@ -19,7 +19,6 @@ class PrepareUpdateBuilderFeature
         private FreshTimestampsFeature $freshTimestampsFeature,
         private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
-        private UpdateBuilder $builder,
     ) {
         //
     }
@@ -57,14 +56,14 @@ class PrepareUpdateBuilderFeature
             return null;
         }
 
-        $this->builder
-            ->reset()
-            ->table($eloquent->getTable());
+        $result = new UpdateBuilder();
+        $result->table($eloquent->getTable());
 
         $builderSets = [];
 
         if ($updatingCallback === null && $savingCallback === null) {
             $this->processCollection(
+                $result,
                 $collection,
                 $events,
                 $uniqueAttributes,
@@ -74,6 +73,7 @@ class PrepareUpdateBuilderFeature
             );
         } else {
             $eachModelResult = $this->processEachModel(
+                $result,
                 $eloquent,
                 $collection,
                 $events,
@@ -90,13 +90,14 @@ class PrepareUpdateBuilderFeature
             }
         }
 
-        $this->addPreparedSetsToTheBuilder($builderSets, $collection->count());
-        $this->addWhereClauseToBuilderFeature->handle($this->builder, $uniqueAttributes, $collection);
+        $this->addPreparedSetsToTheBuilder($result, $builderSets, $collection->count());
+        $this->addWhereClauseToBuilderFeature->handle($result, $uniqueAttributes, $collection);
 
-        return $this->builder;
+        return $result;
     }
 
     /**
+     * @param UpdateBuilder $builder
      * @param Collection $collection
      * @param string[] $events
      * @param string[] $uniqueAttributes
@@ -104,8 +105,10 @@ class PrepareUpdateBuilderFeature
      * @param string[] $dateFields
      * @param mixed[] $sets
      * @return void
+     * @throws JsonException
      */
     private function processCollection(
+        UpdateBuilder $builder,
         Collection $collection,
         array $events,
         array $uniqueAttributes,
@@ -121,13 +124,15 @@ class PrepareUpdateBuilderFeature
 
             $this->freshTimestampsFeature->handle($model);
 
-            $this->builder->limit($this->builder->getLimit() + 1);
+            $oldLimit = $builder->getLimit() ?? 0;
+            $builder->limit($oldLimit + 1);
 
             $this->prepareBuildersSets($model, $uniqueAttributes, $updateAttributes, $dateFields, $sets);
         }
     }
 
     /**
+     * @param UpdateBuilder $builder
      * @param BulkModel $eloquent
      * @param Collection $collection
      * @param array $events
@@ -138,8 +143,10 @@ class PrepareUpdateBuilderFeature
      * @param BulkCallback|null $updatingCallback
      * @param BulkCallback|null $savingCallback
      * @return bool
+     * @throws JsonException
      */
     private function processEachModel(
+        UpdateBuilder $builder,
         BulkModel $eloquent,
         Collection $collection,
         array $events,
@@ -171,7 +178,7 @@ class PrepareUpdateBuilderFeature
             return false;
         }
 
-        $this->builder->limit($collection->count());
+        $builder->limit($collection->count());
 
         $collection->each(
             function (BulkModel $model) use ($uniqueAttributes, $updateAttributes, $dateFields, &$sets): void {
@@ -295,17 +302,17 @@ class PrepareUpdateBuilderFeature
      * @param int $numberOfRows
      * @return void
      */
-    private function addPreparedSetsToTheBuilder(array $sets, int $numberOfRows): void
+    private function addPreparedSetsToTheBuilder(UpdateBuilder $builder, array $sets, int $numberOfRows): void
     {
         foreach ($sets as $field => $values) {
             foreach ($values as $item) {
                 ['value' => $value, 'filters' => $filters] = $item;
 
                 if (count($filters) === $numberOfRows) {
-                    $this->builder->addSetWithoutFilters($field, $value);
+                    $builder->addSetWithoutFilters($field, $value);
                 } else {
                     foreach ($filters as $filterValues) {
-                        $this->builder->addSet($field, $filterValues, $value);
+                        $builder->addSet($field, $filterValues, $value);
                     }
                 }
             }

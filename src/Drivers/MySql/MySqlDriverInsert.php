@@ -39,6 +39,8 @@ class MySqlDriverInsert
             }
 
             $connection->insert($sql, $bindings);
+            unset($sql, $bindings);
+
             $connection->commit();
 
             return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
