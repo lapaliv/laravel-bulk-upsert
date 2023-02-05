@@ -10,8 +10,8 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
-use Lapaliv\BulkUpsert\Features\InsertFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Scenarios\InsertScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
@@ -27,7 +27,7 @@ class BulkInsert implements BulkInsertContract
     use BulkSavedTrait;
 
     public function __construct(
-        private InsertFeature $insertFeature,
+        private InsertScenario $insertFeature,
         private GetDateFieldsFeature $getDateFieldsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,

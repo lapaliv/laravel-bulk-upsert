@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
-use Lapaliv\BulkUpsert\Features\UpdateFeature;
+use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
@@ -29,7 +29,7 @@ class BulkUpdate implements BulkUpdateContract
     use BulkUpdateTrait;
 
     public function __construct(
-        private UpdateFeature $updateFeature,
+        private UpdateScenario $updateFeature,
         private GetDateFieldsFeature $getDateFieldsFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,

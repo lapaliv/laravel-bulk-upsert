@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Features;
+namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -9,9 +9,16 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
+use Lapaliv\BulkUpsert\Features\FillWasRecentlyCreatedFeature;
+use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
+use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
+use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
+use Lapaliv\BulkUpsert\Features\PrepareInsertBuilderFeature;
+use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class InsertFeature
+class InsertScenario
 {
     public function __construct(
         private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
