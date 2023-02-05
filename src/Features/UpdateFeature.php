@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
+use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -34,6 +35,7 @@ class UpdateFeature
      * @param BulkCallback|null $savedCallback
      * @param Collection<BulkModel> $collection
      * @return void
+     * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
@@ -70,6 +72,7 @@ class UpdateFeature
             $dividedRows->existing,
             $collection,
         );
+        unset($dividedRows);
 
         $builder = $this->prepareUpdateBuilderFeature->handle(
             $eloquent,
@@ -88,6 +91,7 @@ class UpdateFeature
 
         $driver = $this->driverManager->getForModel($eloquent);
         $updateResult = $driver->update($eloquent->getConnection(), $builder);
+        unset($builder);
 
         if ($updateResult === 0) {
             return;

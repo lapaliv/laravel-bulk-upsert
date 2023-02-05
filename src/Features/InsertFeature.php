@@ -83,7 +83,12 @@ class InsertFeature
         }
 
         $driver = $this->driverManager->getForModel($eloquent);
-        $lastInsertedId = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
+        $lastInsertedId = $driver->insert(
+            $eloquent->getConnection(),
+            $builder,
+            $eloquent->getIncrementing() ? $eloquent->getKeyName() : null,
+        );
+        unset($builder);
 
         // there aren't any callbacks and events after creating
         if ($createdCallback === null
@@ -102,6 +107,7 @@ class InsertFeature
         );
 
         $this->fillWasRecentlyCreatedFeature->handle($eloquent, $collection, $dateFields, $lastInsertedId, $startedAt);
+        unset($startedAt, $lastInsertedId);
         $collection->each(
             fn (BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
         );
@@ -114,6 +120,8 @@ class InsertFeature
             if ($insertedModels->isNotEmpty()) {
                 $createdCallback->handle($insertedModels);
             }
+
+            unset($insertedModels);
         }
 
         $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);
