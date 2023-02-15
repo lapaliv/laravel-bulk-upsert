@@ -128,7 +128,7 @@ class MySqlDriverUpdate
                     );
                 } else {
                     $result[] = sprintf(
-                        '`%s` IN(%s)',
+                        '`%s` in(%s)',
                         $where->field,
                         implode(',', $values),
                     );

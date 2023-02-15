@@ -12,6 +12,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
+use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
@@ -35,6 +36,7 @@ class BulkUpdate implements BulkUpdateContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private GetBulkModelFeature $getBulkModelFeature,
+        private KeyByFeature $keyByFeature,
     ) {
         $this->events = $this->getDefaultEvents();
     }
@@ -62,6 +64,7 @@ class BulkUpdate implements BulkUpdateContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields, $events): void {
+                $chunk = array_values($this->keyByFeature->handle($chunk, $uniqueAttributes));
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
 
                 $this->updateFeature->handle(

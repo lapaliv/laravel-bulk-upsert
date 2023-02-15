@@ -22,6 +22,7 @@ class AddWhereClauseToBuilderFeature
         array $uniqueAttributes,
         iterable $rows
     ): void {
+        $uniqueAttributes = $this->getOrderedUniqueAttributes($rows, $uniqueAttributes);
         $this->makeBuilder(
             $builder,
             $rows,
@@ -111,11 +112,7 @@ class AddWhereClauseToBuilderFeature
         $result = [];
 
         foreach ($rows as $row) {
-            if ($row instanceof BulkModel) {
-                $value = $row->getAttribute($column);
-            } else {
-                $value = $row[$column] ?? null;
-            }
+            $value = $this->getValue($row, $column);
 
             $valueHash = hash('crc32c', $value . ':' . gettype($value));
 
@@ -141,5 +138,42 @@ class AddWhereClauseToBuilderFeature
         }
 
         return $result;
+    }
+
+    private function getOrderedUniqueAttributes(iterable $rows, array $uniqueAttributes): array
+    {
+        if (count($uniqueAttributes) === 1) {
+            return $uniqueAttributes;
+        }
+
+        $groups = [];
+
+        foreach ($rows as $row) {
+            foreach ($uniqueAttributes as $uniqueAttribute) {
+                $groups[$uniqueAttribute] ??= [];
+
+                $value = $this->getValue($row, $uniqueAttribute);
+                $valueHash = hash('crc32c', $value . ':' . gettype($value));
+                $groups[$uniqueAttribute][$valueHash] ??= $valueHash;
+            }
+        }
+
+        $result = [];
+        foreach ($groups as $uniqueAttribute => $values) {
+            $result[$uniqueAttribute] = count($values);
+        }
+
+        asort($result, SORT_NUMERIC);
+
+        return array_keys($result);
+    }
+
+    private function getValue(array|BulkModel $row, string $column): mixed
+    {
+        if ($row instanceof BulkModel) {
+            return $row->getAttribute($column);
+        }
+
+        return $row[$column] ?? null;
     }
 }
