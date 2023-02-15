@@ -90,16 +90,11 @@ class UpdateScenario
             $savingCallback,
         );
 
-        if ($builder === null || empty($builder->getSets())) {
-            return;
-        }
-
         $driver = $this->driverManager->getForModel($eloquent);
-        $updateResult = $driver->update($eloquent->getConnection(), $builder);
-        unset($builder);
 
-        if ($updateResult === 0) {
-            return;
+        if ($builder !== null && empty($builder->getSets()) === false) {
+            $driver->update($eloquent->getConnection(), $builder);
+            unset($builder);
         }
 
         $updatedCallback?->handle(clone $collection);
