@@ -63,8 +63,10 @@ class BulkUpsert implements BulkUpsertContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $config): void {
-                $chunk = array_values($this->keyByFeature->handle($chunk, $config->uniqueAttributes));
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
+                $collection = $model->newCollection(
+                    array_values($this->keyByFeature->handle($collection, $config->uniqueAttributes))
+                );
                 $collection = $this->chunkCallback?->handle($collection) ?? $collection;
 
                 $this->scenario

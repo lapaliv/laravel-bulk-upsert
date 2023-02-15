@@ -57,8 +57,10 @@ class BulkInsert implements BulkInsertContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields, $events): void {
-                $chunk = array_values($this->keyByFeature->handle($chunk, $uniqueAttributes));
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
+                $collection = $model->newCollection(
+                    array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
+                );
 
                 $this->insertFeature->handle(
                     eloquent: $model,
