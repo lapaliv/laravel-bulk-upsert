@@ -11,6 +11,7 @@ use Lapaliv\BulkUpsert\Entities\UpsertConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
+use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
@@ -36,6 +37,7 @@ class BulkUpsert implements BulkUpsertContract
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private UpsertScenario $scenario,
+        private KeyByFeature $keyByFeature,
     ) {
         $this->setEvents($this->getDefaultEvents());
     }
@@ -61,6 +63,7 @@ class BulkUpsert implements BulkUpsertContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $config): void {
+                $chunk = array_values($this->keyByFeature->handle($chunk, $config->uniqueAttributes));
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
                 $collection = $this->chunkCallback?->handle($collection) ?? $collection;
 

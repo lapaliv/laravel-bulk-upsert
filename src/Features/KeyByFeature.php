@@ -16,7 +16,7 @@ class KeyByFeature
     /**
      * @param array<int, array<string, scalar>>|Collection<BulkModel> $rows
      * @param string[] $attributes
-     * @return array<string, array<string, scalar>>
+     * @return array<string, scalar[]|BulkModel>
      */
     public function handle(array|Collection $rows, array $attributes): array
     {
