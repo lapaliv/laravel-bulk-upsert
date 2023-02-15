@@ -2,7 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Countable;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
@@ -93,7 +92,7 @@ class AddWhereClauseToBuilderFeature
             $builder->where($column, $value->value);
         } elseif (is_object($value) && method_exists($value, '__toString')) {
             $builder->where($column, $value->__toString());
-        } elseif ($value instanceof Countable && count($value) === 1) {
+        } elseif (is_array($value) && count($value) === 1) {
             $builder->where($column, '=', $value[0]);
         } elseif (is_array($value)) {
             $builder->whereIn($column, $value);
