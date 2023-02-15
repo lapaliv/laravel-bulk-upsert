@@ -157,6 +157,10 @@ class AddWhereClauseToBuilderFeature
             }
         }
 
+        if (empty($groups)) {
+            return $uniqueAttributes;
+        }
+
         $result = [];
         foreach ($groups as $uniqueAttribute => $values) {
             $result[$uniqueAttribute] = count($values);

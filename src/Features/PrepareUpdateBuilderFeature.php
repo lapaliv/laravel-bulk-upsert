@@ -62,7 +62,8 @@ class PrepareUpdateBuilderFeature
         $builderSets = [];
 
         if ($updatingCallback === null && $savingCallback === null) {
-            $this->processCollection(
+            $updatingCollection = $this->processCollection(
+                $eloquent,
                 $result,
                 $collection,
                 $events,
@@ -72,7 +73,7 @@ class PrepareUpdateBuilderFeature
                 $builderSets
             );
         } else {
-            $eachModelResult = $this->processEachModel(
+            $updatingCollection = $this->processEachModel(
                 $result,
                 $eloquent,
                 $collection,
@@ -84,14 +85,14 @@ class PrepareUpdateBuilderFeature
                 $updatingCallback,
                 $savingCallback,
             );
-
-            if ($eachModelResult === false) {
-                return null;
-            }
         }
 
-        $this->addPreparedSetsToTheBuilder($result, $builderSets, $collection->count());
-        $this->addWhereClauseToBuilderFeature->handle($result, $uniqueAttributes, $collection);
+        if ($updatingCollection->isEmpty()) {
+            return null;
+        }
+
+        $this->addPreparedSetsToTheBuilder($result, $builderSets, $updatingCollection->count());
+        $this->addWhereClauseToBuilderFeature->handle($result, $uniqueAttributes, $updatingCollection);
 
         return $result;
     }
@@ -104,10 +105,11 @@ class PrepareUpdateBuilderFeature
      * @param string[]|null $updateAttributes
      * @param string[] $dateFields
      * @param mixed[] $sets
-     * @return void
+     * @return Collection
      * @throws JsonException
      */
     private function processCollection(
+        BulkModel $eloquent,
         UpdateBuilder $builder,
         Collection $collection,
         array $events,
@@ -115,7 +117,9 @@ class PrepareUpdateBuilderFeature
         ?array $updateAttributes,
         array $dateFields,
         array &$sets,
-    ): void {
+    ): Collection {
+        $updatingCollection = $eloquent->newCollection();
+
         /** @var BulkModel $model */
         foreach ($collection as $model) {
             if ($this->fireModelEvents($model, $events) === false) {
@@ -132,7 +136,10 @@ class PrepareUpdateBuilderFeature
             $builder->limit($oldLimit + 1);
 
             $this->prepareBuildersSets($model, $uniqueAttributes, $updateAttributes, $dateFields, $sets);
+            $updatingCollection->push($model);
         }
+
+        return $updatingCollection;
     }
 
     /**
@@ -160,12 +167,12 @@ class PrepareUpdateBuilderFeature
         array &$sets,
         ?BulkCallback $updatingCallback,
         ?BulkCallback $savingCallback,
-    ): bool {
+    ): Collection {
         $collection = $this->prepareModels($collection, $events);
         $collection = $savingCallback?->handle($collection) ?? $collection;
 
         if ($collection->isEmpty()) {
-            return false;
+            return $eloquent->newCollection();
         }
 
         $collection = $eloquent->newCollection(
@@ -179,13 +186,14 @@ class PrepareUpdateBuilderFeature
         $collection = $updatingCallback?->handle($collection) ?? $collection;
 
         if ($collection->isEmpty()) {
-            return false;
+            return $eloquent->newCollection();
         }
 
         $builder->limit($collection->count());
 
+        $result = $eloquent->newCollection();
         $collection->each(
-            function (BulkModel $model) use ($uniqueAttributes, $updateAttributes, $dateFields, &$sets): void {
+            function (BulkModel $model) use ($uniqueAttributes, $updateAttributes, $dateFields, &$sets, $result): void {
                 $this->prepareBuildersSets(
                     $model,
                     $uniqueAttributes,
@@ -193,10 +201,12 @@ class PrepareUpdateBuilderFeature
                     $dateFields,
                     $sets
                 );
+
+                $result->push($model);
             }
         );
 
-        return true;
+        return $result;
     }
 
     /**
