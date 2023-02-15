@@ -64,8 +64,10 @@ class BulkUpdate implements BulkUpdateContract
             $this->chunkSize,
             $rows,
             function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields, $events): void {
-                $chunk = array_values($this->keyByFeature->handle($chunk, $uniqueAttributes));
                 $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
+                $collection = $model->newCollection(
+                    array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
+                );
 
                 $this->updateFeature->handle(
                     eloquent: $model,
