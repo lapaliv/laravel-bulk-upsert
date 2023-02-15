@@ -122,6 +122,10 @@ class PrepareUpdateBuilderFeature
                 continue;
             }
 
+            if ($model->isDirty() === false) {
+                continue;
+            }
+
             $this->freshTimestampsFeature->handle($model);
 
             $oldLimit = $builder->getLimit() ?? 0;
@@ -218,6 +222,9 @@ class PrepareUpdateBuilderFeature
         return $collection
             ->filter(
                 fn (BulkModel $model) => $this->fireModelEvents($model, $events)
+            )
+            ->filter(
+                fn (BulkModel $model) => $model->isDirty()
             )
             ->each(
                 fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
