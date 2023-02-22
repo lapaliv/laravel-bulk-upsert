@@ -27,6 +27,10 @@ class SelectExistingRowsFeature
             ->select($selectColumns)
             ->limit($collection->count());
 
+        if (method_exists($eloquent, 'getDeletedAtColumn')) {
+            $builder->withTrashed();
+        }
+
         $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueAttributes, $collection);
 
         return $builder->get();
