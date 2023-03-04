@@ -12,4 +12,6 @@ class BulkEventEnum
     public const SAVED = 'saved';
     public const DELETING = 'deleting';
     public const DELETED = 'deleted';
+    public const RESTORING = 'restoring';
+    public const RESTORED = 'restored';
 }

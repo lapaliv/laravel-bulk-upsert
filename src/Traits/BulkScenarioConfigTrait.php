@@ -39,6 +39,8 @@ trait BulkScenarioConfigTrait
             savedCallback: $this->savedCallback,
             deletingCallback: $this->deletingCallback ?? null,
             deletedCallback: $this->deletedCallback ?? null,
+            restoringCallback: $this->restoringCallback ?? null,
+            restoredCallback: $this->restoredCallback ?? null,
         );
     }
 }

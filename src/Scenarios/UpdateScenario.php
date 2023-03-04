@@ -66,12 +66,7 @@ class UpdateScenario
         $builder = $this->prepareUpdateBuilderFeature->handle(
             $eloquent,
             $collection,
-            $scenarioConfig->events,
-            $scenarioConfig->uniqueAttributes,
-            $scenarioConfig->updateAttributes,
-            $scenarioConfig->dateFields,
-            $scenarioConfig->updatingCallback,
-            $scenarioConfig->savingCallback,
+            $scenarioConfig,
         );
 
         $driver = $this->driverManager->getForModel($eloquent);
@@ -82,13 +77,9 @@ class UpdateScenario
         }
 
         $scenarioConfig->updatedCallback?->handle(clone $collection);
+        $this->runDeletedCallback($scenarioConfig, $collection);
 
-        $collection->each(
-            function (BulkModel $model) use ($scenarioConfig): void {
-                $model->syncChanges();
-                $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, [BulkEventEnum::UPDATED]);
-            }
-        );
+        $this->fireEventsForUpdatedRows($scenarioConfig, $collection);
 
         $this->finishSaveFeature->handle(
             $eloquent,
@@ -99,5 +90,33 @@ class UpdateScenario
         );
 
         $scenarioConfig->savedCallback?->handle($collection);
+    }
+
+    private function runDeletedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        if ($scenarioConfig->deletedAtColumn !== null && $scenarioConfig->deletedCallback) {
+            $scenarioConfig->deletedCallback->handle(clone $collection);
+        }
+    }
+
+    private function fireEventsForUpdatedRows(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        $collection->each(
+            function (BulkModel $model) use ($scenarioConfig): void {
+                $events = [BulkEventEnum::UPDATED];
+
+                if ($scenarioConfig->deletedAtColumn !== null) {
+                    if ($model->getAttribute($scenarioConfig->deletedAtColumn) !== null) {
+                        $events[] = BulkEventEnum::DELETED;
+                    } elseif ($model->getOriginal($scenarioConfig->deletedAtColumn) !== null) {
+                        $events[] = BulkEventEnum::RESTORED;
+                    }
+                }
+
+                $model->syncChanges();
+
+                $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, $events);
+            }
+        );
     }
 }
