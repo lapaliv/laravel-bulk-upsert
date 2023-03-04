@@ -78,7 +78,7 @@ class UpdateScenario
         }
 
         $scenarioConfig->updatedCallback?->handle(clone $collection);
-        $this->runDeletedCallback($scenarioConfig, $collection);
+        $this->runDeletedOrRestoredCallback($scenarioConfig, $collection);
 
         $this->fireEventsForUpdatedRows($scenarioConfig, $collection);
 
@@ -93,10 +93,32 @@ class UpdateScenario
         $scenarioConfig->savedCallback?->handle($collection);
     }
 
-    private function runDeletedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    private function runDeletedOrRestoredCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
     {
-        if ($scenarioConfig->deletedAtColumn !== null && $scenarioConfig->deletedCallback) {
-            $scenarioConfig->deletedCallback->handle(clone $collection);
+        if ($scenarioConfig->deletedAtColumn === null) {
+            return;
+        }
+
+        if ($scenarioConfig->deletedCallback !== null) {
+            $deletedModels = $collection->filter(
+                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) !== null
+                    && $model->getOriginal($scenarioConfig->deletedAtColumn) === null
+            );
+
+            if ($deletedModels->isNotEmpty()) {
+                $scenarioConfig->deletedCallback->handle($deletedModels);
+            }
+        }
+
+        if ($scenarioConfig->restoredCallback !== null) {
+            $restoredModels = $collection->filter(
+                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) === null
+                    && $model->getOriginal($scenarioConfig->deletedAtColumn) !== null
+            );
+
+            if ($restoredModels->isNotEmpty()) {
+                $scenarioConfig->restoredCallback->handle($restoredModels);
+            }
         }
     }
 

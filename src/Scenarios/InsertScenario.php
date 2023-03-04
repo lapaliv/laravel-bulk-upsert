@@ -203,13 +203,13 @@ class InsertScenario
 
     private function runDeletedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
     {
-        if ($scenarioConfig->deletedCallback !== null) {
+        if ($scenarioConfig->deletedAtColumn !== null && $scenarioConfig->deletedCallback !== null) {
             $deletedModels = $collection->filter(
                 fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) !== null
             );
 
             if ($deletedModels->isNotEmpty()) {
-                $scenarioConfig->createdCallback->handle($deletedModels);
+                $scenarioConfig->deletedCallback->handle($deletedModels);
             }
 
             unset($deletedModels);
