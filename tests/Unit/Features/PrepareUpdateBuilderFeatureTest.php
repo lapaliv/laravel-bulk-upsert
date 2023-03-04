@@ -5,6 +5,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Features;
 
 use Exception;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 use Lapaliv\BulkUpsert\Tests\App\Collections\EntityCollection;
@@ -38,14 +39,13 @@ final class PrepareUpdateBuilderFeatureTest extends UnitTestCase
 
         // act
         $builder = $sut->handle(
-            eloquent: $model,
-            collection: $entities,
-            events: [],
-            uniqueAttributes: ['uuid'],
-            updateAttributes: null,
-            dateFields: [],
-            updatingCallback: $updatingCallback,
-            savingCallback: $savingCallback,
+            $model,
+            $entities,
+            new BulkScenarioConfig(
+                uniqueAttributes: ['uuid'],
+                updatingCallback: $updatingCallback,
+                savingCallback: $savingCallback,
+            )
         );
 
         // assert
@@ -76,14 +76,13 @@ final class PrepareUpdateBuilderFeatureTest extends UnitTestCase
 
         // act
         $sut->handle(
-            eloquent: $model,
-            collection: $entities,
-            events: [],
-            uniqueAttributes: ['uuid'],
-            updateAttributes: null,
-            dateFields: [],
-            updatingCallback: new BulkCallback($updatingCallback),
-            savingCallback: new BulkCallback($savingCallback),
+            $model,
+            $entities,
+            new BulkScenarioConfig(
+                uniqueAttributes: ['uuid'],
+                updatingCallback: new BulkCallback($updatingCallback),
+                savingCallback: new BulkCallback($savingCallback),
+            )
         );
 
         // assert
@@ -141,14 +140,13 @@ final class PrepareUpdateBuilderFeatureTest extends UnitTestCase
 
         // act
         $builder = $sut->handle(
-            eloquent: $model,
-            collection: $entities,
-            events: [],
-            uniqueAttributes: ['uuid', 'string'],
-            updateAttributes: null,
-            dateFields: [],
-            updatingCallback: $updatingCallback,
-            savingCallback: $savingCallback,
+            $model,
+            $entities,
+            new BulkScenarioConfig(
+                uniqueAttributes: ['uuid', 'string'],
+                updatingCallback: $updatingCallback,
+                savingCallback: $savingCallback,
+            )
         );
 
         // assert
