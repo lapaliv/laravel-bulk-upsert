@@ -21,6 +21,7 @@ use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
 use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
+use Lapaliv\BulkUpsert\Traits\BulkSoftDeleteTrait;
 use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 
 class BulkUpdate implements BulkUpdateContract
@@ -31,6 +32,7 @@ class BulkUpdate implements BulkUpdateContract
     use BulkSaveTrait;
     use BulkUpdateTrait;
     use BulkScenarioConfigTrait;
+    use BulkSoftDeleteTrait;
 
     public function __construct(
         private UpdateScenario $scenario,

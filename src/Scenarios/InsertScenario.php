@@ -36,7 +36,7 @@ class InsertScenario
 
     /**
      * @param BulkModel $eloquent
-     * @param Collection $collection
+     * @param Collection<int, BulkModel> $collection
      * @param BulkScenarioConfig $scenarioConfig
      * @param bool $ignore
      * @return void
@@ -52,11 +52,7 @@ class InsertScenario
         }
 
         // there aren't any events and callbacks
-        if ($scenarioConfig->creatingCallback === null
-            && $scenarioConfig->createdCallback === null
-            && $scenarioConfig->savedCallback === null
-            && empty($scenarioConfig->events)
-        ) {
+        if ($this->canUseSimpleInsert($scenarioConfig)) {
             $this->simpleInsert($eloquent, $collection, $scenarioConfig->dateFields);
 
             return;
@@ -67,10 +63,8 @@ class InsertScenario
         $builder = $this->prepareInsertBuilderFeature->handle(
             $eloquent,
             $collection,
-            $scenarioConfig->dateFields,
-            $scenarioConfig->events,
+            $scenarioConfig,
             $ignore,
-            $scenarioConfig->creatingCallback
         );
 
         if ($builder === null) {
@@ -86,11 +80,7 @@ class InsertScenario
         unset($builder);
 
         // there aren't any callbacks and events after creating
-        if ($scenarioConfig->createdCallback === null
-            && $scenarioConfig->savedCallback === null
-            && in_array(BulkEventEnum::CREATED, $scenarioConfig->events) === false
-            && in_array(BulkEventEnum::SAVED, $scenarioConfig->events) === false
-        ) {
+        if ($this->needToSelect($scenarioConfig) === false) {
             return;
         }
 
@@ -99,31 +89,36 @@ class InsertScenario
             $collection,
             $scenarioConfig->selectColumns,
             $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->deletedAtColumn,
         );
 
-        $this->fillWasRecentlyCreatedFeature
-            ->handle($eloquent, $collection, $scenarioConfig->dateFields, $lastInsertedId, $startedAt);
+        $this->fillWasRecentlyCreatedFeature->handle(
+            $eloquent,
+            $collection,
+            $scenarioConfig->dateFields,
+            $lastInsertedId,
+            $startedAt,
+        );
         unset($startedAt, $lastInsertedId);
 
         $collection->each(
-            fn (BulkModel $model) => $this->fireModelEventsFeature
-                ->handle($model, $scenarioConfig->events, [BulkEventEnum::CREATED])
+            fn (BulkModel $model) => $this->fireModelEventsFeature->handle(
+                $model,
+                $scenarioConfig->events,
+                $this->getEventsForSelectedRows($scenarioConfig)
+            )
         );
 
-        if ($scenarioConfig->createdCallback !== null) {
-            $insertedModels = $collection->filter(
-                fn (BulkModel $model) => $model->wasRecentlyCreated
-            );
+        $this->runCreatedCallback($scenarioConfig, $collection);
+        $this->runDeletedCallback($scenarioConfig, $collection);
 
-            if ($insertedModels->isNotEmpty()) {
-                $scenarioConfig->createdCallback->handle($insertedModels);
-            }
-
-            unset($insertedModels);
-        }
-
-        $this->finishSaveFeature
-            ->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $scenarioConfig->events);
+        $this->finishSaveFeature->handle(
+            $eloquent,
+            $collection,
+            $eloquent->getConnection(),
+            $driver,
+            $scenarioConfig->events,
+        );
 
         $scenarioConfig->savedCallback?->handle($collection);
     }
@@ -148,5 +143,75 @@ class InsertScenario
                     new Expression('default')
                 )
             );
+    }
+
+    private function canUseSimpleInsert(BulkScenarioConfig $scenarioConfig): bool
+    {
+        $result = $scenarioConfig->creatingCallback === null
+            && $scenarioConfig->createdCallback === null
+            && $scenarioConfig->savedCallback === null
+            && empty($scenarioConfig->events);
+
+        if ($result && $scenarioConfig->deletedAtColumn !== null) {
+            return $scenarioConfig->deletingCallback === null
+                && $scenarioConfig->deletedCallback === null;
+        }
+
+        return $result;
+    }
+
+    private function needToSelect(BulkScenarioConfig $scenarioConfig): bool
+    {
+        $result = $scenarioConfig->createdCallback !== null
+            || $scenarioConfig->savedCallback !== null
+            || in_array(BulkEventEnum::CREATED, $scenarioConfig->events)
+            || in_array(BulkEventEnum::SAVED, $scenarioConfig->events);
+
+        if ($result === false && $scenarioConfig->deletedAtColumn !== null) {
+            return $scenarioConfig->deletedCallback !== null;
+        }
+
+        return $result;
+    }
+
+    private function getEventsForSelectedRows(BulkScenarioConfig $scenarioConfig): array
+    {
+        $result = [BulkEventEnum::CREATED];
+
+        if ($scenarioConfig->deletedAtColumn !== null) {
+            $result[] = BulkEventEnum::DELETED;
+        }
+
+        return $result;
+    }
+
+    private function runCreatedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        if ($scenarioConfig->createdCallback !== null) {
+            $insertedModels = $collection->filter(
+                fn (BulkModel $model) => $model->wasRecentlyCreated
+            );
+
+            if ($insertedModels->isNotEmpty()) {
+                $scenarioConfig->createdCallback->handle($insertedModels);
+            }
+
+            unset($insertedModels);
+        }
+    }
+
+    private function runDeletedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        if ($scenarioConfig->deletedCallback !== null) {
+            $deletedModels = $collection->filter(
+                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) !== null
+            );
+
+            if ($deletedModels->isNotEmpty()) {
+                $scenarioConfig->createdCallback->handle($deletedModels);
+            }
+
+            unset($deletedModels);
+        }
     }
 }

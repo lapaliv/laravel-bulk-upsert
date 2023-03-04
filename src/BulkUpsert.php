@@ -20,6 +20,7 @@ use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
 use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
+use Lapaliv\BulkUpsert\Traits\BulkSoftDeleteTrait;
 use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 use stdClass;
 
@@ -32,6 +33,7 @@ class BulkUpsert implements BulkUpsertContract
     use BulkInsertTrait;
     use BulkUpdateTrait;
     use BulkScenarioConfigTrait;
+    use BulkSoftDeleteTrait;
 
     public function __construct(
         private UpsertScenario $scenario,

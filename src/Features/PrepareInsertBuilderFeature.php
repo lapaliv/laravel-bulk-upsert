@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class PrepareInsertBuilderFeature
 {
@@ -22,20 +22,23 @@ class PrepareInsertBuilderFeature
     public function handle(
         BulkModel $eloquent,
         Collection $collection,
-        array $dateFields,
-        array $events,
+        BulkScenarioConfig $scenarioConfig,
         bool $ignore,
-        ?BulkCallback $creatingCallback,
     ): ?InsertBuilder {
         $result = new InsertBuilder();
         $result->into($eloquent->getTable())
             ->onConflictDoNothing($ignore);
 
-        if ($creatingCallback === null) {
-            $this->fillInBuilderFromCollection($result, $collection, $dateFields, $events);
+        if ($scenarioConfig->creatingCallback === null && $scenarioConfig->deletedCallback === null) {
+            $this->fillInBuilderFromCollection(
+                $result,
+                $collection,
+                $scenarioConfig
+            );
         } else {
-            $collection = $this->prepareModels($collection, $events);
-            $collection = $creatingCallback->handle($collection) ?? $collection;
+            $collection = $this->prepareModels($collection, $scenarioConfig);
+            $collection = $scenarioConfig->creatingCallback?->handle($collection) ?? $collection;
+            $collection = $scenarioConfig->deletingCallback?->handle($collection) ?? $collection;
 
             if ($collection->isEmpty()) {
                 $result->reset();
@@ -45,7 +48,7 @@ class PrepareInsertBuilderFeature
 
             $this->fillInBuilderFromArray(
                 $result,
-                $this->convertCollectionToArray($collection, $dateFields)
+                $this->convertCollectionToArray($collection, $scenarioConfig->dateFields)
             );
         }
 
@@ -54,27 +57,32 @@ class PrepareInsertBuilderFeature
 
 
     /**
-     * @param Collection<BulkModel> $collection
-     * @param array $events
+     * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
      * @return Collection
      */
-    private function prepareModels(Collection $collection, array $events): Collection
+    private function prepareModels(Collection $collection, BulkScenarioConfig $scenarioConfig): Collection
     {
         return $collection
             ->filter(
-                fn (BulkModel $model) => $this->fireModelEvents($model, $events)
+                fn (BulkModel $model) => $this->fireModelEvents($model, $scenarioConfig)
             )
             ->each(
                 fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
-    private function fireModelEvents(BulkModel $model, array $events): bool
+    private function fireModelEvents(BulkModel $model, BulkScenarioConfig $scenarioConfig): bool
     {
-        return $this->fireModelEventsFeature->handle($model, $events, [
-            BulkEventEnum::SAVING,
-            BulkEventEnum::CREATING,
-        ]);
+        $events = [BulkEventEnum::SAVING, BulkEventEnum::CREATING];
+        $isDeleting = $scenarioConfig->deletedAtColumn !== null
+            && $model->getAttribute($scenarioConfig->deletedAtColumn) !== null;
+
+        if ($isDeleting) {
+            $events[] = BulkEventEnum::DELETING;
+        }
+
+        return $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, $events);
     }
 
     /**
@@ -97,20 +105,19 @@ class PrepareInsertBuilderFeature
     private function fillInBuilderFromCollection(
         InsertBuilder $builder,
         Collection $collection,
-        array $dateFields,
-        array $events,
+        BulkScenarioConfig $scenarioConfig,
     ): void {
         $columns = [];
 
         foreach ($collection as $model) {
-            if ($this->fireModelEvents($model, $events) === false) {
+            if ($this->fireModelEvents($model, $scenarioConfig) === false) {
                 continue;
             }
 
             $this->freshTimestampsFeature->handle($model);
 
             $row = $this->arrayToScalarArrayConverter->handle(
-                $dateFields,
+                $scenarioConfig->dateFields,
                 $model->getAttributes(),
             );
 

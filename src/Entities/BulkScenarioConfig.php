@@ -13,6 +13,7 @@ class BulkScenarioConfig
      * @param string[] $selectColumns
      * @param int $chunkSize
      * @param string[] $dateFields
+     * @param string|null $deletedAtColumn
      * @param BulkCallback|null $chunkCallback
      * @param BulkCallback|null $creatingCallback
      * @param BulkCallback|null $createdCallback
@@ -20,6 +21,8 @@ class BulkScenarioConfig
      * @param BulkCallback|null $updatedCallback
      * @param BulkCallback|null $savingCallback
      * @param BulkCallback|null $savedCallback
+     * @param BulkCallback|null $deletingCallback
+     * @param BulkCallback|null $deletedCallback
      */
     public function __construct(
         public array $events,
@@ -28,6 +31,7 @@ class BulkScenarioConfig
         public array $selectColumns,
         public int $chunkSize,
         public array $dateFields,
+        public ?string $deletedAtColumn,
         public ?BulkCallback $chunkCallback,
         public ?BulkCallback $creatingCallback,
         public ?BulkCallback $createdCallback,
@@ -35,6 +39,8 @@ class BulkScenarioConfig
         public ?BulkCallback $updatedCallback,
         public ?BulkCallback $savingCallback,
         public ?BulkCallback $savedCallback,
+        public ?BulkCallback $deletingCallback,
+        public ?BulkCallback $deletedCallback,
     ) {
         // Nothing
     }

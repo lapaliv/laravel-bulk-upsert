@@ -18,6 +18,7 @@ class SelectExistingRowsFeature
         Collection $collection,
         array $selectColumns,
         array $uniqueAttributes,
+        ?string $deletedAtColumn = null,
     ): Collection {
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();
@@ -27,7 +28,7 @@ class SelectExistingRowsFeature
             ->select($selectColumns)
             ->limit($collection->count());
 
-        if (method_exists($eloquent, 'getDeletedAtColumn')) {
+        if ($deletedAtColumn !== null) {
             $builder->withTrashed();
         }
 

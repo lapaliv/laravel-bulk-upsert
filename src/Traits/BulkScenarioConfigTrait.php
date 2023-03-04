@@ -27,13 +27,18 @@ trait BulkScenarioConfigTrait
             selectColumns: $this->getSelectColumns($eloquent, $uniqueAttributes, $updateAttributes),
             chunkSize: $this->chunkSize,
             dateFields: $dateFields,
+            deletedAtColumn: method_exists($eloquent, 'getDeletedAtColumn')
+                ? $eloquent->getDeletedAtColumn()
+                : null,
             chunkCallback: $this->chunkCallback,
             creatingCallback: $this->creatingCallback ?? null,
             createdCallback: $this->createdCallback ?? null,
             updatingCallback: $this->updatingCallback ?? null,
             updatedCallback: $this->updatedCallback ?? null,
             savingCallback: $this->savingCallback ?? null,
-            savedCallback: $this->savedCallback
+            savedCallback: $this->savedCallback,
+            deletingCallback: $this->deletingCallback ?? null,
+            deletedCallback: $this->deletedCallback ?? null,
         );
     }
 }
