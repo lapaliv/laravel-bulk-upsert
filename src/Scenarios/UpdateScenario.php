@@ -48,6 +48,7 @@ class UpdateScenario
             $collection,
             $scenarioConfig->uniqueAttributes,
             $scenarioConfig->selectColumns,
+            $scenarioConfig->deletedAtColumn,
         );
 
         if ($dividedRows->existing->isEmpty()) {

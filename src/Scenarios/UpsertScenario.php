@@ -38,7 +38,8 @@ class UpsertScenario
             $eloquent,
             $collection,
             $scenarioConfig->uniqueAttributes,
-            $scenarioConfig->selectColumns
+            $scenarioConfig->selectColumns,
+            $scenarioConfig->deletedAtColumn,
         );
 
         $this->waitingForInsert->push(...$dividedRows->nonexistent);

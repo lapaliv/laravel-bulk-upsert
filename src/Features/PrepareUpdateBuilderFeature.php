@@ -286,6 +286,7 @@ class PrepareUpdateBuilderFeature
     }
 
     /**
+     * @param UpdateBuilder $builder
      * @param array $sets
      * @param int $numberOfRows
      * @return void
@@ -365,7 +366,7 @@ class PrepareUpdateBuilderFeature
         $result = $scenarioConfig->updatingCallback === null
             && $scenarioConfig->savingCallback === null;
 
-        if ($result && $scenarioConfig->deletedAtColumn === null) {
+        if ($result && $scenarioConfig->deletedAtColumn !== null) {
             return $scenarioConfig->deletingCallback === null
                 && $scenarioConfig->restoringCallback === null;
         }

@@ -168,7 +168,8 @@ class InsertScenario
             || in_array(BulkEventEnum::SAVED, $scenarioConfig->events);
 
         if ($result === false && $scenarioConfig->deletedAtColumn !== null) {
-            return $scenarioConfig->deletedCallback !== null;
+            return $scenarioConfig->deletedCallback !== null
+                || in_array(BulkEventEnum::DELETED, $scenarioConfig->events);
         }
 
         return $result;
