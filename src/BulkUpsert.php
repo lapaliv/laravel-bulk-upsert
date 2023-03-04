@@ -17,6 +17,7 @@ use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
+use Lapaliv\BulkUpsert\Traits\BulkRestoreTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
 use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
@@ -34,6 +35,7 @@ class BulkUpsert implements BulkUpsertContract
     use BulkUpdateTrait;
     use BulkScenarioConfigTrait;
     use BulkSoftDeleteTrait;
+    use BulkRestoreTrait;
 
     public function __construct(
         private UpsertScenario $scenario,
@@ -96,6 +98,10 @@ class BulkUpsert implements BulkUpsertContract
             BulkEventEnum::UPDATED,
             BulkEventEnum::SAVING,
             BulkEventEnum::SAVED,
+            BulkEventEnum::DELETING,
+            BulkEventEnum::DELETED,
+            BulkEventEnum::RESTORING,
+            BulkEventEnum::RESTORED,
         ];
     }
 }

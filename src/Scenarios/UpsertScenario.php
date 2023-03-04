@@ -74,6 +74,8 @@ class UpsertScenario
                         }
                     }
                 )
+                ->onDeleting($config->deletingCallback?->target)
+                ->onDeleted($config->deletedCallback?->target)
                 ->setEvents($config->events)
                 ->select($config->selectColumns)
                 ->insertOrIgnore($this->eloquent, $config->uniqueAttributes, $collection);
@@ -106,6 +108,10 @@ class UpsertScenario
                 ->onUpdated($config->updatedCallback?->target)
                 ->onSaving($config->savingCallback?->target)
                 ->onSaved($config->savedCallback?->target)
+                ->onDeleting($config->deletingCallback?->target)
+                ->onDeleted($config->deletedCallback?->target)
+                ->onRestoring($config->restoringCallback?->target)
+                ->onRestored($config->restoredCallback?->target)
                 ->setEvents($config->events)
                 ->select($config->selectColumns)
                 ->update($this->eloquent, $collection, $config->uniqueAttributes, $config->updateAttributes);
