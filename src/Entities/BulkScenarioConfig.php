@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Entities;
 
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
-class UpsertConfig
+class BulkScenarioConfig
 {
     /**
      * @param string[] $events
@@ -12,6 +12,7 @@ class UpsertConfig
      * @param string[]|null $updateAttributes
      * @param string[] $selectColumns
      * @param int $chunkSize
+     * @param string[] $dateFields
      * @param BulkCallback|null $chunkCallback
      * @param BulkCallback|null $creatingCallback
      * @param BulkCallback|null $createdCallback
@@ -26,6 +27,7 @@ class UpsertConfig
         public ?array $updateAttributes,
         public array $selectColumns,
         public int $chunkSize,
+        public array $dateFields,
         public ?BulkCallback $chunkCallback,
         public ?BulkCallback $creatingCallback,
         public ?BulkCallback $createdCallback,

@@ -8,6 +8,7 @@ use Illuminate\Database\Query\Expression;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
 use Lapaliv\BulkUpsert\Features\FillWasRecentlyCreatedFeature;
@@ -16,7 +17,6 @@ use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
 use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
 use Lapaliv\BulkUpsert\Features\PrepareInsertBuilderFeature;
 use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class InsertScenario
 {
@@ -36,40 +36,28 @@ class InsertScenario
 
     /**
      * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[] $selectColumns
-     * @param string[] $dateFields
-     * @param string[] $events
-     * @param bool $ignore
-     * @param BulkCallback|null $creatingCallback
-     * @param BulkCallback|null $createdCallback
-     * @param BulkCallback|null $savedCallback
      * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
+     * @param bool $ignore
      * @return void
      */
     public function handle(
         BulkModel $eloquent,
-        array $uniqueAttributes,
-        array $selectColumns,
-        array $dateFields,
-        array $events,
-        bool $ignore,
-        ?BulkCallback $creatingCallback,
-        ?BulkCallback $createdCallback,
-        ?BulkCallback $savedCallback,
         Collection $collection,
+        BulkScenarioConfig $scenarioConfig,
+        bool $ignore,
     ): void {
         if ($collection->isEmpty()) {
             return;
         }
 
         // there aren't any events and callbacks
-        if ($creatingCallback === null
-            && $createdCallback === null
-            && $savedCallback === null
-            && empty($events)
+        if ($scenarioConfig->creatingCallback === null
+            && $scenarioConfig->createdCallback === null
+            && $scenarioConfig->savedCallback === null
+            && empty($scenarioConfig->events)
         ) {
-            $this->simpleInsert($eloquent, $collection, $dateFields);
+            $this->simpleInsert($eloquent, $collection, $scenarioConfig->dateFields);
 
             return;
         }
@@ -79,10 +67,10 @@ class InsertScenario
         $builder = $this->prepareInsertBuilderFeature->handle(
             $eloquent,
             $collection,
-            $dateFields,
-            $events,
+            $scenarioConfig->dateFields,
+            $scenarioConfig->events,
             $ignore,
-            $creatingCallback
+            $scenarioConfig->creatingCallback
         );
 
         if ($builder === null) {
@@ -98,10 +86,10 @@ class InsertScenario
         unset($builder);
 
         // there aren't any callbacks and events after creating
-        if ($createdCallback === null
-            && $savedCallback === null
-            && in_array(BulkEventEnum::CREATED, $events) === false
-            && in_array(BulkEventEnum::SAVED, $events) === false
+        if ($scenarioConfig->createdCallback === null
+            && $scenarioConfig->savedCallback === null
+            && in_array(BulkEventEnum::CREATED, $scenarioConfig->events) === false
+            && in_array(BulkEventEnum::SAVED, $scenarioConfig->events) === false
         ) {
             return;
         }
@@ -109,31 +97,35 @@ class InsertScenario
         $collection = $this->selectExistingRowsFeature->handle(
             $eloquent,
             $collection,
-            $selectColumns,
-            $uniqueAttributes,
+            $scenarioConfig->selectColumns,
+            $scenarioConfig->uniqueAttributes,
         );
 
-        $this->fillWasRecentlyCreatedFeature->handle($eloquent, $collection, $dateFields, $lastInsertedId, $startedAt);
+        $this->fillWasRecentlyCreatedFeature
+            ->handle($eloquent, $collection, $scenarioConfig->dateFields, $lastInsertedId, $startedAt);
         unset($startedAt, $lastInsertedId);
+
         $collection->each(
-            fn (BulkModel $model) => $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::CREATED])
+            fn (BulkModel $model) => $this->fireModelEventsFeature
+                ->handle($model, $scenarioConfig->events, [BulkEventEnum::CREATED])
         );
 
-        if ($createdCallback !== null) {
+        if ($scenarioConfig->createdCallback !== null) {
             $insertedModels = $collection->filter(
                 fn (BulkModel $model) => $model->wasRecentlyCreated
             );
 
             if ($insertedModels->isNotEmpty()) {
-                $createdCallback->handle($insertedModels);
+                $scenarioConfig->createdCallback->handle($insertedModels);
             }
 
             unset($insertedModels);
         }
 
-        $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);
+        $this->finishSaveFeature
+            ->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $scenarioConfig->events);
 
-        $savedCallback?->handle($collection);
+        $scenarioConfig->savedCallback?->handle($collection);
     }
 
     /**

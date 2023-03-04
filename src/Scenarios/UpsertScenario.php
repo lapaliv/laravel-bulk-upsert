@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\BulkInsert;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Entities\UpsertConfig;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Features\DivideCollectionByExistingFeature;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 
@@ -28,7 +28,7 @@ class UpsertScenario
     public function push(
         BulkModel $eloquent,
         Collection $collection,
-        UpsertConfig $config
+        BulkScenarioConfig $scenarioConfig
     ): static {
         if ($collection->isEmpty()) {
             return $this;
@@ -37,8 +37,8 @@ class UpsertScenario
         $dividedRows = $this->divideCollectionByExistingFeature->handle(
             $eloquent,
             $collection,
-            $config->uniqueAttributes,
-            $config->selectColumns
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->selectColumns
         );
 
         $this->waitingForInsert->push(...$dividedRows->nonexistent);
@@ -47,7 +47,7 @@ class UpsertScenario
         return $this;
     }
 
-    public function insert(UpsertConfig $config, bool $force = false): static
+    public function insert(BulkScenarioConfig $config, bool $force = false): static
     {
         $collection = $this->sliceCollection('waitingForInsert', $config->chunkSize, $force);
 
@@ -95,7 +95,7 @@ class UpsertScenario
         return $this;
     }
 
-    public function update(UpsertConfig $config, bool $force = false): static
+    public function update(BulkScenarioConfig $config, bool $force = false): static
     {
         $collection = $this->sliceCollection('waitingForUpdate', $config->chunkSize, $force);
 

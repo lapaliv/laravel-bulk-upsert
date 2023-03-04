@@ -5,6 +5,7 @@
 namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Collection;
+use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\BulkUpdateContract;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
@@ -18,6 +19,7 @@ use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
+use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
 use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 
@@ -28,9 +30,10 @@ class BulkUpdate implements BulkUpdateContract
     use BulkSelectTrait;
     use BulkSaveTrait;
     use BulkUpdateTrait;
+    use BulkScenarioConfigTrait;
 
     public function __construct(
-        private UpdateScenario $updateFeature,
+        private UpdateScenario $scenario,
         private GetDateFieldsFeature $getDateFieldsFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
@@ -47,6 +50,7 @@ class BulkUpdate implements BulkUpdateContract
      * @param string[]|null $uniqueAttributes
      * @param string[] $updateAttributes
      * @return void
+     * @throws JsonException
      */
     public function update(
         string|BulkModel $model,
@@ -54,36 +58,23 @@ class BulkUpdate implements BulkUpdateContract
         ?array $uniqueAttributes = null,
         ?array $updateAttributes = null,
     ): void {
-        $model = $this->getBulkModelFeature->handle($model);
-        $uniqueAttributes ??= [$model->getKeyName()];
-        $selectColumns = $this->getSelectColumns($uniqueAttributes, $updateAttributes);
-        $dateFields = $this->getDateFieldsFeature->handle($model);
-        $events = $this->getIntersectEventsWithDispatcher($model, $this->getEloquentNativeEventNameFeature);
+        $eloquent = $this->getBulkModelFeature->handle($model);
+        $uniqueAttributes ??= [$eloquent->getKeyName()];
+        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
+        $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
-        $this->separateIterableRowsFeature->handle(
-            $this->chunkSize,
-            $rows,
-            function (array $chunk) use ($model, $uniqueAttributes, $updateAttributes, $selectColumns, $dateFields, $events): void {
-                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
-                $collection = $model->newCollection(
-                    array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
-                );
+        foreach ($generator as $chunk) {
+            $collection = $this->arrayToCollectionConverter->handle($eloquent, $chunk);
+            $collection = $eloquent->newCollection(
+                array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
+            );
 
-                $this->updateFeature->handle(
-                    eloquent: $model,
-                    uniqueAttributes: $uniqueAttributes,
-                    updateAttributes: $updateAttributes,
-                    selectColumns: $selectColumns,
-                    dateFields: $dateFields,
-                    events: $events,
-                    updatingCallback: $this->updatingCallback,
-                    updatedCallback: $this->updatedCallback,
-                    savingCallback: $this->savingCallback,
-                    savedCallback: $this->savedCallback,
-                    collection: $this->chunkCallback?->handle($collection) ?? $collection,
-                );
-            }
-        );
+            $this->scenario->handle(
+                $eloquent,
+                $this->chunkCallback?->handle($collection) ?? $collection,
+                $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes, $dateFields),
+            );
+        }
     }
 
     /**

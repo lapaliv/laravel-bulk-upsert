@@ -17,6 +17,7 @@ use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSavedTrait;
+use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
 
 class BulkInsert implements BulkInsertContract
@@ -26,9 +27,10 @@ class BulkInsert implements BulkInsertContract
     use BulkEventsTrait;
     use BulkChunkTrait;
     use BulkSavedTrait;
+    use BulkScenarioConfigTrait;
 
     public function __construct(
-        private InsertScenario $insertFeature,
+        private InsertScenario $scenario,
         private GetDateFieldsFeature $getDateFieldsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
@@ -46,36 +48,29 @@ class BulkInsert implements BulkInsertContract
      * @param bool $ignore
      * @return void
      */
-    public function insert(string|BulkModel $model, array $uniqueAttributes, iterable $rows, bool $ignore = false): void
-    {
-        $model = $this->getBulkModelFeature->handle($model);
-        $selectColumns = $this->getSelectColumns($model);
-        $dateFields = $this->getDateFieldsFeature->handle($model);
-        $events = $this->getIntersectEventsWithDispatcher($model, $this->getEloquentNativeEventNameFeature);
+    public function insert(
+        string|BulkModel $model,
+        array $uniqueAttributes,
+        iterable $rows,
+        bool $ignore = false,
+    ): void {
+        $eloquent = $this->getBulkModelFeature->handle($model);
+        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
+        $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
-        $this->separateIterableRowsFeature->handle(
-            $this->chunkSize,
-            $rows,
-            function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields, $events): void {
-                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
-                $collection = $model->newCollection(
-                    array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
-                );
+        foreach ($generator as $chunk) {
+            $collection = $this->arrayToCollectionConverter->handle($eloquent, $chunk);
+            $collection = $eloquent->newCollection(
+                array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
+            );
 
-                $this->insertFeature->handle(
-                    eloquent: $model,
-                    uniqueAttributes: $uniqueAttributes,
-                    selectColumns: $selectColumns,
-                    dateFields: $dateFields,
-                    events: $events,
-                    ignore: $ignore,
-                    creatingCallback: $this->creatingCallback,
-                    createdCallback: $this->createdCallback,
-                    savedCallback: $this->savedCallback,
-                    collection: $this->chunkCallback?->handle($collection) ?? $collection
-                );
-            }
-        );
+            $this->scenario->handle(
+                $eloquent,
+                $this->chunkCallback?->handle($collection) ?? $collection,
+                $this->getConfig($eloquent, $uniqueAttributes, null, $dateFields),
+                $ignore,
+            );
+        }
     }
 
     /**

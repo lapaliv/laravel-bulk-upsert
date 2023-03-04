@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Collection;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\DivideCollectionByExistingFeature;
 use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
 use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
 use Lapaliv\BulkUpsert\Features\PrepareCollectionBeforeUpdatingFeature;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class UpdateScenario
 {
@@ -29,31 +29,15 @@ class UpdateScenario
 
     /**
      * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $selectColumns
-     * @param string[] $dateFields
-     * @param string[] $events
-     * @param BulkCallback|null $updatingCallback
-     * @param BulkCallback|null $updatedCallback
-     * @param BulkCallback|null $savingCallback
-     * @param BulkCallback|null $savedCallback
-     * @param Collection<BulkModel> $collection
+     * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
      * @return void
      * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $selectColumns,
-        array $dateFields,
-        array $events,
-        ?BulkCallback $updatingCallback,
-        ?BulkCallback $updatedCallback,
-        ?BulkCallback $savingCallback,
-        ?BulkCallback $savedCallback,
         Collection $collection,
+        BulkScenarioConfig $scenarioConfig,
     ): void {
         if ($collection->isEmpty()) {
             return;
@@ -62,8 +46,8 @@ class UpdateScenario
         $dividedRows = $this->divideCollectionByExistingFeature->handle(
             $eloquent,
             $collection,
-            $uniqueAttributes,
-            $selectColumns,
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->selectColumns,
         );
 
         if ($dividedRows->existing->isEmpty()) {
@@ -72,8 +56,8 @@ class UpdateScenario
 
         $collection = $this->prepareCollectionForUpdatingFeature->handle(
             $eloquent,
-            $uniqueAttributes,
-            $updateAttributes,
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->updateAttributes,
             $dividedRows->existing,
             $collection,
         );
@@ -82,12 +66,12 @@ class UpdateScenario
         $builder = $this->prepareUpdateBuilderFeature->handle(
             $eloquent,
             $collection,
-            $events,
-            $uniqueAttributes,
-            $updateAttributes,
-            $dateFields,
-            $updatingCallback,
-            $savingCallback,
+            $scenarioConfig->events,
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->updateAttributes,
+            $scenarioConfig->dateFields,
+            $scenarioConfig->updatingCallback,
+            $scenarioConfig->savingCallback,
         );
 
         $driver = $this->driverManager->getForModel($eloquent);
@@ -97,17 +81,23 @@ class UpdateScenario
             unset($builder);
         }
 
-        $updatedCallback?->handle(clone $collection);
+        $scenarioConfig->updatedCallback?->handle(clone $collection);
 
         $collection->each(
-            function (BulkModel $model) use ($events): void {
+            function (BulkModel $model) use ($scenarioConfig): void {
                 $model->syncChanges();
-                $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::UPDATED]);
+                $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, [BulkEventEnum::UPDATED]);
             }
         );
 
-        $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);
+        $this->finishSaveFeature->handle(
+            $eloquent,
+            $collection,
+            $eloquent->getConnection(),
+            $driver,
+            $scenarioConfig->events,
+        );
 
-        $savedCallback?->handle($collection);
+        $scenarioConfig->savedCallback?->handle($collection);
     }
 }

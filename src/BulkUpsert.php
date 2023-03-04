@@ -7,9 +7,9 @@ namespace Lapaliv\BulkUpsert;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\BulkUpsertContract;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
-use Lapaliv\BulkUpsert\Entities\UpsertConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
+use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -18,6 +18,7 @@ use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSaveTrait;
+use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
 use Lapaliv\BulkUpsert\Traits\BulkUpdateTrait;
 use stdClass;
@@ -30,13 +31,15 @@ class BulkUpsert implements BulkUpsertContract
     use BulkSaveTrait;
     use BulkInsertTrait;
     use BulkUpdateTrait;
+    use BulkScenarioConfigTrait;
 
     public function __construct(
+        private UpsertScenario $scenario,
         private GetBulkModelFeature $getBulkModelFeature,
+        private GetDateFieldsFeature $getDateFieldsFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
-        private UpsertScenario $scenario,
         private KeyByFeature $keyByFeature,
     ) {
         $this->setEvents($this->getDefaultEvents());
@@ -55,26 +58,24 @@ class BulkUpsert implements BulkUpsertContract
         array $uniqueAttributes,
         ?array $updateAttributes = null,
     ): void {
-        $model = $this->getBulkModelFeature->handle($model);
-        $this->scenario->setEloquent($model);
-        $config = $this->getConfig($model, $uniqueAttributes, $updateAttributes);
+        $eloquent = $this->getBulkModelFeature->handle($model);
+        $this->scenario->setEloquent($eloquent);
+        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
+        $config = $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes, $dateFields);
+        $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
-        $this->separateIterableRowsFeature->handle(
-            $this->chunkSize,
-            $rows,
-            function (array $chunk) use ($model, $config): void {
-                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
-                $collection = $model->newCollection(
-                    array_values($this->keyByFeature->handle($collection, $config->uniqueAttributes))
-                );
-                $collection = $this->chunkCallback?->handle($collection) ?? $collection;
+        foreach ($generator as $chunk) {
+            $collection = $this->arrayToCollectionConverter->handle($eloquent, $chunk);
+            $collection = $eloquent->newCollection(
+                array_values($this->keyByFeature->handle($collection, $config->uniqueAttributes))
+            );
+            $collection = $this->chunkCallback?->handle($collection) ?? $collection;
 
-                $this->scenario
-                    ->push($model, $collection, $config)
-                    ->insert($config)
-                    ->update($config);
-            }
-        );
+            $this->scenario
+                ->push($eloquent, $collection, $config)
+                ->insert($config)
+                ->update($config);
+        }
 
         $this->scenario
             ->insert($config, force: true)
@@ -94,29 +95,5 @@ class BulkUpsert implements BulkUpsertContract
             BulkEventEnum::SAVING,
             BulkEventEnum::SAVED,
         ];
-    }
-
-    /**
-     * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @return UpsertConfig
-     */
-    private function getConfig(BulkModel $eloquent, array $uniqueAttributes, ?array $updateAttributes): UpsertConfig
-    {
-        return new UpsertConfig(
-            events: $this->getIntersectEventsWithDispatcher($eloquent, $this->getEloquentNativeEventNameFeature),
-            uniqueAttributes: $uniqueAttributes,
-            updateAttributes: $updateAttributes,
-            selectColumns: $this->getSelectColumns($uniqueAttributes, $updateAttributes),
-            chunkSize: $this->chunkSize,
-            chunkCallback: $this->chunkCallback,
-            creatingCallback: $this->creatingCallback,
-            createdCallback: $this->createdCallback,
-            updatingCallback: $this->updatingCallback,
-            updatedCallback: $this->updatedCallback,
-            savingCallback: $this->savingCallback,
-            savedCallback: $this->savedCallback
-        );
     }
 }
