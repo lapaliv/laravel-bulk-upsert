@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Feature;
 
+use Carbon\Carbon;
 use Exception;
 use Lapaliv\BulkUpsert\BulkUpdate;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -13,6 +14,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\SetModelEventSpyListenersTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\App\Traits\CheckEntityInDatabase;
 use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
@@ -182,6 +184,112 @@ final class BulkUpdateTest extends FeatureTestCase
                 $this->assertDatabaseMissingEntity($entity, except: ['string', 'integer', 'json', 'date', 'custom_datetime']);
             }
         );
+    }
+
+    public function testDispatchDeleteEvents(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create();
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        MySqlUser::deleting($deletingSpy);
+        MySqlUser::deleted($deletedSpy);
+        /** @var BulkUpdate $sut */
+        $sut = $this->app->make(BulkUpdate::class);
+
+        // act
+        $sut->update(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
+        $this->assertDatabaseHas(MySqlUser::table(), [
+            'name' => $newUser->name,
+            'email' => $newUser->email,
+            'deleted_at' => $newUser->deleted_at->toDateTimeString(),
+        ], $newUser->getConnectionName());
+        $deletingSpy->shouldHaveReceived('__invoke');
+        $deletedSpy->shouldHaveReceived('__invoke');
+    }
+
+    public function testRunDeleteCallbacks(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create();
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        /** @var BulkUpdate $sut */
+        $sut = $this->app->make(BulkUpdate::class)
+            ->onDeleting($deletingSpy)
+            ->onDeleted($deletedSpy);
+
+        // act
+        $sut->update(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
+        $deletingSpy->shouldHaveReceived('__invoke');
+        $deletedSpy->shouldHaveReceived('__invoke');
+    }
+
+    public function testDispatchRestoreEvents(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create([
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => null,
+        ]);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        MySqlUser::restoring($restoringSpy);
+        MySqlUser::restored($restoredSpy);
+        /** @var BulkUpdate $sut */
+        $sut = $this->app->make(BulkUpdate::class);
+
+        // act
+        $sut->update(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
+        $this->assertDatabaseHas(MySqlUser::table(), [
+            'name' => $newUser->name,
+            'email' => $newUser->email,
+            'deleted_at' => null,
+        ], $newUser->getConnectionName());
+        $restoringSpy->shouldHaveReceived('__invoke');
+        $restoredSpy->shouldHaveReceived('__invoke');
+    }
+
+    public function testRunRestoreCallbacks(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create([
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => null,
+        ]);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        /** @var BulkUpdate $sut */
+        $sut = $this->app->make(BulkUpdate::class)
+            ->onRestoring($restoringSpy)
+            ->onRestored($restoredSpy);
+
+        // act
+        $sut->update(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
+        $restoringSpy->shouldHaveReceived('__invoke');
+        $restoredSpy->shouldHaveReceived('__invoke');
     }
 
     /**

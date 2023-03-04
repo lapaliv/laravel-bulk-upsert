@@ -9,8 +9,8 @@ use JsonException;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class PrepareUpdateBuilderFeature
 {
@@ -32,25 +32,15 @@ class PrepareUpdateBuilderFeature
      *    the compact query using where in (...)
      *
      * @param BulkModel $eloquent
-     * @param Collection<BulkModel> $collection
-     * @param string[] $events
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $dateFields
-     * @param BulkCallback|null $updatingCallback
-     * @param BulkCallback|null $savingCallback
+     * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
      * @return UpdateBuilder|null
      * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
         Collection $collection,
-        array $events,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
-        ?BulkCallback $updatingCallback,
-        ?BulkCallback $savingCallback,
+        BulkScenarioConfig $scenarioConfig,
     ): ?UpdateBuilder {
         if ($collection->isEmpty()) {
             return null;
@@ -61,15 +51,12 @@ class PrepareUpdateBuilderFeature
 
         $builderSets = [];
 
-        if ($updatingCallback === null && $savingCallback === null) {
+        if ($this->canProcessCollection($scenarioConfig)) {
             $updatingCollection = $this->processCollection(
                 $eloquent,
                 $result,
                 $collection,
-                $events,
-                $uniqueAttributes,
-                $updateAttributes,
-                $dateFields,
+                $scenarioConfig,
                 $builderSets
             );
         } else {
@@ -77,13 +64,8 @@ class PrepareUpdateBuilderFeature
                 $result,
                 $eloquent,
                 $collection,
-                $events,
-                $uniqueAttributes,
-                $updateAttributes,
-                $dateFields,
+                $scenarioConfig,
                 $builderSets,
-                $updatingCallback,
-                $savingCallback,
             );
         }
 
@@ -92,18 +74,16 @@ class PrepareUpdateBuilderFeature
         }
 
         $this->addPreparedSetsToTheBuilder($result, $builderSets, $updatingCollection->count());
-        $this->addWhereClauseToBuilderFeature->handle($result, $uniqueAttributes, $updatingCollection);
+        $this->addWhereClauseToBuilderFeature->handle($result, $scenarioConfig->uniqueAttributes, $updatingCollection);
 
         return $result;
     }
 
     /**
+     * @param BulkModel $eloquent
      * @param UpdateBuilder $builder
      * @param Collection $collection
-     * @param string[] $events
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $dateFields
+     * @param BulkScenarioConfig $scenarioConfig
      * @param mixed[] $sets
      * @return Collection
      * @throws JsonException
@@ -112,17 +92,14 @@ class PrepareUpdateBuilderFeature
         BulkModel $eloquent,
         UpdateBuilder $builder,
         Collection $collection,
-        array $events,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
+        BulkScenarioConfig $scenarioConfig,
         array &$sets,
     ): Collection {
         $updatingCollection = $eloquent->newCollection();
 
         /** @var BulkModel $model */
         foreach ($collection as $model) {
-            if ($this->fireModelEvents($model, $events) === false) {
+            if ($this->fireModelEvents($model, $scenarioConfig) === false) {
                 continue;
             }
 
@@ -135,7 +112,7 @@ class PrepareUpdateBuilderFeature
             $oldLimit = $builder->getLimit() ?? 0;
             $builder->limit($oldLimit + 1);
 
-            $this->prepareBuildersSets($model, $uniqueAttributes, $updateAttributes, $dateFields, $sets);
+            $this->prepareBuildersSets($model, $scenarioConfig, $sets);
             $updatingCollection->push($model);
         }
 
@@ -146,30 +123,20 @@ class PrepareUpdateBuilderFeature
      * @param UpdateBuilder $builder
      * @param BulkModel $eloquent
      * @param Collection $collection
-     * @param array $events
-     * @param array $uniqueAttributes
-     * @param array|null $updateAttributes
-     * @param array $dateFields
+     * @param BulkScenarioConfig $scenarioConfig
      * @param array $sets
-     * @param BulkCallback|null $updatingCallback
-     * @param BulkCallback|null $savingCallback
-     * @return bool
+     * @return Collection
      * @throws JsonException
      */
     private function processEachModel(
         UpdateBuilder $builder,
         BulkModel $eloquent,
         Collection $collection,
-        array $events,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
+        BulkScenarioConfig $scenarioConfig,
         array &$sets,
-        ?BulkCallback $updatingCallback,
-        ?BulkCallback $savingCallback,
     ): Collection {
-        $collection = $this->prepareModels($collection, $events);
-        $collection = $savingCallback?->handle($collection) ?? $collection;
+        $collection = $this->prepareModels($collection, $scenarioConfig);
+        $collection = $scenarioConfig->savingCallback?->handle($collection) ?? $collection;
 
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();
@@ -183,7 +150,8 @@ class PrepareUpdateBuilderFeature
                 ->all()
         );
 
-        $collection = $updatingCallback?->handle($collection) ?? $collection;
+        $collection = $scenarioConfig->updatingCallback?->handle($collection) ?? $collection;
+        $collection = $this->runDeletingOrRestoringCallbacks($eloquent, $scenarioConfig, $collection);
 
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();
@@ -193,14 +161,8 @@ class PrepareUpdateBuilderFeature
 
         $result = $eloquent->newCollection();
         $collection->each(
-            function (BulkModel $model) use ($uniqueAttributes, $updateAttributes, $dateFields, &$sets, $result): void {
-                $this->prepareBuildersSets(
-                    $model,
-                    $uniqueAttributes,
-                    $updateAttributes,
-                    $dateFields,
-                    $sets
-                );
+            function (BulkModel $model) use ($scenarioConfig, &$sets, $result): void {
+                $this->prepareBuildersSets($model, $scenarioConfig, $sets);
 
                 $result->push($model);
             }
@@ -211,27 +173,40 @@ class PrepareUpdateBuilderFeature
 
     /**
      * @param BulkModel $model
-     * @param string[] $events
+     * @param BulkScenarioConfig $scenarioConfig
      * @return bool
      */
-    private function fireModelEvents(BulkModel $model, array $events): bool
+    private function fireModelEvents(BulkModel $model, BulkScenarioConfig $scenarioConfig): bool
     {
-        return $this->fireModelEventsFeature->handle($model, $events, [
+        $events = [
             BulkEventEnum::SAVING,
             BulkEventEnum::UPDATING,
-        ]);
+        ];
+
+        if ($scenarioConfig->deletedAtColumn !== null) {
+            $actualDeletedAt = $model->getAttribute($scenarioConfig->deletedAtColumn);
+            $originalDeletedAt = $model->getOriginal($scenarioConfig->deletedAtColumn);
+
+            if ($actualDeletedAt === null && $originalDeletedAt !== null) {
+                $events[] = BulkEventEnum::RESTORING;
+            } elseif ($actualDeletedAt !== null && $originalDeletedAt === null) {
+                $events[] = BulkEventEnum::DELETING;
+            }
+        }
+
+        return $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, $events);
     }
 
     /**
-     * @param Collection<BulkModel> $collection
-     * @param string[] $events
-     * @return Collection<BulkModel>
+     * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
+     * @return Collection
      */
-    private function prepareModels(Collection $collection, array $events): Collection
+    private function prepareModels(Collection $collection, BulkScenarioConfig $scenarioConfig): Collection
     {
         return $collection
             ->filter(
-                fn (BulkModel $model) => $this->fireModelEvents($model, $events)
+                fn (BulkModel $model) => $this->fireModelEvents($model, $scenarioConfig)
             )
             ->filter(
                 fn (BulkModel $model) => $model->isDirty()
@@ -281,40 +256,37 @@ class PrepareUpdateBuilderFeature
 
     /**
      * @param BulkModel $model
-     * @param array $uniqueAttributes
-     * @param array|null $updateAttributes
-     * @param array $dateFields
+     * @param BulkScenarioConfig $scenarioConfig
      * @param array $sets
      * @return void
      * @throws JsonException
      */
     private function prepareBuildersSets(
         BulkModel $model,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
+        BulkScenarioConfig $scenarioConfig,
         array &$sets,
     ): void {
-        $attributes = $this->getDirtyAttributes($model, $updateAttributes);
+        $attributes = $this->getDirtyAttributes($model, $scenarioConfig->updateAttributes);
 
         if (empty($attributes)) {
             return;
         }
 
-        $row = $this->arrayToScalarArrayConverter->handle($dateFields, $attributes);
+        $row = $this->arrayToScalarArrayConverter->handle($scenarioConfig->dateFields, $attributes);
 
         foreach ($row as $key => $value) {
-            if (in_array($key, $uniqueAttributes, true) === false) {
+            if (in_array($key, $scenarioConfig->uniqueAttributes, true) === false) {
                 $valueHash = hash('crc32c', $value . ':' . gettype($value));
 
                 $sets[$key] ??= [];
                 $sets[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
-                $sets[$key][$valueHash]['filters'][] = $this->getUniqueAttributeValues($model, $uniqueAttributes);
+                $sets[$key][$valueHash]['filters'][] = $this->getUniqueAttributeValues($model, $scenarioConfig->uniqueAttributes);
             }
         }
     }
 
     /**
+     * @param UpdateBuilder $builder
      * @param array $sets
      * @param int $numberOfRows
      * @return void
@@ -334,5 +306,71 @@ class PrepareUpdateBuilderFeature
                 }
             }
         }
+    }
+
+    private function runDeletingOrRestoringCallbacks(
+        BulkModel $eloquent,
+        BulkScenarioConfig $scenarioConfig,
+        Collection $collection
+    ): Collection {
+        if ($scenarioConfig->deletedAtColumn === null) {
+            return $collection;
+        }
+
+        if ($scenarioConfig->deletingCallback === null && $scenarioConfig->restoringCallback === null) {
+            return $collection;
+        }
+
+        $groups = $collection->groupBy(
+            function (BulkModel $model) use ($scenarioConfig): string {
+                $actualDeletedAt = $model->getAttribute($scenarioConfig->deletedAtColumn);
+                $originalDeletedAt = $model->getOriginal($scenarioConfig->deletedAtColumn);
+
+                if ($actualDeletedAt === null && $originalDeletedAt !== null) {
+                    return 'restoring';
+                }
+
+                if ($actualDeletedAt !== null && $originalDeletedAt === null) {
+                    return 'deleting';
+                }
+
+                return 'common';
+            }
+        );
+
+        if ($scenarioConfig->deletingCallback !== null
+            && $groups->has('deleting')
+            && $groups->get('deleting')->isNotEmpty()
+        ) {
+            $groups->put(
+                'deleting',
+                $scenarioConfig->deletingCallback->handle($groups->get('deleting')) ?? $groups->get('deleting')
+            );
+        }
+
+        if ($scenarioConfig->restoringCallback !== null
+            && $groups->has('restoring')
+            && $groups->get('restoring')->isNotEmpty()
+        ) {
+            $groups->put(
+                'restoring',
+                $scenarioConfig->restoringCallback->handle($groups->get('restoring')) ?? $groups->get('restoring')
+            );
+        }
+
+        return $eloquent->newCollection($collection->collapse()->all());
+    }
+
+    private function canProcessCollection(BulkScenarioConfig $scenarioConfig): bool
+    {
+        $result = $scenarioConfig->updatingCallback === null
+            && $scenarioConfig->savingCallback === null;
+
+        if ($result && $scenarioConfig->deletedAtColumn !== null) {
+            return $scenarioConfig->deletingCallback === null
+                && $scenarioConfig->restoringCallback === null;
+        }
+
+        return $result;
     }
 }

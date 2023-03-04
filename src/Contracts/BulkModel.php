@@ -245,4 +245,13 @@ interface BulkModel
      * @return string
      */
     public function getTable();
+
+    /**
+     * Get the model's original attribute values.
+     *
+     * @param  string|null  $key
+     * @param  mixed  $default
+     * @return mixed|array
+     */
+    public function getOriginal($key = null, $default = null);
 }

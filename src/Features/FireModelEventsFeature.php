@@ -42,6 +42,8 @@ class FireModelEventsFeature
             BulkEventEnum::SAVING,
             BulkEventEnum::CREATING,
             BulkEventEnum::UPDATING,
+            BulkEventEnum::DELETING,
+            BulkEventEnum::RESTORING,
         ];
     }
 
@@ -54,6 +56,8 @@ class FireModelEventsFeature
             BulkEventEnum::CREATED,
             BulkEventEnum::UPDATED,
             BulkEventEnum::SAVED,
+            BulkEventEnum::DELETED,
+            BulkEventEnum::RESTORED,
         ];
     }
 }

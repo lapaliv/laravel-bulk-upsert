@@ -2,6 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Traits;
 
+use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 trait BulkChunkTrait

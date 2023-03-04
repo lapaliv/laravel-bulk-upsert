@@ -8,7 +8,6 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -17,7 +16,9 @@ use Lapaliv\BulkUpsert\Traits\BulkChunkTrait;
 use Lapaliv\BulkUpsert\Traits\BulkEventsTrait;
 use Lapaliv\BulkUpsert\Traits\BulkInsertTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSavedTrait;
+use Lapaliv\BulkUpsert\Traits\BulkScenarioConfigTrait;
 use Lapaliv\BulkUpsert\Traits\BulkSelectTrait;
+use Lapaliv\BulkUpsert\Traits\BulkSoftDeleteTrait;
 
 class BulkInsert implements BulkInsertContract
 {
@@ -26,10 +27,11 @@ class BulkInsert implements BulkInsertContract
     use BulkEventsTrait;
     use BulkChunkTrait;
     use BulkSavedTrait;
+    use BulkScenarioConfigTrait;
+    use BulkSoftDeleteTrait;
 
     public function __construct(
-        private InsertScenario $insertFeature,
-        private GetDateFieldsFeature $getDateFieldsFeature,
+        private InsertScenario $scenario,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
@@ -46,36 +48,29 @@ class BulkInsert implements BulkInsertContract
      * @param bool $ignore
      * @return void
      */
-    public function insert(string|BulkModel $model, array $uniqueAttributes, iterable $rows, bool $ignore = false): void
-    {
-        $model = $this->getBulkModelFeature->handle($model);
-        $selectColumns = $this->getSelectColumns($model);
-        $dateFields = $this->getDateFieldsFeature->handle($model);
-        $events = $this->getIntersectEventsWithDispatcher($model, $this->getEloquentNativeEventNameFeature);
+    public function insert(
+        string|BulkModel $model,
+        array $uniqueAttributes,
+        iterable $rows,
+        bool $ignore = false,
+    ): void {
+        $eloquent = $this->getBulkModelFeature->handle($model);
+        $scenarioConfig = $this->getConfig($eloquent, $uniqueAttributes);
+        $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
-        $this->separateIterableRowsFeature->handle(
-            $this->chunkSize,
-            $rows,
-            function (array $chunk) use ($model, $uniqueAttributes, $ignore, $selectColumns, $dateFields, $events): void {
-                $collection = $this->arrayToCollectionConverter->handle($model, $chunk);
-                $collection = $model->newCollection(
-                    array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
-                );
+        foreach ($generator as $chunk) {
+            $collection = $this->arrayToCollectionConverter->handle($eloquent, $chunk);
+            $collection = $eloquent->newCollection(
+                array_values($this->keyByFeature->handle($collection, $uniqueAttributes))
+            );
 
-                $this->insertFeature->handle(
-                    eloquent: $model,
-                    uniqueAttributes: $uniqueAttributes,
-                    selectColumns: $selectColumns,
-                    dateFields: $dateFields,
-                    events: $events,
-                    ignore: $ignore,
-                    creatingCallback: $this->creatingCallback,
-                    createdCallback: $this->createdCallback,
-                    savedCallback: $this->savedCallback,
-                    collection: $this->chunkCallback?->handle($collection) ?? $collection
-                );
-            }
-        );
+            $this->scenario->handle(
+                $eloquent,
+                $this->chunkCallback?->handle($collection) ?? $collection,
+                $scenarioConfig,
+                $ignore,
+            );
+        }
     }
 
     /**
@@ -123,6 +118,8 @@ class BulkInsert implements BulkInsertContract
             BulkEventEnum::CREATED,
             BulkEventEnum::SAVING,
             BulkEventEnum::SAVED,
+            BulkEventEnum::DELETING,
+            BulkEventEnum::DELETED,
         ];
     }
 }

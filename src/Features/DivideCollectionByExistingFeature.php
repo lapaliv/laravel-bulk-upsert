@@ -20,6 +20,7 @@ class DivideCollectionByExistingFeature
         Collection $collection,
         array $uniqueAttributes,
         array $selectColumns,
+        ?string $deletedAtColumn,
     ): DividedCollectionByExistingEntity {
         $existing = $collection->filter(
             fn (BulkModel $model) => $model->exists
@@ -30,9 +31,15 @@ class DivideCollectionByExistingFeature
         );
 
         if ($undefined->isNotEmpty()) {
-            $existing->push(
-                ...$this->selectExistingRowsFeature->handle($eloquent, $undefined, $selectColumns, $uniqueAttributes)
+            $selectedRows = $this->selectExistingRowsFeature->handle(
+                $eloquent,
+                $undefined,
+                $selectColumns,
+                $uniqueAttributes,
+                $deletedAtColumn,
             );
+
+            $existing->push(...$selectedRows);
         }
 
         return $this->getDividedCollection($eloquent, $collection, $existing, $uniqueAttributes);

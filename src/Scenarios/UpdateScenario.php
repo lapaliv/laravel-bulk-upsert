@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Collection;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
+use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\DivideCollectionByExistingFeature;
 use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
 use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
 use Lapaliv\BulkUpsert\Features\PrepareCollectionBeforeUpdatingFeature;
 use Lapaliv\BulkUpsert\Features\PrepareUpdateBuilderFeature;
-use Lapaliv\BulkUpsert\Support\BulkCallback;
 
 class UpdateScenario
 {
@@ -29,31 +29,15 @@ class UpdateScenario
 
     /**
      * @param BulkModel $eloquent
-     * @param string[] $uniqueAttributes
-     * @param string[]|null $updateAttributes
-     * @param string[] $selectColumns
-     * @param string[] $dateFields
-     * @param string[] $events
-     * @param BulkCallback|null $updatingCallback
-     * @param BulkCallback|null $updatedCallback
-     * @param BulkCallback|null $savingCallback
-     * @param BulkCallback|null $savedCallback
-     * @param Collection<BulkModel> $collection
+     * @param Collection $collection
+     * @param BulkScenarioConfig $scenarioConfig
      * @return void
      * @throws JsonException
      */
     public function handle(
         BulkModel $eloquent,
-        array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $selectColumns,
-        array $dateFields,
-        array $events,
-        ?BulkCallback $updatingCallback,
-        ?BulkCallback $updatedCallback,
-        ?BulkCallback $savingCallback,
-        ?BulkCallback $savedCallback,
         Collection $collection,
+        BulkScenarioConfig $scenarioConfig,
     ): void {
         if ($collection->isEmpty()) {
             return;
@@ -62,8 +46,9 @@ class UpdateScenario
         $dividedRows = $this->divideCollectionByExistingFeature->handle(
             $eloquent,
             $collection,
-            $uniqueAttributes,
-            $selectColumns,
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->selectColumns,
+            $scenarioConfig->deletedAtColumn,
         );
 
         if ($dividedRows->existing->isEmpty()) {
@@ -72,8 +57,8 @@ class UpdateScenario
 
         $collection = $this->prepareCollectionForUpdatingFeature->handle(
             $eloquent,
-            $uniqueAttributes,
-            $updateAttributes,
+            $scenarioConfig->uniqueAttributes,
+            $scenarioConfig->updateAttributes,
             $dividedRows->existing,
             $collection,
         );
@@ -82,12 +67,7 @@ class UpdateScenario
         $builder = $this->prepareUpdateBuilderFeature->handle(
             $eloquent,
             $collection,
-            $events,
-            $uniqueAttributes,
-            $updateAttributes,
-            $dateFields,
-            $updatingCallback,
-            $savingCallback,
+            $scenarioConfig,
         );
 
         $driver = $this->driverManager->getForModel($eloquent);
@@ -97,17 +77,69 @@ class UpdateScenario
             unset($builder);
         }
 
-        $updatedCallback?->handle(clone $collection);
+        $scenarioConfig->updatedCallback?->handle(clone $collection);
+        $this->runDeletedOrRestoredCallback($scenarioConfig, $collection);
 
-        $collection->each(
-            function (BulkModel $model) use ($events): void {
-                $model->syncChanges();
-                $this->fireModelEventsFeature->handle($model, $events, [BulkEventEnum::UPDATED]);
-            }
+        $this->fireEventsForUpdatedRows($scenarioConfig, $collection);
+
+        $this->finishSaveFeature->handle(
+            $eloquent,
+            $collection,
+            $eloquent->getConnection(),
+            $driver,
+            $scenarioConfig->events,
         );
 
-        $this->finishSaveFeature->handle($eloquent, $collection, $eloquent->getConnection(), $driver, $events);
+        $scenarioConfig->savedCallback?->handle($collection);
+    }
 
-        $savedCallback?->handle($collection);
+    private function runDeletedOrRestoredCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        if ($scenarioConfig->deletedAtColumn === null) {
+            return;
+        }
+
+        if ($scenarioConfig->deletedCallback !== null) {
+            $deletedModels = $collection->filter(
+                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) !== null
+                    && $model->getOriginal($scenarioConfig->deletedAtColumn) === null
+            );
+
+            if ($deletedModels->isNotEmpty()) {
+                $scenarioConfig->deletedCallback->handle($deletedModels);
+            }
+        }
+
+        if ($scenarioConfig->restoredCallback !== null) {
+            $restoredModels = $collection->filter(
+                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) === null
+                    && $model->getOriginal($scenarioConfig->deletedAtColumn) !== null
+            );
+
+            if ($restoredModels->isNotEmpty()) {
+                $scenarioConfig->restoredCallback->handle($restoredModels);
+            }
+        }
+    }
+
+    private function fireEventsForUpdatedRows(BulkScenarioConfig $scenarioConfig, Collection $collection): void
+    {
+        $collection->each(
+            function (BulkModel $model) use ($scenarioConfig): void {
+                $events = [BulkEventEnum::UPDATED];
+
+                if ($scenarioConfig->deletedAtColumn !== null) {
+                    if ($model->getAttribute($scenarioConfig->deletedAtColumn) !== null) {
+                        $events[] = BulkEventEnum::DELETED;
+                    } elseif ($model->getOriginal($scenarioConfig->deletedAtColumn) !== null) {
+                        $events[] = BulkEventEnum::RESTORED;
+                    }
+                }
+
+                $model->syncChanges();
+
+                $this->fireModelEventsFeature->handle($model, $scenarioConfig->events, $events);
+            }
+        );
     }
 }

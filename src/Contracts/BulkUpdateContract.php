@@ -52,14 +52,14 @@ interface BulkUpdateContract extends BulkSave
     public function chunk(int $size = 100, ?callable $callback = null): static;
 
     /**
-     * @param class-string<BulkModel>|BulkModel $model
+     * @param class-string<BulkModel>|BulkModel $eloquent
      * @param iterable|Collection<BulkModel>|array<scalar, array[]> $rows
      * @param string[] $uniqueAttributes
      * @param array|null $updateAttributes
      * @return void
      */
     public function update(
-        string|BulkModel $model,
+        string|BulkModel $eloquent,
         iterable $rows,
         ?array $uniqueAttributes = null,
         ?array $updateAttributes = null,
