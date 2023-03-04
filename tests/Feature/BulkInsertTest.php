@@ -14,6 +14,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\SetModelEventSpyListenersTestFeature;
 use Lapaliv\BulkUpsert\Tests\App\Models\Entity;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\App\Traits\CheckEntityInDatabase;
 use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
@@ -211,6 +212,32 @@ final class BulkInsertTest extends FeatureTestCase
                     return $chunk->count() <= $chunkSize;
                 }
             );
+    }
+
+    public function testDispatchDeleteEvents(): void
+    {
+        // arrange
+        $user = MySqlUser::factory()->make([
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        MySqlUser::deleting($deletingSpy);
+        MySqlUser::deleted($deletedSpy);
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class);
+
+        // act
+        $sut->insert(MySqlUser::class, ['email'], [$user]);
+
+        // assert
+        $this->assertDatabaseHas(MySqlUser::table(), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'deleted_at' => $user->deleted_at->toDateTimeString(),
+        ], $user->getConnectionName());
+        $deletingSpy->shouldHaveReceived('__invoke');
+        $deletedSpy->shouldHaveReceived('__invoke');
     }
 
     /**

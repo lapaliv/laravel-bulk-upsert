@@ -27,6 +27,11 @@ abstract class Model extends \Illuminate\Database\Eloquent\Model implements Bulk
         parent::registerModelEvent($event, $callback);
     }
 
+    public static function table(): string
+    {
+        return (new static())->getTable();
+    }
+
     protected static function getSchema(): Builder
     {
         return Manager::schema((new static())->getConnectionName());

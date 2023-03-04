@@ -7,6 +7,7 @@ use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithAutoIncrement;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlEntityWithoutAutoIncrement;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Orchestra\Testbench\TestCase;
 use PDO;
 
@@ -29,6 +30,7 @@ abstract class FeatureTestCase extends TestCase
 
         MySqlEntityWithAutoIncrement::createTable();
         MySqlEntityWithoutAutoIncrement::createTable();
+        MySqlUser::createTable();
     }
 
     private static function configureManager(): void
