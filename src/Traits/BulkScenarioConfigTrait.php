@@ -11,25 +11,25 @@ trait BulkScenarioConfigTrait
      * @param BulkModel $eloquent
      * @param string[] $uniqueAttributes
      * @param string[]|null $updateAttributes
-     * @param array $dateFields
      * @return BulkScenarioConfig
      */
     private function getConfig(
         BulkModel $eloquent,
         array $uniqueAttributes,
-        ?array $updateAttributes,
-        array $dateFields,
+        ?array $updateAttributes = null,
     ): BulkScenarioConfig {
+        $deletedAtColumn = method_exists($eloquent, 'getDeletedAtColumn')
+            ? $eloquent->getDeletedAtColumn()
+            : null;
+
         return new BulkScenarioConfig(
             events: $this->getIntersectEventsWithDispatcher($eloquent, $this->getEloquentNativeEventNameFeature),
             uniqueAttributes: $uniqueAttributes,
             updateAttributes: $updateAttributes,
             selectColumns: $this->getSelectColumns($eloquent, $uniqueAttributes, $updateAttributes),
             chunkSize: $this->chunkSize,
-            dateFields: $dateFields,
-            deletedAtColumn: method_exists($eloquent, 'getDeletedAtColumn')
-                ? $eloquent->getDeletedAtColumn()
-                : null,
+            dateFields: $this->getEloquentDateFields($eloquent, $deletedAtColumn),
+            deletedAtColumn: $deletedAtColumn,
             chunkCallback: $this->chunkCallback,
             creatingCallback: $this->creatingCallback ?? null,
             createdCallback: $this->createdCallback ?? null,
@@ -42,5 +42,35 @@ trait BulkScenarioConfigTrait
             restoringCallback: $this->restoringCallback ?? null,
             restoredCallback: $this->restoredCallback ?? null,
         );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getEloquentDateFields(
+        BulkModel $model,
+        ?string $deletedAtColumn
+    ): array {
+        $result = [];
+
+        foreach ($model->getDates() as $field) {
+            $result[$field] = $model->getDateFormat();
+        }
+
+        if ($deletedAtColumn !== null) {
+            $result[$deletedAtColumn] = $model->getDateFormat();
+        }
+
+        foreach ($model->getCasts() as $key => $value) {
+            if (is_string($value) && preg_match('/^(date(?:time)?)(?::(.+?))?$/', $value, $matches)) {
+                if ($matches[1] === 'date') {
+                    $result[$key] = $matches[2] ?? 'Y-m-d';
+                } else {
+                    $result[$key] = $matches[2] ?? $model->getDateFormat();
+                }
+            }
+        }
+
+        return $result;
     }
 }

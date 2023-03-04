@@ -11,7 +11,6 @@ use Lapaliv\BulkUpsert\Contracts\BulkUpdateContract;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -38,7 +37,6 @@ class BulkUpdate implements BulkUpdateContract
 
     public function __construct(
         private UpdateScenario $scenario,
-        private GetDateFieldsFeature $getDateFieldsFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
@@ -64,7 +62,7 @@ class BulkUpdate implements BulkUpdateContract
     ): void {
         $eloquent = $this->getBulkModelFeature->handle($model);
         $uniqueAttributes ??= [$eloquent->getKeyName()];
-        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
+        $scenarioConfig = $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes);
         $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
         foreach ($generator as $chunk) {
@@ -76,7 +74,7 @@ class BulkUpdate implements BulkUpdateContract
             $this->scenario->handle(
                 $eloquent,
                 $this->chunkCallback?->handle($collection) ?? $collection,
-                $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes, $dateFields),
+                $scenarioConfig,
             );
         }
     }
@@ -91,6 +89,10 @@ class BulkUpdate implements BulkUpdateContract
             BulkEventEnum::UPDATED,
             BulkEventEnum::SAVING,
             BulkEventEnum::SAVED,
+            BulkEventEnum::DELETING,
+            BulkEventEnum::DELETED,
+            BulkEventEnum::RESTORING,
+            BulkEventEnum::RESTORED,
         ];
     }
 }

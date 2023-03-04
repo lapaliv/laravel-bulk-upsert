@@ -9,7 +9,6 @@ use Lapaliv\BulkUpsert\Contracts\BulkUpsertContract;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -40,7 +39,6 @@ class BulkUpsert implements BulkUpsertContract
     public function __construct(
         private UpsertScenario $scenario,
         private GetBulkModelFeature $getBulkModelFeature,
-        private GetDateFieldsFeature $getDateFieldsFeature,
         private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
@@ -64,26 +62,25 @@ class BulkUpsert implements BulkUpsertContract
     ): void {
         $eloquent = $this->getBulkModelFeature->handle($model);
         $this->scenario->setEloquent($eloquent);
-        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
-        $config = $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes, $dateFields);
+        $scenarioConfig = $this->getConfig($eloquent, $uniqueAttributes, $updateAttributes);
         $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
         foreach ($generator as $chunk) {
             $collection = $this->arrayToCollectionConverter->handle($eloquent, $chunk);
             $collection = $eloquent->newCollection(
-                array_values($this->keyByFeature->handle($collection, $config->uniqueAttributes))
+                array_values($this->keyByFeature->handle($collection, $scenarioConfig->uniqueAttributes))
             );
             $collection = $this->chunkCallback?->handle($collection) ?? $collection;
 
             $this->scenario
-                ->push($eloquent, $collection, $config)
-                ->insert($config)
-                ->update($config);
+                ->push($eloquent, $collection, $scenarioConfig)
+                ->insert($scenarioConfig)
+                ->update($scenarioConfig);
         }
 
         $this->scenario
-            ->insert($config, force: true)
-            ->update($config, force: true);
+            ->insert($scenarioConfig, force: true)
+            ->update($scenarioConfig, force: true);
     }
 
     /**

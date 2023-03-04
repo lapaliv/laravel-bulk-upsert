@@ -8,7 +8,6 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
@@ -33,7 +32,6 @@ class BulkInsert implements BulkInsertContract
 
     public function __construct(
         private InsertScenario $scenario,
-        private GetDateFieldsFeature $getDateFieldsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
@@ -57,7 +55,7 @@ class BulkInsert implements BulkInsertContract
         bool $ignore = false,
     ): void {
         $eloquent = $this->getBulkModelFeature->handle($model);
-        $dateFields = $this->getDateFieldsFeature->handle($eloquent);
+        $scenarioConfig = $this->getConfig($eloquent, $uniqueAttributes);
         $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
 
         foreach ($generator as $chunk) {
@@ -69,7 +67,7 @@ class BulkInsert implements BulkInsertContract
             $this->scenario->handle(
                 $eloquent,
                 $this->chunkCallback?->handle($collection) ?? $collection,
-                $this->getConfig($eloquent, $uniqueAttributes, null, $dateFields),
+                $scenarioConfig,
                 $ignore,
             );
         }
