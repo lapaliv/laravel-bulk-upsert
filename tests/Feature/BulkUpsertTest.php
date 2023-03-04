@@ -331,6 +331,29 @@ final class BulkUpsertTest extends FeatureTestCase
         $deletedSpy->shouldHaveReceived('__invoke');
     }
 
+    public function testRunDeleteCallbacks(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create();
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        /** @var BulkUpsert $sut */
+        $sut = $this->app->make(BulkUpsert::class)
+            ->onDeleting($deletingSpy)
+            ->onDeleted($deletedSpy);
+
+        // act
+        $sut->upsert(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
+        $deletingSpy->shouldHaveReceived('__invoke');
+        $deletedSpy->shouldHaveReceived('__invoke');
+    }
+
     public function testDispatchRestoreEvents(): void
     {
         // arrange
@@ -357,6 +380,31 @@ final class BulkUpsertTest extends FeatureTestCase
             'email' => $newUser->email,
             'deleted_at' => null,
         ], $newUser->getConnectionName());
+        $restoringSpy->shouldHaveReceived('__invoke');
+        $restoredSpy->shouldHaveReceived('__invoke');
+    }
+
+    public function testRunRestoreCallbacks(): void
+    {
+        // arrange
+        $oldUser = MySqlUser::factory()->create([
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $newUser = MySqlUser::factory()->make([
+            'email' => $oldUser->email,
+            'deleted_at' => null,
+        ]);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        /** @var BulkUpsert $sut */
+        $sut = $this->app->make(BulkUpsert::class)
+            ->onRestoring($restoringSpy)
+            ->onRestored($restoredSpy);
+
+        // act
+        $sut->upsert(MySqlUser::class, [$newUser], ['email']);
+
+        // assert
         $restoringSpy->shouldHaveReceived('__invoke');
         $restoredSpy->shouldHaveReceived('__invoke');
     }

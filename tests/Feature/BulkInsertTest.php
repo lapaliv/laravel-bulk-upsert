@@ -240,6 +240,32 @@ final class BulkInsertTest extends FeatureTestCase
         $deletedSpy->shouldHaveReceived('__invoke');
     }
 
+    public function testRunDeleteCallbacks(): void
+    {
+        // arrange
+        $user = MySqlUser::factory()->make([
+            'deleted_at' => Carbon::now()->subDay(),
+        ]);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        /** @var BulkInsert $sut */
+        $sut = $this->app->make(BulkInsert::class)
+            ->onDeleting($deletingSpy)
+            ->onDeleted($deletedSpy);
+
+        // act
+        $sut->insert(MySqlUser::class, ['email'], [$user]);
+
+        // assert
+        $this->assertDatabaseHas(MySqlUser::table(), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'deleted_at' => $user->deleted_at->toDateTimeString(),
+        ], $user->getConnectionName());
+        $deletingSpy->shouldHaveReceived('__invoke');
+        $deletedSpy->shouldHaveReceived('__invoke');
+    }
+
     /**
      * @return string[][]
      */
