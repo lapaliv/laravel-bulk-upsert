@@ -261,6 +261,58 @@ class Bulk
         return $result;
     }
 
+    public function saveAccumulated(): void
+    {
+        $bulkInsert = $this->getBulkInsertInstance();
+        $bulkUpdate = $this->getBulkUpdateInstance();
+        $bulkUpsert = $this->getBulkUpsertInstance();
+
+        if (empty($this->waitingRows['insertOrIgnore']) === false) {
+            foreach ($this->waitingRows['insertOrIgnore'] as $identifierIndex => $chunk) {
+                $bulkInsert->insert(
+                    $this->getEloquent(),
+                    $this->identifies[$identifierIndex],
+                    $chunk,
+                    true,
+                );
+            }
+            $this->waitingRows['insertOrIgnore'] = [];
+        }
+
+        if (empty($this->waitingRows['insert']) === false) {
+            foreach ($this->waitingRows['insert'] as $identifierIndex => $chunk) {
+                $bulkInsert->insert(
+                    $this->getEloquent(),
+                    $this->identifies[$identifierIndex],
+                    $chunk,
+                );
+            }
+            $this->waitingRows['insert'] = [];
+        }
+
+        if (empty($this->waitingRows['update']) === false) {
+            foreach ($this->waitingRows['update'] as $identifierIndex => $chunk) {
+                $bulkUpdate->update(
+                    $this->getEloquent(),
+                    $chunk,
+                    $this->identifies[$identifierIndex],
+                );
+            }
+            $this->waitingRows['update'] = [];
+        }
+
+        if (empty($this->waitingRows['upsert']) === false) {
+            foreach ($this->waitingRows['upsert'] as $identifierIndex => $chunk) {
+                $bulkUpsert->upsert(
+                    $this->getEloquent(),
+                    $chunk,
+                    $this->identifies[$identifierIndex],
+                );
+            }
+            $this->waitingRows['upsert'] = [];
+        }
+    }
+
     private function when(string $event, ?callable $callback): static
     {
         if ($callback !== null) {
