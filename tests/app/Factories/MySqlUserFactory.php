@@ -19,6 +19,7 @@ class MySqlUserFactory extends Factory
     {
         return [
             'name' => $this->faker->name,
+            'phone' => $this->faker->phoneNumber,
             'email' => $this->faker->uuid() . '@' . $this->faker->domainName,
         ];
     }

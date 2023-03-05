@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Feature;
 
+use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Bulk;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
@@ -366,5 +367,192 @@ class BulkTest extends FeatureTestCase
                 );
             }
         );
+    }
+
+    /**
+     * @param string $method
+     * @return void
+     * @dataProvider updateOnlyDataProvider
+     */
+    public function testUpdateOnly(string $method): void
+    {
+        // arrange
+        $createdUsers = MySqlUser::factory()
+            ->count(2)
+            ->create([
+                'created_at' => Carbon::now()->subYear(),
+                'updated_at' => Carbon::now()->subMonths(3),
+            ]);
+        $updatingUsers = MySqlUser::factory()
+            ->count(2)
+            ->make()
+            ->each(
+                function (MySqlUser $user, int $index) use ($createdUsers): void {
+                    $user->email = $createdUsers->get($index)->email;
+                    $user->id = $createdUsers->get($index)->id;
+                    $user->created_at = $createdUsers->get($index)->created_at;
+                    $user->updated_at = $createdUsers->get($index)->updated_at;
+                }
+            );
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->identifyBy(['email'])
+            ->model(MySqlUser::class)
+            ->updateOnly(['name']);
+
+        // act
+        $sut->{$method}($updatingUsers);
+
+        // assert
+        $updatingUsers->each(
+            fn (MySqlUser $user, int $index) => $this->assertDatabaseHas(
+                $user->getTable(),
+                [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'created_at' => $user->created_at->toDateTimeString(),
+                    'updated_at' => $user->updated_at->toDateTimeString(),
+                ],
+                $user->getConnectionName()
+            )
+        );
+    }
+
+    /**
+     * @param string $method
+     * @return void
+     * @dataProvider updateOnlyDataProvider
+     */
+    public function testUpdateOnlyBeforeDeleting(string $method): void
+    {
+        // arrange
+        $createdUsers = MySqlUser::factory()
+            ->count(2)
+            ->create([
+                'created_at' => Carbon::now()->subYear(),
+                'updated_at' => Carbon::now()->subMonths(3),
+            ]);
+        $updatingUsers = MySqlUser::factory()
+            ->count(2)
+            ->make([
+                'deleted_at' => Carbon::now()->subDay(),
+            ])
+            ->each(
+                function (MySqlUser $user, int $index) use ($createdUsers): void {
+                    $user->email = $createdUsers->get($index)->email;
+                    $user->id = $createdUsers->get($index)->id;
+                    $user->created_at = $createdUsers->get($index)->created_at;
+                    $user->updated_at = $createdUsers->get($index)->updated_at;
+                }
+            );
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->identifyBy(['email'])
+            ->model(MySqlUser::class)
+            ->updateOnly(['name'])
+            ->updateOnlyBeforeDeleting(['phone']);
+
+        // act
+        $sut->{$method}($updatingUsers);
+
+        // assert
+        $updatingUsers->each(
+            function (MySqlUser $user): void {
+                $this->assertDatabaseHas(
+                    $user->getTable(),
+                    [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'created_at' => $user->created_at->toDateTimeString(),
+                        'updated_at' => $user->updated_at->toDateTimeString(),
+                        'deleted_at' => $user->deleted_at->toDateTimeString(),
+                    ],
+                    $user->getConnectionName()
+                );
+
+                $this->assertDatabaseMissing(
+                    $user->getTable(),
+                    [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                    ],
+                    $user->getConnectionName()
+                );
+            }
+        );
+    }
+
+    /**
+     * @param string $method
+     * @return void
+     * @dataProvider updateOnlyDataProvider
+     */
+    public function testUpdateOnlyBeforeRestoring(string $method): void
+    {
+        // arrange
+        $createdUsers = MySqlUser::factory()
+            ->count(2)
+            ->create([
+                'created_at' => Carbon::now()->subYear(),
+                'updated_at' => Carbon::now()->subMonths(3),
+                'deleted_at' => Carbon::now()->subDay(),
+            ]);
+        $updatingUsers = MySqlUser::factory()
+            ->count(2)
+            ->make(['deleted_at' => null])
+            ->each(
+                function (MySqlUser $user, int $index) use ($createdUsers): void {
+                    $user->email = $createdUsers->get($index)->email;
+                    $user->id = $createdUsers->get($index)->id;
+                    $user->created_at = $createdUsers->get($index)->created_at;
+                    $user->updated_at = $createdUsers->get($index)->updated_at;
+                }
+            );
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->identifyBy(['email'])
+            ->model(MySqlUser::class)
+            ->updateOnly(['name'])
+            ->updateOnlyBeforeRestoring(['phone']);
+
+        // act
+        $sut->{$method}($updatingUsers);
+
+        // assert
+        $updatingUsers->each(
+            function (MySqlUser $user): void {
+                $this->assertDatabaseHas(
+                    $user->getTable(),
+                    [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'created_at' => $user->created_at->toDateTimeString(),
+                        'updated_at' => $user->updated_at->toDateTimeString(),
+                        'deleted_at' => null,
+                    ],
+                    $user->getConnectionName()
+                );
+
+                $this->assertDatabaseMissing(
+                    $user->getTable(),
+                    [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                    ],
+                    $user->getConnectionName()
+                );
+            }
+        );
+    }
+
+    public function updateOnlyDataProvider(): array
+    {
+        return [
+//            ['update'],
+            ['upsert'],
+        ];
     }
 }
