@@ -181,14 +181,18 @@ class Bulk
         return $this;
     }
 
-    public function insert(iterable $rows, bool $ignore = false): void
+    public function insert(iterable $rows, bool $ignore = false): static
     {
         $this->runInsert($this->getBulkInsertInstance(), $rows, $ignore, force: true);
+
+        return $this;
     }
 
-    public function insertOrAccumulate(iterable $rows, bool $ignore = false): void
+    public function insertOrAccumulate(iterable $rows, bool $ignore = false): static
     {
         $this->runInsert($this->getBulkInsertInstance(), $rows, $ignore);
+
+        return $this;
     }
 
     public function insertAndReturn(iterable $rows, array $select = ['*'], bool $ignore = false): Collection
@@ -204,14 +208,18 @@ class Bulk
         return $result;
     }
 
-    public function update(iterable $rows): void
+    public function update(iterable $rows): static
     {
         $this->runUpdate($this->getBulkUpdateInstance(), $rows, force: true);
+
+        return $this;
     }
 
-    public function updateOrAccumulate(iterable $rows): void
+    public function updateOrAccumulate(iterable $rows): static
     {
         $this->runUpdate($this->getBulkUpdateInstance(), $rows);
+
+        return $this;
     }
 
     public function updateAndReturn(iterable $rows, array $select = ['*']): Collection
@@ -227,14 +235,18 @@ class Bulk
         return $result;
     }
 
-    public function upsert(iterable $rows): void
+    public function upsert(iterable $rows): static
     {
         $this->runUpsert($this->getBulkUpsertInstance(), $rows, force: true);
+
+        return $this;
     }
 
-    public function upsertOrAccumulate(iterable $rows): void
+    public function upsertOrAccumulate(iterable $rows): static
     {
         $this->runUpsert($this->getBulkUpsertInstance(), $rows);
+
+        return $this;
     }
 
     public function upsertAndReturn(iterable $rows, array $select = ['*']): Collection
@@ -331,9 +343,15 @@ class Bulk
     private function getBulkUpsertInstance(?array $columns = ['*'], ?callable $onSaved = null): BulkUpsert
     {
         return $this->bulkUpsert
+            ->onCreating(
+                $this->getSingularListener($this->listeners['beforeCreating'])
+            )
+            ->onCreated(
+                $this->getSingularListener($this->listeners['afterCreating'])
+            )
             ->onUpdating($this->getOnUpdatingCallback())
             ->onUpdated(
-                $this->getSingularListener($this->listeners['afterCreating'])
+                $this->getSingularListener($this->listeners['afterUpdating'])
             )
             ->onDeleting(
                 $this->getSingularListener($this->listeners['beforeDeleting'])

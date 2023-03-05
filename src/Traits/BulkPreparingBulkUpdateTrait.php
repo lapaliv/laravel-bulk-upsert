@@ -14,7 +14,7 @@ trait BulkPreparingBulkUpdateTrait
         return $this->bulkUpdate
             ->onUpdating($this->getOnUpdatingCallback())
             ->onUpdated(
-                $this->getSingularListener($this->listeners['afterCreating'])
+                $this->getSingularListener($this->listeners['afterUpdating'])
             )
             ->onDeleting(
                 $this->getSingularListener($this->listeners['beforeDeleting'])
