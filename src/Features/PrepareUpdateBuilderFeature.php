@@ -358,7 +358,7 @@ class PrepareUpdateBuilderFeature
             );
         }
 
-        return $eloquent->newCollection($collection->collapse()->all());
+        return $eloquent->newCollection($groups->collapse()->all());
     }
 
     private function canProcessCollection(BulkScenarioConfig $scenarioConfig): bool

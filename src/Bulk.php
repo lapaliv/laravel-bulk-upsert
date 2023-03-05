@@ -8,35 +8,39 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelWasNotTransferred;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
+use Lapaliv\BulkUpsert\Traits\BulkPreparingBulkUpdateTrait;
 
 class Bulk
 {
+    use BulkPreparingBulkUpdateTrait;
+
     private BulkModel $eloquent;
 
     private int $chunkSize = 100;
 
     private array $updateAttributes = [
-        'anyway' => null,
-        'beforeDelete' => [],
-        'beforeRestore' => [],
+        'onlyAnyway' => [],
+        'onlyBeforeDeleting' => [],
+        'onlyBeforeRestoring' => [],
     ];
 
     private array $identifies = [];
 
     private array $listeners = [
         'before' => [],
-        'beforeCreate' => [],
-        'afterCreate' => [],
-        'beforeUpdate' => [],
-        'afterUpdate' => [],
-        'beforeDelete' => [],
-        'afterDelete' => [],
-        'beforeRestore' => [],
-        'afterRestore' => [],
-        'beforeSave' => [],
-        'afterSave' => [],
+        'beforeCreating' => [],
+        'afterCreating' => [],
+        'beforeUpdating' => [],
+        'afterUpdating' => [],
+        'beforeDeleting' => [],
+        'afterDeleting' => [],
+        'beforeRestoring' => [],
+        'afterRestoring' => [],
+        'beforeSaving' => [],
+        'afterSaving' => [],
         'after' => [],
     ];
 
@@ -85,52 +89,52 @@ class Bulk
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function beforeCreate(?callable $callback): static
+    public function beforeCreating(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function afterCreate(?callable $callback): static
+    public function afterCreating(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function beforeUpdate(?callable $callback): static
+    public function beforeUpdating(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function afterUpdate(?callable $callback): static
+    public function afterUpdating(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function beforeDelete(?callable $callback): static
+    public function beforeDeleting(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function afterDelete(?callable $callback): static
+    public function afterDeleting(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function beforeRestore(?callable $callback): static
+    public function beforeRestoring(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function afterRestore(?callable $callback): static
+    public function afterRestoring(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function beforeSave(?callable $callback): static
+    public function beforeSaving(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
 
-    public function afterSave(?callable $callback): static
+    public function afterSaving(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
     }
@@ -151,21 +155,21 @@ class Bulk
 
     public function updateOnly(array $attributes): static
     {
-        $this->updateAttributes['anyway'] = $attributes;
+        $this->updateAttributes['onlyAnyway'] = $attributes;
 
         return $this;
     }
 
-    public function updateOnlyBeforeDelete(array $attributes): static
+    public function updateOnlyBeforeDeleting(array $attributes): static
     {
-        $this->updateAttributes['beforeDelete'] = $attributes;
+        $this->updateAttributes['onlyBeforeDeleting'] = array_unique($attributes);
 
         return $this;
     }
 
-    public function updateOnlyBeforeRestore(array $attributes): static
+    public function updateOnlyBeforeRestoring(array $attributes): static
     {
-        $this->updateAttributes['beforeRestore'] = $attributes;
+        $this->updateAttributes['onlyBeforeRestoring'] = array_unique($attributes);
 
         return $this;
     }
@@ -189,7 +193,7 @@ class Bulk
 
     public function insertAndReturn(iterable $rows, array $select = ['*'], bool $ignore = false): Collection
     {
-        $result = $this->eloquent->newCollection();
+        $result = $this->getEloquent()->newCollection();
         $bulkInsert = $this->getBulkInsertInstance(
             $select,
             fn (Collection $collection) => $result->push(...$collection),
@@ -212,7 +216,7 @@ class Bulk
 
     public function updateAndReturn(iterable $rows, array $select = ['*']): Collection
     {
-        $result = $this->eloquent->newCollection();
+        $result = $this->getEloquent()->newCollection();
         $bulkUpdate = $this->getBulkUpdateInstance(
             $select,
             fn (Collection $collection) => $result->push(...$collection),
@@ -235,7 +239,7 @@ class Bulk
 
     public function upsertAndReturn(iterable $rows, array $select = ['*']): Collection
     {
-        $result = $this->eloquent->newCollection();
+        $result = $this->getEloquent()->newCollection();
         $bulkUpsert = $this->getBulkUpsertInstance(
             $select,
             fn (Collection $collection) => $result->push(...$collection),
@@ -305,51 +309,19 @@ class Bulk
     {
         return $this->bulkInsert
             ->onCreating(
-                $this->getSingularListener($this->listeners['beforeCreate'])
+                $this->getSingularListener($this->listeners['beforeCreating'])
             )
             ->onCreated(
-                $this->getSingularListener($this->listeners['afterCreate'])
+                $this->getSingularListener($this->listeners['afterCreating'])
             )
             ->onDeleting(
-                $this->getSingularListener($this->listeners['beforeDelete'])
+                $this->getSingularListener($this->listeners['beforeDeleting'])
             )
             ->onDeleted(
-                $this->getSingularListener($this->listeners['afterDelete'])
+                $this->getSingularListener($this->listeners['afterDeleting'])
             )
             ->onSaved(
-                $this->getSavedSingularListener($this->listeners['afterSave'], $onSaved)
-            )
-            ->chunk($this->chunkSize)
-            ->select($columns)
-            ->setEvents($this->events);
-    }
-
-    private function getBulkUpdateInstance(?array $columns = ['*'], ?callable $onSaved = null): BulkUpdate
-    {
-        return $this->bulkUpdate
-            ->onUpdating(
-                $this->getSingularListener($this->listeners['beforeCreate'])
-            )
-            ->onUpdated(
-                $this->getSingularListener($this->listeners['afterCreate'])
-            )
-            ->onDeleting(
-                $this->getSingularListener($this->listeners['beforeDelete'])
-            )
-            ->onDeleted(
-                $this->getSingularListener($this->listeners['afterDelete'])
-            )
-            ->onRestoring(
-                $this->getSingularListener($this->listeners['beforeRestore'])
-            )
-            ->onRestored(
-                $this->getSingularListener($this->listeners['afterRestore'])
-            )
-            ->onSaving(
-                $this->getSingularListener($this->listeners['beforeSave'])
-            )
-            ->onSaved(
-                $this->getSavedSingularListener($this->listeners['afterSave'], $onSaved)
+                $this->getSavedSingularListener($this->listeners['afterSaving'], $onSaved)
             )
             ->chunk($this->chunkSize)
             ->select($columns)
@@ -359,29 +331,27 @@ class Bulk
     private function getBulkUpsertInstance(?array $columns = ['*'], ?callable $onSaved = null): BulkUpsert
     {
         return $this->bulkUpsert
-            ->onUpdating(
-                $this->getSingularListener($this->listeners['beforeCreate'])
-            )
+            ->onUpdating($this->getOnUpdatingCallback())
             ->onUpdated(
-                $this->getSingularListener($this->listeners['afterCreate'])
+                $this->getSingularListener($this->listeners['afterCreating'])
             )
             ->onDeleting(
-                $this->getSingularListener($this->listeners['beforeDelete'])
+                $this->getSingularListener($this->listeners['beforeDeleting'])
             )
             ->onDeleted(
-                $this->getSingularListener($this->listeners['afterDelete'])
+                $this->getSingularListener($this->listeners['afterDeleting'])
             )
             ->onRestoring(
-                $this->getSingularListener($this->listeners['beforeRestore'])
+                $this->getSingularListener($this->listeners['beforeRestoring'])
             )
             ->onRestored(
-                $this->getSingularListener($this->listeners['afterRestore'])
+                $this->getSingularListener($this->listeners['afterRestoring'])
             )
             ->onSaving(
-                $this->getSingularListener($this->listeners['beforeSave'])
+                $this->getSingularListener($this->listeners['beforeSaving'])
             )
             ->onSaved(
-                $this->getSavedSingularListener($this->listeners['afterSave'], $onSaved)
+                $this->getSavedSingularListener($this->listeners['afterSaving'], $onSaved)
             )
             ->chunk($this->chunkSize)
             ->select($columns)
@@ -431,14 +401,14 @@ class Bulk
 
         foreach ($this->accumulate($storage, $rows) as $config) {
             ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkInsert->insert($this->eloquent, $identifiers, $chunk, $ignore);
+            $bulkInsert->insert($this->getEloquent(), $identifiers, $chunk, $ignore);
         }
 
         if ($force) {
             foreach ($storage as $identifierIndex => $chunk) {
                 if (empty($chunk) === false) {
                     $bulkInsert->insert(
-                        $this->eloquent,
+                        $this->getEloquent(),
                         $this->identifies[$identifierIndex],
                         $chunk,
                         $ignore,
@@ -455,17 +425,16 @@ class Bulk
 
         foreach ($this->accumulate($storage, $rows) as $config) {
             ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkUpdate->update($this->eloquent, $chunk, $identifiers);
+            $bulkUpdate->update($this->getEloquent(), $chunk, $identifiers);
         }
 
         if ($force) {
             foreach ($storage as $identifierIndex => $chunk) {
                 if (empty($chunk) === false) {
                     $bulkUpdate->update(
-                        $this->eloquent,
+                        $this->getEloquent(),
                         $chunk,
                         $this->identifies[$identifierIndex],
-                        $this->updateAttributes['anyway'],
                     );
                     $storage[$identifierIndex] = [];
                 }
@@ -479,21 +448,29 @@ class Bulk
 
         foreach ($this->accumulate($storage, $rows) as $config) {
             ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkUpsert->upsert($this->eloquent, $chunk, $identifiers);
+            $bulkUpsert->upsert($this->getEloquent(), $chunk, $identifiers);
         }
 
         if ($force) {
             foreach ($storage as $identifierIndex => $chunk) {
                 if (empty($chunk) === false) {
                     $bulkUpsert->upsert(
-                        $this->eloquent,
+                        $this->getEloquent(),
                         $chunk,
                         $this->identifies[$identifierIndex],
-                        $this->updateAttributes['anyway'],
                     );
                     $storage[$identifierIndex] = [];
                 }
             }
         }
+    }
+
+    private function getEloquent(): BulkModel
+    {
+        if (isset($this->eloquent)) {
+            return $this->eloquent;
+        }
+
+        throw new BulkModelWasNotTransferred();
     }
 }
