@@ -183,14 +183,14 @@ class Bulk
 
     public function insert(iterable $rows, bool $ignore = false): static
     {
-        $this->runInsert($this->getBulkInsertInstance(), $rows, $ignore, force: true);
+        $this->insertWithAccumulation($this->getBulkInsertInstance(), $rows, $ignore, force: true);
 
         return $this;
     }
 
     public function insertOrAccumulate(iterable $rows, bool $ignore = false): static
     {
-        $this->runInsert($this->getBulkInsertInstance(), $rows, $ignore);
+        $this->insertWithAccumulation($this->getBulkInsertInstance(), $rows, $ignore);
 
         return $this;
     }
@@ -203,21 +203,21 @@ class Bulk
             fn (Collection $collection) => $result->push(...$collection),
         );
 
-        $this->runInsert($bulkInsert, $rows, $ignore, force: true);
+        $this->insertWithAccumulation($bulkInsert, $rows, $ignore, force: true);
 
         return $result;
     }
 
     public function update(iterable $rows): static
     {
-        $this->runUpdate($this->getBulkUpdateInstance(), $rows, force: true);
+        $this->updateWithAccumulation($this->getBulkUpdateInstance(), $rows, force: true);
 
         return $this;
     }
 
     public function updateOrAccumulate(iterable $rows): static
     {
-        $this->runUpdate($this->getBulkUpdateInstance(), $rows);
+        $this->updateWithAccumulation($this->getBulkUpdateInstance(), $rows);
 
         return $this;
     }
@@ -230,21 +230,21 @@ class Bulk
             fn (Collection $collection) => $result->push(...$collection),
         );
 
-        $this->runUpdate($bulkUpdate, $rows, force: true);
+        $this->updateWithAccumulation($bulkUpdate, $rows, force: true);
 
         return $result;
     }
 
     public function upsert(iterable $rows): static
     {
-        $this->runUpsert($this->getBulkUpsertInstance(), $rows, force: true);
+        $this->upsertWithAccumulation($this->getBulkUpsertInstance(), $rows, force: true);
 
         return $this;
     }
 
     public function upsertOrAccumulate(iterable $rows): static
     {
-        $this->runUpsert($this->getBulkUpsertInstance(), $rows);
+        $this->upsertWithAccumulation($this->getBulkUpsertInstance(), $rows);
 
         return $this;
     }
@@ -256,7 +256,7 @@ class Bulk
             $select,
             fn (Collection $collection) => $result->push(...$collection),
         );
-        $this->runUpsert($bulkUpsert, $rows, force: true);
+        $this->upsertWithAccumulation($bulkUpsert, $rows, force: true);
 
         return $result;
     }
@@ -268,47 +268,22 @@ class Bulk
         $bulkUpsert = $this->getBulkUpsertInstance();
 
         if (empty($this->waitingRows['insertOrIgnore']) === false) {
-            foreach ($this->waitingRows['insertOrIgnore'] as $identifierIndex => $chunk) {
-                $bulkInsert->insert(
-                    $this->getEloquent(),
-                    $this->identifies[$identifierIndex],
-                    $chunk,
-                    true,
-                );
-            }
+            $this->insertWithoutAccumulation($bulkInsert, $this->waitingRows['insertOrIgnore'], true);
             $this->waitingRows['insertOrIgnore'] = [];
         }
 
         if (empty($this->waitingRows['insert']) === false) {
-            foreach ($this->waitingRows['insert'] as $identifierIndex => $chunk) {
-                $bulkInsert->insert(
-                    $this->getEloquent(),
-                    $this->identifies[$identifierIndex],
-                    $chunk,
-                );
-            }
+            $this->insertWithoutAccumulation($bulkInsert, $this->waitingRows['insert'], true);
             $this->waitingRows['insert'] = [];
         }
 
         if (empty($this->waitingRows['update']) === false) {
-            foreach ($this->waitingRows['update'] as $identifierIndex => $chunk) {
-                $bulkUpdate->update(
-                    $this->getEloquent(),
-                    $chunk,
-                    $this->identifies[$identifierIndex],
-                );
-            }
+            $this->updateWithoutAccumulation($bulkUpdate, $this->waitingRows['update'], true);
             $this->waitingRows['update'] = [];
         }
 
         if (empty($this->waitingRows['upsert']) === false) {
-            foreach ($this->waitingRows['upsert'] as $identifierIndex => $chunk) {
-                $bulkUpsert->upsert(
-                    $this->getEloquent(),
-                    $chunk,
-                    $this->identifies[$identifierIndex],
-                );
-            }
+            $this->upsertWithoutAccumulation($bulkUpsert, $this->waitingRows['upsert']);
             $this->waitingRows['upsert'] = [];
         }
     }
@@ -460,7 +435,7 @@ class Bulk
         };
     }
 
-    private function runInsert(
+    private function insertWithAccumulation(
         BulkInsert $bulkInsert,
         iterable $rows,
         bool $ignore = false,
@@ -475,21 +450,29 @@ class Bulk
         }
 
         if ($force) {
-            foreach ($storage as $identifierIndex => $chunk) {
-                if (empty($chunk) === false) {
-                    $bulkInsert->insert(
-                        $this->getEloquent(),
-                        $this->identifies[$identifierIndex],
-                        $chunk,
-                        $ignore,
-                    );
-                    $storage[$identifierIndex] = [];
-                }
+            $this->insertWithoutAccumulation($bulkInsert, $storage, $ignore);
+            $storage = [];
+        }
+    }
+
+    private function insertWithoutAccumulation(
+        BulkInsert $bulkInsert,
+        array $storage,
+        bool $ignore = false,
+    ): void {
+        foreach ($storage as $identifierIndex => $chunk) {
+            if (empty($chunk) === false) {
+                $bulkInsert->insert(
+                    $this->getEloquent(),
+                    $this->identifies[$identifierIndex],
+                    $chunk,
+                    $ignore,
+                );
             }
         }
     }
 
-    private function runUpdate(BulkUpdate $bulkUpdate, iterable $rows, bool $force = false): void
+    private function updateWithAccumulation(BulkUpdate $bulkUpdate, iterable $rows, bool $force = false): void
     {
         $storage = &$this->waitingRows['update'];
 
@@ -499,20 +482,26 @@ class Bulk
         }
 
         if ($force) {
-            foreach ($storage as $identifierIndex => $chunk) {
-                if (empty($chunk) === false) {
-                    $bulkUpdate->update(
-                        $this->getEloquent(),
-                        $chunk,
-                        $this->identifies[$identifierIndex],
-                    );
-                    $storage[$identifierIndex] = [];
-                }
+            $this->updateWithoutAccumulation($bulkUpdate, $storage);
+            $storage = [];
+        }
+    }
+
+    private function updateWithoutAccumulation(BulkUpdate $bulkUpdate, array $storage): void
+    {
+        foreach ($storage as $identifierIndex => $chunk) {
+            if (empty($chunk) === false) {
+                $bulkUpdate->update(
+                    $this->getEloquent(),
+                    $chunk,
+                    $this->identifies[$identifierIndex],
+                );
+                $storage[$identifierIndex] = [];
             }
         }
     }
 
-    private function runUpsert(BulkUpsert $bulkUpsert, iterable $rows, bool $force = false): void
+    private function upsertWithAccumulation(BulkUpsert $bulkUpsert, iterable $rows, bool $force = false): void
     {
         $storage = &$this->waitingRows['upsert'];
 
@@ -522,15 +511,21 @@ class Bulk
         }
 
         if ($force) {
-            foreach ($storage as $identifierIndex => $chunk) {
-                if (empty($chunk) === false) {
-                    $bulkUpsert->upsert(
-                        $this->getEloquent(),
-                        $chunk,
-                        $this->identifies[$identifierIndex],
-                    );
-                    $storage[$identifierIndex] = [];
-                }
+            $this->upsertWithoutAccumulation($bulkUpsert, $storage);
+            $storage = [];
+        }
+    }
+
+    private function upsertWithoutAccumulation(BulkUpsert $bulkUpsert, array $storage): void
+    {
+        foreach ($storage as $identifierIndex => $chunk) {
+            if (empty($chunk) === false) {
+                $bulkUpsert->upsert(
+                    $this->getEloquent(),
+                    $chunk,
+                    $this->identifies[$identifierIndex],
+                );
+                $storage[$identifierIndex] = [];
             }
         }
     }
