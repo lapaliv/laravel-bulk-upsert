@@ -12,6 +12,8 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\MySqlUserFactory;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $phone
+ * @property string|null $country
  * @property string $email
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
@@ -29,6 +31,7 @@ class MySqlUser extends Model
 
     protected $fillable = [
         'name',
+        'phone',
         'email',
         'deleted_at',
     ];
@@ -42,6 +45,10 @@ class MySqlUser extends Model
             $table->id();
 
             $table->string('name');
+            $table->string('phone')
+                ->nullable();
+            $table->string('country')
+                ->nullable();
             $table->string('email')
                 ->unique();
 
@@ -50,13 +57,13 @@ class MySqlUser extends Model
         });
     }
 
-    public function newCollection(array $models = []): MySqlUserCollection
-    {
-        return new MySqlUserCollection($models);
-    }
-
     public static function newFactory(): MySqlUserFactory
     {
         return new MySqlUserFactory();
+    }
+
+    public function newCollection(array $models = []): MySqlUserCollection
+    {
+        return new MySqlUserCollection($models);
     }
 }

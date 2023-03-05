@@ -18,7 +18,9 @@ class MySqlUserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->name,
+            'name' => $this->faker->uuid(),
+            'phone' => $this->faker->uuid(),
+            'country' => $this->faker->uuid(),
             'email' => $this->faker->uuid() . '@' . $this->faker->domainName,
         ];
     }

@@ -38,7 +38,7 @@ class PrepareInsertBuilderFeature
         } else {
             $collection = $this->prepareModels($collection, $scenarioConfig);
             $collection = $scenarioConfig->creatingCallback?->handle($collection) ?? $collection;
-            $collection = $scenarioConfig->deletingCallback?->handle($collection) ?? $collection;
+            $collection = $this->runDeletingCallback($eloquent, $scenarioConfig, $collection);
 
             if ($collection->isEmpty()) {
                 $result->reset();
@@ -144,5 +144,30 @@ class PrepareInsertBuilderFeature
         }
 
         $builder->columns($columns);
+    }
+
+    private function runDeletingCallback(
+        BulkModel $eloquent,
+        BulkScenarioConfig $scenarioConfig,
+        Collection $collection,
+    ): Collection {
+        if ($scenarioConfig->deletingCallback === null) {
+            return $collection;
+        }
+
+        $groups = $collection->groupBy(
+            fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) === null
+                ? 'common'
+                : 'deleting'
+        );
+
+        if ($groups->has('deleting') && $groups->get('deleting')->isNotEmpty()) {
+            $groups->put(
+                'deleting',
+                $scenarioConfig->deletingCallback->handle($groups->get('deleting')) ?? $groups->get('deleting')
+            );
+        }
+
+        return $eloquent->newCollection($groups->collapse()->all());
     }
 }

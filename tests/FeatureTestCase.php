@@ -55,6 +55,7 @@ abstract class FeatureTestCase extends TestCase
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ], 'mysql');
+
         $manager->addConnection([
             'driver' => 'pgsql',
             'url' => env('POSTGRESQL_URL'),
