@@ -13,6 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\MySqlUserFactory;
  * @property int $id
  * @property string $name
  * @property string|null $phone
+ * @property string|null $country
  * @property string $email
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
@@ -45,6 +46,8 @@ class MySqlUser extends Model
 
             $table->string('name');
             $table->string('phone')
+                ->nullable();
+            $table->string('country')
                 ->nullable();
             $table->string('email')
                 ->unique();

@@ -5,7 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Feature;
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Bulk;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
+use Mockery;
 
 class BulkTest extends FeatureTestCase
 {
@@ -548,10 +550,274 @@ class BulkTest extends FeatureTestCase
         );
     }
 
+    public function testInsertWithFewIdentifiers(): void
+    {
+        // arrange
+        $usersWithCountries = MySqlUser::factory()
+            ->count(2)
+            ->make(['phone' => null])
+            ->keyBy('country');
+        $usersWithPhones = MySqlUser::factory()
+            ->count(2)
+            ->make(['country' => null])
+            ->keyBy('phone');
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['country'])
+            ->orIdentifyBy(['phone']);
+
+        // act
+        $sut->insertOrAccumulate($usersWithCountries)
+            ->insert($usersWithPhones);
+
+        // assert
+        $usersWithCountries->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                $user->getTable(),
+                [
+                    'email' => $user->email,
+                    'country' => $user->country,
+                    'phone' => null,
+                ],
+                $user->getConnectionName()
+            )
+        );
+        $usersWithPhones->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                $user->getTable(),
+                [
+                    'email' => $user->email,
+                    'country' => null,
+                    'phone' => $user->phone,
+                ],
+                $user->getConnectionName()
+            )
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testUpdateWithFewIdentifiers(): void
+    {
+        // arrange
+        $createdUsers = MySqlUser::factory()->count(4)->create();
+        $usersWithCountries = MySqlUser::factory()
+            ->count(2)
+            ->make()
+            ->each(function (MySqlUser $user, int $index) use ($createdUsers): void {
+                $user->country = $createdUsers->get($index)->country;
+                $user->id = $createdUsers->get($index)->id;
+            })
+            ->keyBy('country');
+        $usersWithPhones = MySqlUser::factory()
+            ->count(2)
+            ->make()
+            ->each(function (MySqlUser $user, int $index) use ($createdUsers): void {
+                $user->phone = $createdUsers->get($index + 2)->phone;
+                $user->id = $createdUsers->get($index + 2)->id;
+            })
+            ->keyBy('phone');
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['country'])
+            ->orIdentifyBy(['phone']);
+
+        // act
+        $sut->updateOrAccumulate($usersWithCountries)
+            ->update($usersWithPhones);
+
+        // assert
+        $usersWithCountries->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                $user->getTable(),
+                [
+                    'id' => $user->id,
+                    'country' => $user->country,
+                ],
+                $user->getConnectionName()
+            )
+        );
+        $usersWithPhones->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                $user->getTable(),
+                [
+                    'id' => $user->id,
+                    'phone' => $user->phone,
+                ],
+                $user->getConnectionName()
+            )
+        );
+    }
+
+    public function testInsertCallbacks(): void
+    {
+        // arrange
+        $users = collect([
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make([
+                'deleted_at' => Carbon::now(),
+            ]),
+        ]);
+        $creatingSpy = Mockery::spy(Callback::class);
+        $createdSpy = Mockery::spy(Callback::class);
+        $updatingSpy = Mockery::spy(Callback::class);
+        $updatedSpy = Mockery::spy(Callback::class);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        $savingSpy = Mockery::spy(Callback::class);
+        $savedSpy = Mockery::spy(Callback::class);
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['email'])
+            ->beforeCreating($creatingSpy)
+            ->afterCreating($createdSpy)
+            ->beforeDeleting($deletingSpy)
+            ->afterDeleting($deletedSpy)
+            ->beforeSaving($savingSpy)
+            ->afterSaving($savedSpy)
+            ->beforeRestoring($restoringSpy)
+            ->afterRestoring($restoredSpy)
+            ->beforeUpdating($updatingSpy)
+            ->afterUpdating($updatedSpy);
+
+        // act
+        $sut->insert($users);
+
+        // assert
+        $creatingSpy->shouldHaveReceived('__invoke')->times(1);
+        $createdSpy->shouldHaveReceived('__invoke')->times(1);
+        $deletingSpy->shouldHaveReceived('__invoke')->times(1);
+        $deletedSpy->shouldHaveReceived('__invoke')->times(1);
+        $savingSpy->shouldNotHaveReceived('__invoke');
+        $savedSpy->shouldHaveReceived('__invoke')->times(1);
+        $updatingSpy->shouldNotHaveReceived('__invoke');
+        $updatedSpy->shouldNotHaveReceived('__invoke');
+        $restoringSpy->shouldNotHaveReceived('__invoke');
+        $restoredSpy->shouldNotHaveReceived('__invoke');
+    }
+
+    public function testUpdateCallbacks(): void
+    {
+        // arrange
+        $users = collect([
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+                'deleted_at' => Carbon::now(),
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create(['deleted_at' => Carbon::now()])->email,
+                'deleted_at' => null,
+            ]),
+        ]);
+        $creatingSpy = Mockery::spy(Callback::class);
+        $createdSpy = Mockery::spy(Callback::class);
+        $updatingSpy = Mockery::spy(Callback::class);
+        $updatedSpy = Mockery::spy(Callback::class);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        $savingSpy = Mockery::spy(Callback::class);
+        $savedSpy = Mockery::spy(Callback::class);
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['email'])
+            ->beforeCreating($creatingSpy)
+            ->afterCreating($createdSpy)
+            ->beforeDeleting($deletingSpy)
+            ->afterDeleting($deletedSpy)
+            ->beforeSaving($savingSpy)
+            ->afterSaving($savedSpy)
+            ->beforeRestoring($restoringSpy)
+            ->afterRestoring($restoredSpy)
+            ->beforeUpdating($updatingSpy)
+            ->afterUpdating($updatedSpy);
+
+        // act
+        $sut->update($users);
+
+        // assert
+        $creatingSpy->shouldNotHaveReceived('__invoke');
+        $createdSpy->shouldNotHaveReceived('__invoke');
+        $deletingSpy->shouldHaveReceived('__invoke')->times(1);
+        $deletedSpy->shouldHaveReceived('__invoke')->times(1);
+        $savingSpy->shouldHaveReceived('__invoke')->times(1);
+        $savedSpy->shouldHaveReceived('__invoke')->times(1);
+        $updatingSpy->shouldHaveReceived('__invoke')->times(1);
+        $updatedSpy->shouldHaveReceived('__invoke')->times(1);
+        $restoringSpy->shouldHaveReceived('__invoke')->times(1);
+        $restoredSpy->shouldHaveReceived('__invoke')->times(1);
+    }
+
+    public function testUpsertCallbacks(): void
+    {
+        // arrange
+        $users = collect([
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+                'deleted_at' => Carbon::now(),
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create(['deleted_at' => Carbon::now()])->email,
+                'deleted_at' => null,
+            ]),
+        ]);
+        $creatingSpy = Mockery::spy(Callback::class);
+        $createdSpy = Mockery::spy(Callback::class);
+        $updatingSpy = Mockery::spy(Callback::class);
+        $updatedSpy = Mockery::spy(Callback::class);
+        $deletingSpy = Mockery::spy(Callback::class);
+        $deletedSpy = Mockery::spy(Callback::class);
+        $restoringSpy = Mockery::spy(Callback::class);
+        $restoredSpy = Mockery::spy(Callback::class);
+        $savingSpy = Mockery::spy(Callback::class);
+        $savedSpy = Mockery::spy(Callback::class);
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['email'])
+            ->beforeCreating($creatingSpy)
+            ->afterCreating($createdSpy)
+            ->beforeDeleting($deletingSpy)
+            ->afterDeleting($deletedSpy)
+            ->beforeSaving($savingSpy)
+            ->afterSaving($savedSpy)
+            ->beforeRestoring($restoringSpy)
+            ->afterRestoring($restoredSpy)
+            ->beforeUpdating($updatingSpy)
+            ->afterUpdating($updatedSpy);
+
+        // act
+        $sut->upsert($users);
+
+        // assert
+        $creatingSpy->shouldHaveReceived('__invoke')->times(1);
+        $createdSpy->shouldHaveReceived('__invoke')->times(1);
+        $deletingSpy->shouldHaveReceived('__invoke')->times(1);
+        $deletedSpy->shouldHaveReceived('__invoke')->times(1);
+        $savingSpy->shouldHaveReceived('__invoke')->times(1);
+        $savedSpy->shouldHaveReceived('__invoke')->times(2);
+        $updatingSpy->shouldHaveReceived('__invoke')->times(1);
+        $updatedSpy->shouldHaveReceived('__invoke')->times(1);
+        $restoringSpy->shouldHaveReceived('__invoke')->times(1);
+        $restoredSpy->shouldHaveReceived('__invoke')->times(1);
+    }
+
     public function updateOnlyDataProvider(): array
     {
         return [
-//            ['update'],
+            ['update'],
             ['upsert'],
         ];
     }
