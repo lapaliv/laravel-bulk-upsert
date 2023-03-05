@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Feature;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Bulk;
+use Lapaliv\BulkUpsert\Tests\App\Collections\MySqlUserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Support\Callback;
 use Lapaliv\BulkUpsert\Tests\FeatureTestCase;
@@ -812,6 +813,131 @@ class BulkTest extends FeatureTestCase
         $updatedSpy->shouldHaveReceived('__invoke')->times(1);
         $restoringSpy->shouldHaveReceived('__invoke')->times(1);
         $restoredSpy->shouldHaveReceived('__invoke')->times(1);
+    }
+
+    public function testAccumulation(): void
+    {
+        // arrange
+        $creatingUsers = MySqlUser::factory()->count(2)->make();
+        $updatingUsers = new MySqlUserCollection([
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+        ]);
+        $upsertingUsers = new MySqlUserCollection([
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+        ]);
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['email']);
+
+        // act
+        $sut->insertOrAccumulate($creatingUsers)
+            ->updateOrAccumulate($updatingUsers)
+            ->upsertOrAccumulate($upsertingUsers);
+
+        // assert
+        $creatingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseMissing(
+                MySqlUser::table(),
+                ['email' => $user->email],
+                $user->getConnectionName()
+            )
+        );
+        $updatingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseMissing(
+                MySqlUser::table(),
+                [
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ],
+                $user->getConnectionName()
+            )
+        );
+        $upsertingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseMissing(
+                MySqlUser::table(),
+                [
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ],
+                $user->getConnectionName()
+            )
+        );
+    }
+
+    public function testSaveAll(): void
+    {
+        // arrange
+        $creatingUsers = MySqlUser::factory()->count(2)->make();
+        $updatingUsers = new MySqlUserCollection([
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+        ]);
+        $upsertingUsers = new MySqlUserCollection([
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make(),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+            MySqlUser::factory()->make([
+                'email' => MySqlUser::factory()->create()->email,
+            ]),
+        ]);
+        /** @var Bulk $sut */
+        $sut = $this->app->make(Bulk::class);
+        $sut->model(MySqlUser::class)
+            ->identifyBy(['email']);
+
+        // act
+        $sut->insertOrAccumulate($creatingUsers)
+            ->updateOrAccumulate($updatingUsers)
+            ->upsertOrAccumulate($upsertingUsers)
+            ->saveAccumulated();
+
+        // assert
+        $creatingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                MySqlUser::table(),
+                ['email' => $user->email],
+                $user->getConnectionName()
+            )
+        );
+        $updatingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                MySqlUser::table(),
+                [
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ],
+                $user->getConnectionName()
+            )
+        );
+        $upsertingUsers->each(
+            fn (MySqlUser $user) => $this->assertDatabaseHas(
+                MySqlUser::table(),
+                [
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ],
+                $user->getConnectionName()
+            )
+        );
     }
 
     public function updateOnlyDataProvider(): array
