@@ -68,7 +68,8 @@ class Bulk
         private BulkInsert $bulkInsert,
         private BulkUpdate $bulkUpdate,
         private BulkUpsert $bulkUpsert,
-    ) {
+    )
+    {
         // Nothing
     }
 
@@ -200,7 +201,7 @@ class Bulk
         $result = $this->getEloquent()->newCollection();
         $bulkInsert = $this->getBulkInsertInstance(
             $select,
-            fn (Collection $collection) => $result->push(...$collection),
+            fn(Collection $collection) => $result->push(...$collection),
         );
 
         $this->insertWithAccumulation($bulkInsert, $rows, $ignore, force: true);
@@ -227,7 +228,7 @@ class Bulk
         $result = $this->getEloquent()->newCollection();
         $bulkUpdate = $this->getBulkUpdateInstance(
             $select,
-            fn (Collection $collection) => $result->push(...$collection),
+            fn(Collection $collection) => $result->push(...$collection),
         );
 
         $this->updateWithAccumulation($bulkUpdate, $rows, force: true);
@@ -254,7 +255,7 @@ class Bulk
         $result = $this->getEloquent()->newCollection();
         $bulkUpsert = $this->getBulkUpsertInstance(
             $select,
-            fn (Collection $collection) => $result->push(...$collection),
+            fn(Collection $collection) => $result->push(...$collection),
         );
         $this->upsertWithAccumulation($bulkUpsert, $rows, force: true);
 
@@ -329,11 +330,15 @@ class Bulk
                     continue 2;
                 }
 
-                if (is_array($row) && array_key_exists($attribute, $row) === false) {
-                    continue 2;
+                if (is_object($row) && (isset($row->{$attribute}) === false || $row->{$attribute} === null)) {
+                    if (method_exists($row, 'toArray')) {
+                        $row = $row->toArray();
+                    } else {
+                        continue 2;
+                    }
                 }
 
-                if (is_object($row) && (isset($row->{$attribute}) === false || $row->{$attribute} === null)) {
+                if (is_array($row) && array_key_exists($attribute, $row) === false) {
                     continue 2;
                 }
             }
@@ -440,7 +445,8 @@ class Bulk
         iterable $rows,
         bool $ignore = false,
         bool $force = false,
-    ): void {
+    ): void
+    {
         $storageKey = $ignore ? 'insertOrIgnore' : 'insert';
         $storage = &$this->waitingRows[$storageKey];
 
@@ -459,7 +465,8 @@ class Bulk
         BulkInsert $bulkInsert,
         array $storage,
         bool $ignore = false,
-    ): void {
+    ): void
+    {
         foreach ($storage as $identifierIndex => $chunk) {
             if (empty($chunk) === false) {
                 $bulkInsert->insert(
