@@ -10,7 +10,6 @@ use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
 use Lapaliv\BulkUpsert\Builders\SelectBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Throwable;
 
 class MySqlDriverUpdate
 {
@@ -25,17 +24,7 @@ class MySqlDriverUpdate
     ): int {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
-        $connection->beginTransaction();
-
-        try {
-            $result = $connection->update($sql, $bindings);
-            $connection->commit();
-            return $result;
-        } catch (Throwable $throwable) {
-            $connection->rollBack();
-
-            throw $throwable;
-        }
+        return $connection->update($sql, $bindings);
     }
 
     private function generateSql(UpdateBuilder $builder): array

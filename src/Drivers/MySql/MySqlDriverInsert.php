@@ -8,7 +8,6 @@ namespace Lapaliv\BulkUpsert\Drivers\MySql;
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Throwable;
 
 class MySqlDriverInsert
 {
@@ -22,35 +21,28 @@ class MySqlDriverInsert
     {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
-        $connection->beginTransaction();
         $lastPrimaryBeforeInserting = null;
 
-        try {
-            if ($primaryKeyName !== null) {
-                $lastRow = $connection->selectOne(
-                    sprintf(
-                        'select max(%s) as id from %s',
-                        $primaryKeyName,
-                        $builder->getInto()
-                    )
-                );
+        if ($primaryKeyName !== null) {
+            $lastRow = $connection->selectOne(
+                sprintf(
+                    'select max(%s) as id from %s',
+                    $primaryKeyName,
+                    $builder->getInto()
+                )
+            );
 
-                $lastPrimaryBeforeInserting = $lastRow->id;
-            }
-
-            $connection->insert($sql, $bindings);
-            unset($sql, $bindings);
-
-            $connection->commit();
-
-            return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
-                ? (int)$lastPrimaryBeforeInserting
-                : null;
-        } catch (Throwable $throwable) {
-            $connection->rollBack();
-
-            throw $throwable;
+            $lastPrimaryBeforeInserting = $lastRow->id;
         }
+
+        $connection->insert($sql, $bindings);
+        unset($sql, $bindings);
+
+        $connection->commit();
+
+        return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
+            ? (int)$lastPrimaryBeforeInserting
+            : null;
     }
 
     /**
