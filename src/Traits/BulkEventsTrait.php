@@ -2,9 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Traits;
 
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
-
 trait BulkEventsTrait
 {
     /**
@@ -36,18 +33,6 @@ trait BulkEventsTrait
         $this->events = [];
 
         return $this;
-    }
-
-    protected function getIntersectEventsWithDispatcher(
-        BulkModel $model,
-        GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
-    ): array {
-        return array_filter(
-            $this->getEvents(),
-            static fn (string $event) => $model::getEventDispatcher()->hasListeners(
-                $getEloquentNativeEventNameFeature->handle(get_class($model), $event)
-            )
-        );
     }
 
     abstract protected function getDefaultEvents(): array;

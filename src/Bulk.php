@@ -30,7 +30,7 @@ class Bulk
     private array $identifies = [];
 
     private array $listeners = [
-        'before' => [],
+//        'before' => [],
         'beforeCreating' => [],
         'afterCreating' => [],
         'beforeUpdating' => [],
@@ -41,7 +41,7 @@ class Bulk
         'afterRestoring' => [],
         'beforeSaving' => [],
         'afterSaving' => [],
-        'after' => [],
+//        'after' => [],
     ];
 
     private array $waitingRows = [
@@ -137,6 +137,17 @@ class Bulk
     public function afterSaving(?callable $callback): static
     {
         return $this->when(__FUNCTION__, $callback);
+    }
+
+    public function registerObserver(object $observer): static
+    {
+        foreach (array_keys($this->listeners) as $eventName) {
+            if (method_exists($observer, $eventName)) {
+                $this->{$eventName}([$observer, $eventName]);
+            }
+        }
+
+        return $this;
     }
 
     public function identifyBy(array $uniqueAttributes): static

@@ -11,7 +11,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkUpdateContract;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNamesFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
@@ -37,7 +37,7 @@ class BulkUpdate implements BulkUpdateContract
 
     public function __construct(
         private UpdateScenario $scenario,
-        private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
+        private GetEloquentNativeEventNamesFeature $getEloquentNativeEventNamesFeature,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private GetBulkModelFeature $getBulkModelFeature,
@@ -94,5 +94,10 @@ class BulkUpdate implements BulkUpdateContract
             BulkEventEnum::RESTORING,
             BulkEventEnum::RESTORED,
         ];
+    }
+
+    protected function getEloquentNativeEventNamesFeature(): GetEloquentNativeEventNamesFeature
+    {
+        return $this->getEloquentNativeEventNamesFeature;
     }
 }

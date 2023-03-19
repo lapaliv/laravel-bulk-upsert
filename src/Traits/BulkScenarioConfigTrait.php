@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Traits;
 
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNamesFeature;
 
 trait BulkScenarioConfigTrait
 {
@@ -23,7 +24,7 @@ trait BulkScenarioConfigTrait
             : null;
 
         return new BulkScenarioConfig(
-            events: $this->getIntersectEventsWithDispatcher($eloquent, $this->getEloquentNativeEventNameFeature),
+            events: $this->getEloquentNativeEventNamesFeature()->handle($eloquent, $this->getEvents()),
             uniqueAttributes: $uniqueAttributes,
             updateAttributes: $updateAttributes,
             selectColumns: $this->getSelectColumns($eloquent, $uniqueAttributes, $updateAttributes),
@@ -73,4 +74,6 @@ trait BulkScenarioConfigTrait
 
         return $result;
     }
+
+    abstract protected function getEloquentNativeEventNamesFeature(): GetEloquentNativeEventNamesFeature;
 }

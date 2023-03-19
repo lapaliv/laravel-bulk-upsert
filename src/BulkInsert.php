@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\ArrayToCollectionConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNameFeature;
+use Lapaliv\BulkUpsert\Features\GetEloquentNativeEventNamesFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
 use Lapaliv\BulkUpsert\Scenarios\InsertScenario;
@@ -35,7 +35,7 @@ class BulkInsert implements BulkInsertContract
         private ArrayToCollectionConverter $arrayToCollectionConverter,
         private SeparateIterableRowsFeature $separateIterableRowsFeature,
         private GetBulkModelFeature $getBulkModelFeature,
-        private GetEloquentNativeEventNameFeature $getEloquentNativeEventNameFeature,
+        private GetEloquentNativeEventNamesFeature $getEloquentNativeEventNamesFeature,
         private KeyByFeature $keyByFeature,
     ) {
         $this->events = $this->getDefaultEvents();
@@ -121,5 +121,10 @@ class BulkInsert implements BulkInsertContract
             BulkEventEnum::DELETING,
             BulkEventEnum::DELETED,
         ];
+    }
+
+    protected function getEloquentNativeEventNamesFeature(): GetEloquentNativeEventNamesFeature
+    {
+        return $this->getEloquentNativeEventNamesFeature;
     }
 }
