@@ -334,6 +334,10 @@ class Bulk
 
     private function getIdentifierIndexForRow(object|array $row): int
     {
+        if (is_object($row) && method_exists($row, 'toArray')) {
+            $row = $row->toArray();
+        }
+
         foreach ($this->identifies as $index => $attributes) {
             foreach ($attributes as $attribute) {
                 if ($row instanceof BulkModel && $row->getAttribute($attribute) === null) {
