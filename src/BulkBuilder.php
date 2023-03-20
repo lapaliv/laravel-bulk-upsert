@@ -18,6 +18,11 @@ class BulkBuilder extends Builder
      */
     public function createMany(array $uniqueAttributes, iterable $rows, int $chunk = 100): void
     {
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->createManyAndReturn($uniqueAttributes, $rows, $chunk);
+            return;
+        }
+
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
         $bulk->registerObserver($this)
@@ -35,11 +40,17 @@ class BulkBuilder extends Builder
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
 
-        return $bulk->registerObserver($this)
+        $result = $bulk->registerObserver($this)
             ->model($this->getModel())
             ->chunk($chunk)
             ->identifyBy($uniqueAttributes)
             ->insertAndReturn($rows);
+
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->afterSavingMany($rows, $uniqueAttributes, null, $chunk);
+        }
+
+        return $result;
     }
 
     public function updateMany(array $values, array $uniqueAttributes = [], int $chunk = 100): void
@@ -91,6 +102,11 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->updateManyRawAndReturn($rows, $uniqueAttributes, $updateAttributes, $chunk);
+            return;
+        }
+
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
         $bulk->registerObserver($this)
@@ -131,7 +147,13 @@ class BulkBuilder extends Builder
             $bulk->updateOnly($updateAttributes);
         }
 
-        return $bulk->updateAndReturn($rows);
+        $result = $bulk->updateAndReturn($rows);
+
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->afterSavingMany($rows, $uniqueAttributes, $updateAttributes, $chunk);
+        }
+
+        return $result;
     }
 
     public function upsertMany(
@@ -141,6 +163,11 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->upsertManyAndReturn($rows, $uniqueAttributes, $updateAttributes, $chunk);
+            return;
+        }
+
         $model = $this->getModel();
 
         /** @var Bulk $bulk */
@@ -185,6 +212,12 @@ class BulkBuilder extends Builder
             $bulk->updateOnly($updateAttributes);
         }
 
-        return $bulk->upsertAndReturn($rows);
+        $result = $bulk->upsertAndReturn($rows);
+
+        if (method_exists($this, 'afterSavingMany')) {
+            $this->afterSavingMany($result, $rows, $uniqueAttributes);
+        }
+
+        return $result;
     }
 }
