@@ -47,7 +47,7 @@ class BulkBuilder extends Builder
             ->insertAndReturn($rows);
 
         if (method_exists($this, 'afterSavingMany')) {
-            $this->afterSavingMany($rows, $uniqueAttributes, null, $chunk);
+            $this->afterSavingMany($result, $rows, $uniqueAttributes);
         }
 
         return $result;
@@ -102,6 +102,10 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
+        if (empty($updateAttributes)) {
+            $updateAttributes = [$this->getModel()->getKeyName()];
+        }
+
         if (method_exists($this, 'afterSavingMany')) {
             $this->updateManyRawAndReturn($rows, $uniqueAttributes, $updateAttributes, $chunk);
             return;
@@ -135,6 +139,10 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     )
     {
+        if (empty($updateAttributes)) {
+            $updateAttributes = [$this->getModel()->getKeyName()];
+        }
+
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
 
@@ -150,7 +158,7 @@ class BulkBuilder extends Builder
         $result = $bulk->updateAndReturn($rows);
 
         if (method_exists($this, 'afterSavingMany')) {
-            $this->afterSavingMany($rows, $uniqueAttributes, $updateAttributes, $chunk);
+            $this->afterSavingMany($result, $rows, $uniqueAttributes);
         }
 
         return $result;
@@ -163,6 +171,10 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
+        if (empty($updateAttributes)) {
+            $updateAttributes = [$this->getModel()->getKeyName()];
+        }
+
         if (method_exists($this, 'afterSavingMany')) {
             $this->upsertManyAndReturn($rows, $uniqueAttributes, $updateAttributes, $chunk);
             return;
@@ -198,6 +210,10 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     )
     {
+        if (empty($updateAttributes)) {
+            $updateAttributes = [$this->getModel()->getKeyName()];
+        }
+
         $model = $this->getModel();
 
         /** @var Bulk $bulk */
