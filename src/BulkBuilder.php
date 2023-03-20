@@ -89,15 +89,20 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    ): void {
+    ): void
+    {
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
         $bulk->registerObserver($this)
             ->model($this->getModel())
             ->chunk($chunk)
-            ->identifyBy($uniqueAttributes)
-            ->updateOnly($updateAttributes)
-            ->update($rows);
+            ->identifyBy($uniqueAttributes);
+
+        if ($updateAttributes !== null) {
+            $bulk->updateOnly($updateAttributes);
+        }
+
+        $bulk->update($rows);
     }
 
     /**
@@ -112,16 +117,21 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    ) {
+    )
+    {
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
 
-        return $bulk->registerObserver($this)
+        $bulk->registerObserver($this)
             ->model($this->getModel())
             ->chunk($chunk)
-            ->identifyBy($uniqueAttributes)
-            ->updateOnly($updateAttributes)
-            ->updateAndReturn($rows);
+            ->identifyBy($uniqueAttributes);
+
+        if ($updateAttributes !== null) {
+            $bulk->updateOnly($updateAttributes);
+        }
+
+        return $bulk->updateAndReturn($rows);
     }
 
     public function upsertMany(
@@ -138,9 +148,13 @@ class BulkBuilder extends Builder
         $bulk->registerObserver($this)
             ->model($model)
             ->chunk($chunk)
-            ->identifyBy($uniqueAttributes)
-            ->updateOnly($updateAttributes)
-            ->upsert($rows);
+            ->identifyBy($uniqueAttributes);
+
+        if ($updateAttributes !== null) {
+            $bulk->updateOnly($updateAttributes);
+        }
+
+        $bulk->upsert($rows);
     }
 
     /**
@@ -155,17 +169,22 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    ) {
+    )
+    {
         $model = $this->getModel();
 
         /** @var Bulk $bulk */
         $bulk = App::make(Bulk::class);
 
-        return $bulk->registerObserver($this)
+        $bulk->registerObserver($this)
             ->model($model)
             ->chunk($chunk)
-            ->identifyBy($uniqueAttributes)
-            ->updateOnly($updateAttributes)
-            ->upsertAndReturn($rows);
+            ->identifyBy($uniqueAttributes);
+
+        if ($updateAttributes !== null) {
+            $bulk->updateOnly($updateAttributes);
+        }
+
+        return $bulk->upsertAndReturn($rows);
     }
 }
