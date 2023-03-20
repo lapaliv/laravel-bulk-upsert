@@ -375,7 +375,9 @@ class Bulk
                     continue 2;
                 }
 
-                if (is_array($row) && array_key_exists($attribute, $row) === false) {
+                if (is_array($row)
+                    && (array_key_exists($attribute, $row) === false || empty($row[$attribute]))
+                ) {
                     continue 2;
                 }
 
