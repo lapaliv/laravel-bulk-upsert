@@ -102,8 +102,8 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
-        if (empty($updateAttributes)) {
-            $updateAttributes = [$this->getModel()->getKeyName()];
+        if (empty($uniqueAttributes)) {
+            $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
 
         if (method_exists($this, 'afterSavingMany')) {
@@ -139,8 +139,8 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     )
     {
-        if (empty($updateAttributes)) {
-            $updateAttributes = [$this->getModel()->getKeyName()];
+        if (empty($uniqueAttributes)) {
+            $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
 
         /** @var Bulk $bulk */
@@ -171,8 +171,8 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     ): void
     {
-        if (empty($updateAttributes)) {
-            $updateAttributes = [$this->getModel()->getKeyName()];
+        if (empty($uniqueAttributes)) {
+            $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
 
         if (method_exists($this, 'afterSavingMany')) {
@@ -210,8 +210,8 @@ class BulkBuilder extends Builder
         int $chunk = 100,
     )
     {
-        if (empty($updateAttributes)) {
-            $updateAttributes = [$this->getModel()->getKeyName()];
+        if (empty($uniqueAttributes)) {
+            $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
 
         $model = $this->getModel();
