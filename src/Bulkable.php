@@ -173,6 +173,7 @@ trait Bulkable
      * @param object|string $class
      *
      * @return void
+     *
      * @throws BindingResolutionException
      */
     protected function registerObserver($class)

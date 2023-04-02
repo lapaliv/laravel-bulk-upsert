@@ -13,11 +13,18 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
 use Mockery\VerificationDirector;
 
+/**
+ * @internal
+ *
+ * @coversNothing
+ */
 class CreateAnyTest extends TestCase
 {
     /**
      * @param string $methodName
+     *
      * @return void
+     *
      * @dataProvider dataProvider
      */
     public function testBasicCallbacks(string $methodName): void
@@ -52,7 +59,7 @@ class CreateAnyTest extends TestCase
         foreach ($modelEvents as $event) {
             /** @var VerificationDirector $spy */
             $spy = $spies[$event]->shouldHaveReceived('__invoke');
-            $spy->times($users->count())->withArgs(fn(User $user) => true);
+            $spy->times($users->count())->withArgs(fn (User $user) => true);
         }
 
         $collectionEvents = [
@@ -66,7 +73,7 @@ class CreateAnyTest extends TestCase
             /** @var VerificationDirector $spy */
             $spy = $spies[$event]->shouldHaveReceived('__invoke');
             $spy->times(1)->withArgs(
-                fn(UserCollection $users, BulkRows $bulkRows): bool => $users->count() === count($bulkRows)
+                fn (UserCollection $users, BulkRows $bulkRows): bool => $users->count() === count($bulkRows)
             );
         }
 
@@ -81,7 +88,9 @@ class CreateAnyTest extends TestCase
 
     /**
      * @param string $methodName
+     *
      * @return void
+     *
      * @dataProvider dataProvider
      */
     public function testSoftDeletingCallbacks(string $methodName): void
@@ -118,14 +127,14 @@ class CreateAnyTest extends TestCase
         foreach ($modelEvents as $event => $spy) {
             /** @var VerificationDirector $verification */
             $verification = $spy->shouldHaveReceived('__invoke');
-            $verification->times($users->count())->withArgs(fn(User $user) => true);
+            $verification->times($users->count())->withArgs(fn (User $user) => true);
         }
 
         foreach ($collectionEvents as $spy) {
             /** @var VerificationDirector $verification */
             $verification = $spy->shouldHaveReceived('__invoke');
             $verification->times(1)->withArgs(
-                fn(UserCollection $users, BulkRows $bulkRows): bool => $users->count() === count($bulkRows)
+                fn (UserCollection $users, BulkRows $bulkRows): bool => $users->count() === count($bulkRows)
             );
         }
     }

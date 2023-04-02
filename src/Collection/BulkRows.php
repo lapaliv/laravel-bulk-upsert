@@ -99,12 +99,14 @@ class BulkRows implements Iterator, Countable
     }
 
     /**
-     * Count elements of an object
-     * @link https://php.net/manual/en/countable.count.php
+     * Count elements of an object.
+     *
+     * @see https://php.net/manual/en/countable.count.php
+     *
      * @return int<0,max> The custom count as an integer.
-     * <p>
-     * The return value is cast to an integer.
-     * </p>
+     *                    <p>
+     *                    The return value is cast to an integer.
+     *                    </p>
      */
     public function count(): int
     {

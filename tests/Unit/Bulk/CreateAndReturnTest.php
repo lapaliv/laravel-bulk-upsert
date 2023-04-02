@@ -9,6 +9,11 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
+/**
+ * @internal
+ *
+ * @coversNothing
+ */
 class CreateAndReturnTest extends TestCase
 {
     /**
@@ -29,7 +34,8 @@ class CreateAndReturnTest extends TestCase
         Carbon::setTestNow(Carbon::now());
         $sut = MySqlUser::query()
             ->bulk()
-            ->uniqueBy(['email']);
+            ->uniqueBy(['email'])
+            ->chunk(1);
 
         // act
         $result = $sut->createAndReturn($iterable());
@@ -37,7 +43,7 @@ class CreateAndReturnTest extends TestCase
         // assert
         self::assertCount($collection->count(), $result);
         $result->each(
-            fn(User $user) => self::assertTrue($user->wasRecentlyCreated)
+            fn (User $user) => self::assertTrue($user->wasRecentlyCreated)
         );
     }
 
@@ -143,7 +149,7 @@ class CreateAndReturnTest extends TestCase
             'collection' => [
                 function (): array {
                     $users = MySqlUser::factory()
-                        ->count(2)
+                        ->count(5)
                         ->make();
 
                     return [
@@ -157,7 +163,7 @@ class CreateAndReturnTest extends TestCase
             'array' => [
                 function () {
                     $users = MySqlUser::factory()
-                        ->count(2)
+                        ->count(5)
                         ->make();
 
                     return [
@@ -171,7 +177,7 @@ class CreateAndReturnTest extends TestCase
             'generator' => [
                 function () {
                     $users = MySqlUser::factory()
-                        ->count(2)
+                        ->count(5)
                         ->make();
 
                     return [
