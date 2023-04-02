@@ -25,6 +25,7 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
  * @property CarbonInterface|null $birthday
  * @property array|null $phones
  * @property CarbonInterface|null $last_visited_at
+ * @property string $update_uuid
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
  * @property CarbonInterface|null $deleted_at
@@ -50,6 +51,7 @@ abstract class User extends Model
         'birthday',
         'phones',
         'last_visited_at',
+        'update_uuid',
     ];
 
     protected $casts = [
@@ -69,7 +71,9 @@ abstract class User extends Model
             $table->id();
 
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('email')
+                ->unique()
+                ->nullable();
             $table->string('gender', 6);
             $table->string('avatar')
                 ->nullable();
@@ -82,6 +86,9 @@ abstract class User extends Model
             $table->json('phones')
                 ->nullable();
             $table->timestamp('last_visited_at')
+                ->nullable();
+            $table->uuid('update_uuid')
+                ->unique()
                 ->nullable();
 
             $table->timestamps();

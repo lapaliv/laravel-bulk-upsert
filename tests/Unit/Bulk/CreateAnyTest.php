@@ -93,6 +93,41 @@ final class CreateAnyTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    public function testDisabledCallbacks(string $methodName): void
+    {
+        // arrange
+        $spies = [];
+
+        foreach (BulkEventEnum::cases() as $event) {
+            $spy = Mockery::spy(TestCallback::class);
+            $spies[$event] = $spy;
+            MySqlUser::{$event}($spy);
+        }
+        $users = MySqlUser::factory()
+            ->count(2)
+            ->make();
+        $sut = MySqlUser::query()
+            ->bulk()
+            ->uniqueBy(['email'])
+            ->chunk($users->count())
+            ->disableEvents();
+
+        // act
+        $sut->{$methodName}($users);
+
+        // assert
+        foreach (BulkEventEnum::cases() as $event) {
+            $spies[$event]->shouldNotHaveBeenCalled(['__invoke']);
+        }
+    }
+
+    /**
+     * @param string $methodName
+     *
+     * @return void
+     *
+     * @dataProvider dataProvider
+     */
     public function testSoftDeletingCallbacks(string $methodName): void
     {
         // arrange
@@ -137,6 +172,110 @@ final class CreateAnyTest extends TestCase
                 fn (UserCollection $users, BulkRows $bulkRows): bool => $users->count() === count($bulkRows)
             );
         }
+    }
+
+    /**
+     * @param string $methodName
+     *
+     * @return void
+     *
+     * @dataProvider dataProvider
+     */
+    public function testSoftDeleting(string $methodName): void
+    {
+        // arrange
+        Carbon::setTestNow(Carbon::now());
+        $users = MySqlUser::factory()
+            ->count(2)
+            ->make([
+                'deleted_at' => Carbon::now(),
+            ]);
+        $sut = MySqlUser::query()
+            ->bulk()
+            ->uniqueBy(['email'])
+            ->chunk($users->count());
+
+        // act
+        $sut->{$methodName}($users);
+
+        // assert
+        $users->each(
+            function (User $user) {
+                $this->assertDatabaseHas(MySqlUser::table(), [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'gender' => $user->gender->value,
+                    'avatar' => $user->avatar,
+                    'posts_count' => $user->posts_count,
+                    'is_admin' => $user->is_admin,
+                    'balance' => $user->balance,
+                    'birthday' => $user->birthday?->toDateString(),
+                    'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
+                    'created_at' => Carbon::now()->toDateTimeString(),
+                    'updated_at' => Carbon::now()->toDateTimeString(),
+                    'deleted_at' => Carbon::now()->toDateTimeString(),
+                ], $user->getConnectionName());
+
+                $model = MySqlUser::query()
+                    ->onlyTrashed()
+                    ->where('email', $user->email)
+                    ->firstOrFail();
+
+                self::assertEquals($user->phones, $model->phones);
+            }
+        );
+    }
+
+    /**
+     * @param string $methodName
+     *
+     * @return void
+     *
+     * @dataProvider dataProvider
+     */
+    public function testUniqueBy(string $methodName): void
+    {
+        // arrange
+        Carbon::setTestNow(Carbon::now());
+        $users = new UserCollection([
+            ...MySqlUser::factory()->count(2)->make(['update_uuid' => null]),
+            ...MySqlUser::factory()->count(2)->make(['email' => null]),
+        ]);
+        $sut = MySqlUser::query()
+            ->bulk()
+            ->uniqueBy(['email'])
+            ->orUniqueBy(['update_uuid'])
+            ->chunk($users->count());
+
+        // act
+        $sut->{$methodName}($users);
+
+        // assert
+        $users->each(
+            function (User $user) {
+                $this->assertDatabaseHas(MySqlUser::table(), [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'gender' => $user->gender->value,
+                    'avatar' => $user->avatar,
+                    'posts_count' => $user->posts_count,
+                    'is_admin' => $user->is_admin,
+                    'balance' => $user->balance,
+                    'birthday' => $user->birthday?->toDateString(),
+                    'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
+                    'update_uuid' => $user->update_uuid,
+                    'created_at' => Carbon::now()->toDateTimeString(),
+                    'updated_at' => Carbon::now()->toDateTimeString(),
+                ], $user->getConnectionName());
+
+                $model = MySqlUser::query()
+                    ->where('email', $user->email)
+                    ->where('update_uuid', $user->update_uuid)
+                    ->firstOrFail();
+
+                self::assertEquals($user->phones, $model->phones);
+            }
+        );
     }
 
     public function dataProvider(): array

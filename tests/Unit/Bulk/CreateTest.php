@@ -70,50 +70,6 @@ final class CreateTest extends TestCase
         );
     }
 
-    public function testSoftDeleting(): void
-    {
-        // arrange
-        Carbon::setTestNow(Carbon::now());
-        $users = MySqlUser::factory()
-            ->count(2)
-            ->make([
-                'deleted_at' => Carbon::now(),
-            ]);
-        $sut = MySqlUser::query()
-            ->bulk()
-            ->uniqueBy(['email']);
-
-        // act
-        $sut->create($users);
-
-        // assert
-        $users->each(
-            function (User $user) {
-                $this->assertDatabaseHas(MySqlUser::table(), [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'gender' => $user->gender->value,
-                    'avatar' => $user->avatar,
-                    'posts_count' => $user->posts_count,
-                    'is_admin' => $user->is_admin,
-                    'balance' => $user->balance,
-                    'birthday' => $user->birthday?->toDateString(),
-                    'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
-                    'created_at' => Carbon::now()->toDateTimeString(),
-                    'updated_at' => Carbon::now()->toDateTimeString(),
-                    'deleted_at' => Carbon::now()->toDateTimeString(),
-                ], $user->getConnectionName());
-
-                $model = MySqlUser::query()
-                    ->onlyTrashed()
-                    ->where('email', $user->email)
-                    ->firstOrFail();
-
-                self::assertEquals($user->phones, $model->phones);
-            }
-        );
-    }
-
     public function dataProviderBasic(): array
     {
         return [

@@ -98,51 +98,6 @@ final class CreateAndReturnTest extends TestCase
         );
     }
 
-    public function testSoftDeleting(): void
-    {
-        // arrange
-        Carbon::setTestNow(Carbon::now());
-        $users = MySqlUser::factory()
-            ->count(2)
-            ->make([
-                'deleted_at' => Carbon::now(),
-            ]);
-        $sut = MySqlUser::query()
-            ->bulk()
-            ->uniqueBy(['email']);
-
-        // act
-        $result = $sut->createAndReturn($users);
-
-        // assert
-        self::assertCount($users->count(), $result);
-        $users->each(
-            function (User $user) use ($result): void {
-                /** @var User $resultUser */
-                $resultUser = $result->where('email', $user->email)->first();
-                self::assertNotNull($resultUser);
-                self::assertNotNull($resultUser->id);
-                self::assertEquals($user->name, $resultUser->name);
-                self::assertEquals($user->gender, $resultUser->gender);
-                self::assertEquals($user->avatar, $resultUser->avatar);
-                self::assertEquals($user->posts_count, $resultUser->posts_count);
-                self::assertEquals($user->is_admin, $resultUser->is_admin);
-                self::assertEquals($user->balance, $resultUser->balance);
-                self::assertEquals($user->birthday, $resultUser->birthday);
-                self::assertEquals($user->phones, $resultUser->phones);
-                self::assertEquals($user->last_visited_at, $resultUser->last_visited_at);
-                self::assertNotNull($resultUser->created_at);
-                self::assertNotNull($resultUser->updated_at);
-                self::assertNotNull($resultUser->deleted_at);
-
-                $this->assertDatabaseHas($resultUser->getTable(), [
-                    'id' => $resultUser->id,
-                    'deleted_at' => $resultUser->deleted_at->toDateTimeString(),
-                ], $resultUser->getConnectionName());
-            }
-        );
-    }
-
     public function dataProviderBasic(): array
     {
         return [

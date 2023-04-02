@@ -46,9 +46,16 @@ class Bulk
 
     private BulkModel $model;
     private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
+    /**
+     * @var string[][]
+     */
     private array $uniqueBy = [];
     private BulkEventDispatcher $eventDispatcher;
     private ?string $deletedAtColumn;
+
+    /**
+     * @var string[]
+     */
     private array $dateFields;
 
     /**
@@ -65,6 +72,16 @@ class Bulk
         'update' => [],
         'upsert' => [],
     ];
+
+    /**
+     * @var string[]
+     */
+    private array $updateOnly = [];
+
+    /**
+     * @var string[]
+     */
+    private array $updateExcept = [];
 
     public function __construct(BulkModel|string $model)
     {

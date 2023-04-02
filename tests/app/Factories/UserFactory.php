@@ -45,6 +45,7 @@ abstract class UserFactory extends Factory
                 null,
                 $this->faker->dateTime(),
             ]),
+            'update_uuid' => $this->faker->uuid(),
         ];
     }
 }
