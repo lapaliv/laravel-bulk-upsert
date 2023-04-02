@@ -2,13 +2,8 @@
 
 namespace Lapaliv\BulkUpsert;
 
-use Closure;
-use Illuminate\Container\Container;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Events\QueuedClosure;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 
 /**
  * @method static BulkBuilder|Builder query()
@@ -25,17 +20,6 @@ trait Bulkable
     public function newEloquentBuilder($query)
     {
         return new BulkBuilder($query);
-    }
-
-    /**
-     * Unset the event dispatcher for models.
-     *
-     * @return void
-     */
-    public static function unsetEventDispatcher(): void
-    {
-        parent::unsetEventDispatcher();
-        BulkEventDispatcher::flush();
     }
 
     /**
@@ -156,54 +140,5 @@ trait Bulkable
     public static function restoredMany(callable $callback): void
     {
         static::registerModelEvent(BulkEventEnum::RESTORED_MANY, $callback);
-    }
-
-    /**
-     * Register a model event with the dispatcher.
-     *
-     * @param string $event
-     * @param array|Closure|QueuedClosure|string $callback
-     *
-     * @return void
-     */
-    protected static function registerModelEvent($event, $callback)
-    {
-        if (in_array($event, BulkEventEnum::collection()) === false) {
-            parent::registerModelEvent($event, $callback);
-        }
-
-        BulkEventDispatcher::registerListener(static::class, $event, $callback);
-    }
-
-    /**
-     * Register a single observer with the model.
-     *
-     * @param object|string $class
-     *
-     * @return void
-     *
-     * @throws BindingResolutionException
-     */
-    protected function registerObserver($class)
-    {
-        parent::registerObserver($class);
-
-        $class = is_object($class) ? $class : Container::getInstance()->make($class);
-
-        if (!is_object($class)) {
-            return;
-        }
-
-        $className = get_class($class);
-
-        if (class_exists($className) === false) {
-            return;
-        }
-
-        foreach (BulkEventEnum::collection() as $event) {
-            if (method_exists($class, $event)) {
-                BulkEventDispatcher::registerListener(static::class, $event, [$class, $event]);
-            }
-        }
     }
 }

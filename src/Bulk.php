@@ -94,12 +94,6 @@ class Bulk
         }
     }
 
-//    abstract public function update(iterable $rows): static;
-//
-//    abstract public function updateOrAccumulate(iterable $rows): static;
-//
-//    abstract public function updateAndReturn(iterable $rows): Collection;
-//
 //    abstract public function upsert(iterable $rows): static;
 //
 //    abstract public function upsertOrAccumulate(iterable $rows): static;
@@ -179,13 +173,27 @@ class Bulk
         return $this->setEvents([]);
     }
 
+    public function updateOnly(array $attributes): static
+    {
+        $this->updateOnly = $attributes;
+
+        return $this;
+    }
+
+    public function updateAllExcept(array $attributes): static
+    {
+        $this->updateExcept = $attributes;
+
+        return $this;
+    }
+
     public function create(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
         $this->accumulate($storageKey, $rows);
 
         foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
-            $this->insert($accumulation, $ignoreConflicts);
+            $this->runInsertScenario($accumulation, $ignoreConflicts);
         }
 
         return $this;
@@ -197,7 +205,7 @@ class Bulk
         $this->accumulate($storageKey, $rows);
 
         foreach ($this->getReadyChunks($storageKey) as $accumulation) {
-            $this->insert($accumulation, $ignoreConflicts);
+            $this->runInsertScenario($accumulation, $ignoreConflicts);
         }
 
         return $this;
@@ -220,11 +228,25 @@ class Bulk
                 }
             );
 
-            $this->insert($accumulation, $ignoreConflicts, $columns);
+            $this->runInsertScenario($accumulation, $ignoreConflicts, $columns);
         }
 
         return $result;
     }
+
+//    abstract public function update(iterable $rows): static {
+//        $this->accumulate('update', $rows);
+//
+//        foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
+//            $this->runInsertScenario($accumulation);
+//        }
+//
+//        return $this;
+//    }
+//
+//    abstract public function updateOrAccumulate(iterable $rows): static;
+//
+//    abstract public function updateAndReturn(iterable $rows): Collection;
 
     private function accumulate(string $storageKey, iterable $rows): void
     {
@@ -327,7 +349,7 @@ class Bulk
         }
     }
 
-    private function insert(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
+    private function runInsertScenario(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
     {
         /** @var InsertScenario $scenario */
         $scenario = Container::getInstance()->make(InsertScenario::class);
@@ -341,6 +363,21 @@ class Bulk
             $this->getDeletedAtColumn(),
         );
     }
+
+//    private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
+//    {
+//        /** @var InsertScenario $scenario */
+//        $scenario = Container::getInstance()->make(InsertScenario::class);
+//        $scenario->handle(
+//            $this->model,
+//            $accumulation,
+//            $this->getEventDispatcher(),
+//            $ignore,
+//            $this->getDateFields(),
+//            $this->getSelectColumnsForInsert($columns),
+//            $this->getDeletedAtColumn(),
+//        );
+//    }
 
     private function getDateFields(): array
     {
@@ -398,7 +435,7 @@ class Bulk
     private function getEventDispatcher(): BulkEventDispatcher
     {
         if (isset($this->eventDispatcher) === false) {
-            $this->eventDispatcher = new BulkEventDispatcher(get_class($this->model));
+            $this->eventDispatcher = new BulkEventDispatcher($this->model);
         }
 
         return $this->eventDispatcher;

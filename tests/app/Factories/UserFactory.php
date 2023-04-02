@@ -29,7 +29,7 @@ abstract class UserFactory extends Factory
                 Gender::male(),
                 Gender::female(),
             ]),
-            'avatar' => $this->faker->imageUrl(),
+            'avatar' => $this->faker->url(),
             'posts_count' => $this->faker->randomNumber(3),
             'is_admin' => $this->faker->boolean(),
             'balance' => $this->faker->randomElement([

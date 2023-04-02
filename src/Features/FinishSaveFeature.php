@@ -125,7 +125,7 @@ class FinishSaveFeature
 
     private function syncOriginal(BulkAccumulationEntity $data, BulkEventDispatcher $eventDispatcher): void
     {
-        $data->getModels()->each(
+        $data->getNotSkippedModels()->each(
             function (BulkModel $model): void {
                 $model->syncOriginal();
             }

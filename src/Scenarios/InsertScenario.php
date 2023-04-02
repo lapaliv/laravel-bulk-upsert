@@ -13,6 +13,7 @@ use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
+use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
 use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
 use Lapaliv\BulkUpsert\Scenarios\Insert\InsertScenarioGetBuilderFeature;
 
@@ -26,6 +27,7 @@ class InsertScenario
         private DriverManager $driverManager,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private FinishSaveFeature $finishSaveFeature,
+        private GetUniqueKeyFeature $getUniqueKeyFeature,
     ) {
         //
     }
@@ -45,6 +47,10 @@ class InsertScenario
 
         if ($eventDispatcher->hasListeners(BulkEventEnum::inserting())) {
             $this->prepareModelsToCreating($eloquent, $data, $eventDispatcher, $deletedAtColumn);
+
+            if ($data->hasNotSkippedModels('skipCreating') === false) {
+                return;
+            }
         }
 
         $this->freshTimestamps($eloquent, $data);
@@ -81,51 +87,73 @@ class InsertScenario
         $allModels = $eloquent->newCollection();
         $deletingModels = $eloquent->newCollection();
         $bulkRows = new BulkRows();
+        $deletingBulkRows = new BulkRows();
 
         foreach ($data->rows as $accumulatedRow) {
             if ($eventDispatcher->dispatch(BulkEventEnum::SAVING, $accumulatedRow->model) === false
                 || $eventDispatcher->dispatch(BulkEventEnum::CREATING, $accumulatedRow->model) === false
             ) {
-                $accumulatedRow->skipped = true;
+                $accumulatedRow->skipCreating = true;
 
                 continue;
             }
-
-            $allModels->push($accumulatedRow->model);
 
             if ($deletedAtColumn !== null
                 && $accumulatedRow->model->getAttribute($deletedAtColumn) !== null
             ) {
                 if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $accumulatedRow->model) === false) {
-                    $accumulatedRow->skipped = true;
+                    $accumulatedRow->skipCreating = true;
+                    $accumulatedRow->skipDeleting = true;
                 } else {
                     $deletingModels->push($accumulatedRow->model);
+                    $deletingBulkRows->push(
+                        new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                    );
                 }
             }
 
+            $allModels->push($accumulatedRow->model);
             $bulkRows->push(
                 new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
             );
         }
 
-        if ($allModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::CREATING_MANY, $allModels, $bulkRows);
+        $markedAllAsSkipped = false;
 
-            if ($deletingModels->isNotEmpty()) {
-                $eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $deletingModels, $bulkRows);
+        if ($allModels->isNotEmpty()) {
+            if ($eventDispatcher->dispatch(BulkEventEnum::CREATING_MANY, $allModels, $bulkRows) === false) {
+                $this->markAllAsSkipped($data);
+                $markedAllAsSkipped = true;
             }
 
-            $eventDispatcher->dispatch(BulkEventEnum::SAVING_MANY, $allModels, $bulkRows);
+            if ($markedAllAsSkipped === false
+                && $deletingModels->isNotEmpty()
+            ) {
+                if ($eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $deletingModels, $deletingBulkRows) === false) {
+                    foreach ($data->rows as $row) {
+                        if ($row->model->getAttribute($deletedAtColumn) !== null) {
+                            $row->skipCreating = true;
+                            $row->skipDeleting = true;
+                        }
+                    }
+                }
+            }
+
+            if ($markedAllAsSkipped === false
+                && $eventDispatcher->dispatch(BulkEventEnum::SAVING_MANY, $allModels, $bulkRows) === false
+            ) {
+                $this->markAllAsSkipped($data);
+            }
         }
 
-        unset($allModels, $deletingModels, $bulkRows);
+        unset($allModels, $deletingModels, $bulkRows, $deletingBulkRows);
     }
 
     private function freshTimestamps(BulkModel $eloquent, BulkAccumulationEntity $data): void
     {
         if ($eloquent->usesTimestamps()) {
             foreach ($data->rows as $accumulatedRow) {
-                if ($accumulatedRow->skipped) {
+                if ($accumulatedRow->skipCreating) {
                     continue;
                 }
 
@@ -147,12 +175,16 @@ class InsertScenario
             : null;
         $keyedExistingRows = $existingRows->keyBy(
             function (BulkModel $model) use ($data): string {
-                return $this->getUniqueKeyForModel($model, $data->uniqueBy);
+                return $this->getUniqueKeyFeature->handle($model, $data->uniqueBy);
             }
         );
 
         foreach ($data->rows as $row) {
-            $key = $this->getUniqueKeyForModel($row->model, $data->uniqueBy);
+            if ($row->skipCreating) {
+                continue;
+            }
+
+            $key = $this->getUniqueKeyFeature->handle($row->model, $data->uniqueBy);
 
             if ($keyedExistingRows->has($key)) {
                 $row->model = $keyedExistingRows->get($key);
@@ -174,52 +206,53 @@ class InsertScenario
         BulkEventDispatcher $eventDispatcher,
         ?string $deletedAtColumn,
     ): void {
-        $allModels = $eloquent->newCollection();
+        $savedModels = $eloquent->newCollection();
         $deletedModels = $eloquent->newCollection();
         $bulkRows = new BulkRows();
+        $deletedBulkRows = new BulkRows();
 
         foreach ($data->rows as $accumulatedRow) {
-            if ($accumulatedRow->skipped || $accumulatedRow->model->exists === false) {
+            if ($accumulatedRow->skipCreating || $accumulatedRow->model->exists === false) {
                 continue;
             }
 
-            $allModels->push($accumulatedRow->model);
-
+            $savedModels->push($accumulatedRow->model);
             $eventDispatcher->dispatch(BulkEventEnum::CREATED, $accumulatedRow->model);
 
             if ($deletedAtColumn !== null
                 && $accumulatedRow->model->getAttribute($deletedAtColumn) !== null
             ) {
                 $deletedModels->push($accumulatedRow->model);
+                $deletedBulkRows->push(
+                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                );
                 $eventDispatcher->dispatch(BulkEventEnum::DELETED, $accumulatedRow->model);
             }
 
             $eventDispatcher->dispatch(BulkEventEnum::SAVED, $accumulatedRow->model);
 
             $bulkRows->push(
-                new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy, $accumulatedRow->skipped)
+                new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
             );
         }
 
-        if ($allModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::CREATED_MANY, $allModels, $bulkRows);
+        if ($savedModels->isNotEmpty()) {
+            $eventDispatcher->dispatch(BulkEventEnum::CREATED_MANY, $savedModels, $bulkRows);
 
             if ($deletedModels->isNotEmpty()) {
-                $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $allModels, $bulkRows);
+                $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $savedModels, $deletedBulkRows);
             }
 
-            $eventDispatcher->dispatch(BulkEventEnum::SAVED_MANY, $allModels, $bulkRows);
+            $eventDispatcher->dispatch(BulkEventEnum::SAVED_MANY, $savedModels, $bulkRows);
         }
+
+        unset($bulkRows, $deletedBulkRows, $savedModels, $deletedModels);
     }
 
-    private function getUniqueKeyForModel(BulkModel $model, array $unique): string
+    private function markAllAsSkipped(BulkAccumulationEntity $data): void
     {
-        $key = '';
-
-        foreach ($unique as $attribute) {
-            $key .= ':' . ($model->getAttribute($attribute) ?? '');
+        foreach ($data->rows as $row) {
+            $row->skipCreating = true;
         }
-
-        return hash('crc32c', $key);
     }
 }

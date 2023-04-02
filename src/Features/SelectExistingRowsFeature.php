@@ -23,7 +23,7 @@ class SelectExistingRowsFeature
         array $selectColumns,
         ?string $deletedAtColumn = null,
     ): Collection {
-        $collection = $data->getModels();
+        $collection = $data->getNotSkippedModels();
 
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();

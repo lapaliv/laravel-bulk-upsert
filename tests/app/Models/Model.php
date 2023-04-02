@@ -14,9 +14,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
  */
 abstract class Model extends Eloquent implements BulkModel
 {
-    use Bulkable {
-        registerModelEvent as bulkableRegisterModelEvent;
-    }
+    use Bulkable;
 
     public static function table(): string
     {
@@ -25,7 +23,7 @@ abstract class Model extends Eloquent implements BulkModel
 
     public static function registerModelEvent($event, $callback): void
     {
-        self::bulkableRegisterModelEvent($event, $callback);
+        parent::registerModelEvent($event, $callback);
     }
 
     protected static function getSchema(): Builder

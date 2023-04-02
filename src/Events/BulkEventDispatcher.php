@@ -2,8 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Events;
 
-use Closure;
 use Illuminate\Container\Container;
+use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
@@ -11,31 +11,15 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
  */
 class BulkEventDispatcher
 {
-    /**
-     * @var array<string, array<string, Closure[]>>
-     */
-    private static array $globalListeners = [];
     private array $localListeners = [];
     private ?array $enabledEvents = null;
 
-    public function __construct(private string $model)
+    public function __construct(private BulkModel $model)
     {
         //
     }
 
-    public static function registerListener(string $model, string $event, string|callable $listener): void
-    {
-        self::$globalListeners[$model] ??= [];
-        self::$globalListeners[$model][$event] ??= [];
-        self::$globalListeners[$model][$event][] = self::convertListenerToClosure($listener);
-    }
-
-    public static function flush(): void
-    {
-        self::$globalListeners = [];
-    }
-
-    public function listen(string $event, string|callable|null $listener, bool $once = false): static
+    public function listen(string $event, mixed $listener, bool $once = false): static
     {
         $listener = self::convertListenerToClosure($listener);
 
@@ -59,24 +43,39 @@ class BulkEventDispatcher
 
     public function dispatch(string $event, ...$payload): mixed
     {
-        if ($this->hasListeners([$event]) === false) {
+        if ($this->hasListener($event) === false) {
             return null;
         }
 
         $isHalt = $this->isHaltEvent($event);
-        $globalListeners = self::$globalListeners[$this->model][$event] ?? [];
+        $dispatcher = $this->model::getEventDispatcher();
+        $nativeEvent = $this->getEloquentNativeEventName($event);
 
-        foreach ($globalListeners as $listener) {
-            $response = $listener(...$payload);
+        if (in_array($event, BulkEventEnum::model())) {
+            $response = $dispatcher->dispatch($nativeEvent, $payload[0], $isHalt);
 
             if ($isHalt && $response === false) {
                 return false;
             }
+
+            return null;
         }
 
-        $localListeners = $this->localListeners[$event] ?? [];
+        if (method_exists($dispatcher, 'getListeners')) {
+            foreach ($dispatcher->getListeners($nativeEvent) as $listener) {
+                $response = $listener($nativeEvent, $payload);
 
-        foreach ($localListeners as $key => $config) {
+                if ($isHalt && $response === false) {
+                    return false;
+                }
+            }
+        }
+
+        if (array_key_exists($event, $this->localListeners) === false) {
+            return null;
+        }
+
+        foreach ($this->localListeners[$event] as $key => $config) {
             ['once' => $once, 'listener' => $listener] = $config;
             $response = $listener(...$payload);
 
@@ -95,22 +94,21 @@ class BulkEventDispatcher
     public function hasListeners(array $events): bool
     {
         foreach ($events as $event) {
-            $listeners = [
-                ...self::$globalListeners[$this->model][$event] ?? [],
-                ...$this->localListeners[$event] ?? [],
-            ];
+            $nativeEvent = $this->getEloquentNativeEventName($event);
 
-            if (empty($listeners)) {
-                continue;
+            if ($this->model::getEventDispatcher()->hasListeners($nativeEvent)) {
+                return true;
             }
 
-            if (is_array($this->enabledEvents)
-                && in_array($event, $this->enabledEvents, true) === false
-            ) {
-                continue;
-            }
+            if (array_key_exists($event, $this->localListeners)) {
+                if (is_array($this->enabledEvents)
+                    && in_array($event, $this->enabledEvents, true) === false
+                ) {
+                    continue;
+                }
 
-            return true;
+                return true;
+            }
         }
 
         return false;
@@ -133,7 +131,7 @@ class BulkEventDispatcher
         return in_array($event, BulkEventEnum::halt(), true);
     }
 
-    private static function convertListenerToClosure(mixed $listener): ?Closure
+    private static function convertListenerToClosure(mixed $listener): mixed
     {
         if ($listener === null) {
             return null;
@@ -144,10 +142,11 @@ class BulkEventDispatcher
             $listener = [Container::getInstance()->make($class), $method];
         }
 
-        if (is_callable($listener)) {
-            return Closure::fromCallable($listener);
-        }
+        return $listener;
+    }
 
-        return null;
+    private function getEloquentNativeEventName(string $event): string
+    {
+        return sprintf('eloquent.%s: %s', $event, get_class($this->model));
     }
 }

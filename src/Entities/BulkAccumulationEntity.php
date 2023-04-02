@@ -20,12 +20,16 @@ class BulkAccumulationEntity
         //
     }
 
-    public function getModels(): Collection
+    public function getNotSkippedModels(string $key = null): Collection
     {
         $result = new Collection();
 
         foreach ($this->rows as $row) {
-            if ($row->skipped) {
+            if ($key === null && ($row->skipCreating || $row->skipUpdating)) {
+                continue;
+            }
+
+            if ($key !== null && $row->{$key}) {
                 continue;
             }
 
@@ -33,5 +37,16 @@ class BulkAccumulationEntity
         }
 
         return $result;
+    }
+
+    public function hasNotSkippedModels(string $key): bool
+    {
+        foreach ($this->rows as $row) {
+            if ($row->{$key} === false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

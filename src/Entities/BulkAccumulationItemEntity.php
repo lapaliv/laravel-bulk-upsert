@@ -13,6 +13,10 @@ class BulkAccumulationItemEntity
         public mixed $row,
         public BulkModel $model,
         public bool $skipped = false,
+        public bool $skipCreating = false,
+        public bool $skipUpdating = false,
+        public bool $skipDeleting = false,
+        public bool $skipRestoring = false,
     ) {
         //
     }
