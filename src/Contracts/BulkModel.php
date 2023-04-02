@@ -29,6 +29,7 @@ interface BulkModel
      * Get an attribute from the model.
      *
      * @param string $key
+     *
      * @return mixed
      */
     public function getAttribute($key);
@@ -58,16 +59,6 @@ interface BulkModel
      * @return Collection
      */
     public function newCollection(array $models = []);
-
-    /**
-     * Fire the given event for the model.
-     *
-     * @param string $event
-     * @param bool $halt
-     *
-     * @return mixed
-     */
-    public function fireModelEvent($event, $halt = true);
 
     /**
      * Determine if the model uses timestamps.
@@ -152,8 +143,8 @@ interface BulkModel
      * @param array<string, mixed> $attributes
      *
      * @return $this
-     * @throws MassAssignmentException
      *
+     * @throws MassAssignmentException
      */
     public function fill(array $attributes);
 
@@ -162,6 +153,7 @@ interface BulkModel
      *
      * @param array $attributes
      * @param bool $sync
+     *
      * @return $this
      */
     public function setRawAttributes(array $attributes, $sync = false);
@@ -184,6 +176,7 @@ interface BulkModel
      * Determine if the model or any of the given attribute(s) have been modified.
      *
      * @param array|string|null $attributes
+     *
      * @return bool
      */
     public function isDirty($attributes = null);
@@ -213,6 +206,7 @@ interface BulkModel
      * Set the value of the "created at" attribute.
      *
      * @param mixed $value
+     *
      * @return $this
      */
     public function setCreatedAt($value);
@@ -221,6 +215,7 @@ interface BulkModel
      * Set the value of the "updated at" attribute.
      *
      * @param mixed $value
+     *
      * @return $this
      */
     public function setUpdatedAt($value);
@@ -249,9 +244,17 @@ interface BulkModel
     /**
      * Get the model's original attribute values.
      *
-     * @param  string|null  $key
-     * @param  mixed  $default
-     * @return mixed|array
+     * @param string|null $key
+     * @param mixed $default
+     *
+     * @return array|mixed
      */
     public function getOriginal($key = null, $default = null);
+
+    /**
+     * Convert the model's attributes to an array.
+     *
+     * @return array
+     */
+    public function attributesToArray();
 }

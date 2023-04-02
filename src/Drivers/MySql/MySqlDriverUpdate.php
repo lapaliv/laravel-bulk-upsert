@@ -11,6 +11,9 @@ use Lapaliv\BulkUpsert\Builders\SelectBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 
+/**
+ * @internal
+ */
 class MySqlDriverUpdate
 {
     public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
@@ -105,6 +108,7 @@ class MySqlDriverUpdate
                 );
             } elseif ($where instanceof BuilderWhereIn) {
                 $values = [];
+
                 foreach ($where->values as $value) {
                     $values[] = $this->mixedValueToSqlConverter->handle($value, $bindings);
                 }

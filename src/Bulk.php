@@ -2,590 +2,388 @@
 
 namespace Lapaliv\BulkUpsert;
 
+use BadMethodCallException;
 use Closure;
 use Generator;
+use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
-use Lapaliv\BulkUpsert\Exceptions\BulkModelWasNotTransferred;
-use Lapaliv\BulkUpsert\Features\GetBulkModelFeature;
-use Lapaliv\BulkUpsert\Features\SeparateIterableRowsFeature;
-use Lapaliv\BulkUpsert\Traits\BulkPreparingBulkUpdateTrait;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
+use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
+use Lapaliv\BulkUpsert\Scenarios\InsertScenario;
+use stdClass;
 
+/**
+ * @method $this onCreating(callable|null $callback)
+ * @method $this onCreated(callable|null $callback)
+ * @method $this onCreatingMany(callable|null $callback)
+ * @method $this onCreatedMany(callable|null $callback)
+ * @method $this onUpdating(callable|null $callback)
+ * @method $this onUpdated(callable|null $callback)
+ * @method $this onUpdatingMany(callable|null $callback)
+ * @method $this onUpdatedMany(callable|null $callback)
+ * @method $this onSaving(callable|null $callback)
+ * @method $this onSaved(callable|null $callback)
+ * @method $this onSavingMany(callable|null $callback)
+ * @method $this onSavedMany(callable|null $callback)
+ * @method $this onDeleting(callable|null $callback)
+ * @method $this onDeleted(callable|null $callback)
+ * @method $this onDeletingMany(callable|null $callback)
+ * @method $this onDeletedMany(callable|null $callback)
+ * @method $this onRestoring(callable|null $callback)
+ * @method $this onRestored(callable|null $callback)
+ * @method $this onRestoringMany(callable|null $callback)
+ * @method $this onRestoredMany(callable|null $callback)
+ */
 class Bulk
 {
-    use BulkPreparingBulkUpdateTrait;
+    private const DEFAULT_CHUNK_SIZE = 100;
 
-    private BulkModel $eloquent;
+    private BulkModel $model;
+    private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
+    private array $uniqueBy = [];
+    private BulkEventDispatcher $eventDispatcher;
+    private ?string $deletedAtColumn;
+    private array $dateFields;
 
-    private int $chunkSize = 100;
-
-    private array $updateAttributes = [
-        'onlyAnyway' => [],
-        'onlyBeforeDeleting' => [],
-        'onlyBeforeRestoring' => [],
-    ];
-
-    private array $identifies = [];
-
-    private array $listeners = [
-//        'before' => [],
-        'beforeCreating' => [],
-        'afterCreating' => [],
-        'beforeUpdating' => [],
-        'afterUpdating' => [],
-        'beforeDeleting' => [],
-        'afterDeleting' => [],
-        'beforeRestoring' => [],
-        'afterRestoring' => [],
-        'beforeSaving' => [],
-        'afterSaving' => [],
-//        'after' => [],
-    ];
-
-    private array $waitingRows = [
-        'insertOrIgnore' => [],
-        'insert' => [],
+    /**
+     * @var array{
+     *  createOrIgnore: array<string, BulkAccumulationEntity>,
+     *  create: array<string, BulkAccumulationEntity>,
+     *  update: array<string, BulkAccumulationEntity>,
+     *  upsert: array<string, BulkAccumulationEntity>,
+     * }
+     */
+    private array $storage = [
+        'createOrIgnore' => [],
+        'create' => [],
         'update' => [],
         'upsert' => [],
     ];
 
-    private array $events = [
-        BulkEventEnum::CREATING,
-        BulkEventEnum::CREATED,
-        BulkEventEnum::UPDATING,
-        BulkEventEnum::UPDATED,
-        BulkEventEnum::SAVING,
-        BulkEventEnum::SAVED,
-        BulkEventEnum::DELETING,
-        BulkEventEnum::DELETED,
-    ];
-
-    public function __construct(
-        private GetBulkModelFeature $getBulkModelFeature,
-        private SeparateIterableRowsFeature $separateIterableRowsFeature,
-        private BulkInsert $bulkInsert,
-        private BulkUpdate $bulkUpdate,
-        private BulkUpsert $bulkUpsert,
-    )
+    public function __construct(BulkModel|string $model)
     {
-        // Nothing
+        if (is_string($model) && class_exists($model)) {
+            $this->model = Container::getInstance()->make($model);
+        } elseif ($model instanceof BulkModel) {
+            $this->model = $model;
+        } else {
+            throw new BulkModelIsUndefined();
+        }
     }
 
-    public function model(string|BulkModel $model): static
-    {
-        $this->eloquent = $this->getBulkModelFeature->handle($model);
+//    abstract public function update(iterable $rows): static;
+//
+//    abstract public function updateOrAccumulate(iterable $rows): static;
+//
+//    abstract public function updateAndReturn(iterable $rows): Collection;
+//
+//    abstract public function upsert(iterable $rows): static;
+//
+//    abstract public function upsertOrAccumulate(iterable $rows): static;
+//
+//    abstract public function upsertAndReturn(iterable $rows): Collection;
 
-        return $this;
-    }
-
-    public function before(?callable $callback): static
+    public function __call(string $name, array $arguments)
     {
-        return $this->when(__FUNCTION__, $callback);
-    }
+        if (str_starts_with($name, 'on')) {
+            $event = lcfirst(substr($name, 2));
 
-    public function after(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
+            if (in_array($event, BulkEventEnum::cases())) {
+                $this->getEventDispatcher()->dispatch($event, $arguments[0] ?? null);
 
-    public function beforeCreating(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function afterCreating(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function beforeUpdating(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function afterUpdating(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function beforeDeleting(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function afterDeleting(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function beforeRestoring(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function afterRestoring(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function beforeSaving(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function afterSaving(?callable $callback): static
-    {
-        return $this->when(__FUNCTION__, $callback);
-    }
-
-    public function registerObserver(object $observer): static
-    {
-        foreach (array_keys($this->listeners) as $eventName) {
-            if (method_exists($observer, $eventName)) {
-                $this->{$eventName}([$observer, $eventName]);
+                return $this;
             }
         }
 
-        return $this;
+        throw new BadMethodCallException('Method ' . static::class . '::' . $name . '() is undefined');
     }
 
-    /**
-     * @param string[]|string[][] $uniqueAttributes
-     * @return $this
-     */
-    public function identifyBy(array $uniqueAttributes): static
-    {
-        $isFlatArray = true;
-
-        foreach ($uniqueAttributes as $item) {
-            if (is_array($item)) {
-                $this->identifies[] = $item;
-                $isFlatArray = false;
-            }
-        }
-
-        if ($isFlatArray) {
-            $this->identifies[] = $uniqueAttributes;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param string[]|string[][] $uniqueAttributes
-     * @return $this
-     */
-    public function orIdentifyBy(array $uniqueAttributes): static
-    {
-        $isFlatArray = true;
-
-        foreach ($uniqueAttributes as $item) {
-            if (is_array($item)) {
-                $this->identifies[] = $item;
-                $isFlatArray = false;
-            }
-        }
-
-        if ($isFlatArray) {
-            $this->identifies[] = $uniqueAttributes;
-        }
-
-        return $this;
-    }
-
-    public function updateOnly(array $attributes): static
-    {
-        $this->updateAttributes['onlyAnyway'] = $attributes;
-
-        return $this;
-    }
-
-    public function updateOnlyBeforeDeleting(array $attributes): static
-    {
-        $this->updateAttributes['onlyBeforeDeleting'] = array_unique($attributes);
-
-        return $this;
-    }
-
-    public function updateOnlyBeforeRestoring(array $attributes): static
-    {
-        $this->updateAttributes['onlyBeforeRestoring'] = array_unique($attributes);
-
-        return $this;
-    }
-
-    public function chunk(int $size = 100): static
+    public function chunk(int $size = self::DEFAULT_CHUNK_SIZE): static
     {
         $this->chunkSize = $size;
 
         return $this;
     }
 
-    public function insert(iterable $rows, bool $ignore = false): static
+    /**
+     * @param string[]|string[][] $attributes
+     *
+     * @return $this
+     */
+    public function uniqueBy(array|callable $attributes): static
     {
-        $this->insertWithAccumulation($this->getBulkInsertInstance(), $rows, $ignore, force: true);
+        if (is_callable($attributes)) {
+            $this->uniqueBy = [Closure::fromCallable($attributes)];
+        } else {
+            $attributes = array_values($attributes);
 
-        return $this;
-    }
-
-    public function insertOrAccumulate(iterable $rows, bool $ignore = false): static
-    {
-        $this->insertWithAccumulation($this->getBulkInsertInstance(), $rows, $ignore);
-
-        return $this;
-    }
-
-    public function insertAndReturn(iterable $rows, array $select = ['*'], bool $ignore = false): Collection
-    {
-        $result = $this->getEloquent()->newCollection();
-        $bulkInsert = $this->getBulkInsertInstance(
-            $select,
-            fn(Collection $collection) => $result->push(...$collection),
-        );
-
-        $this->insertWithAccumulation($bulkInsert, $rows, $ignore, force: true);
-
-        return $result;
-    }
-
-    public function update(iterable $rows): static
-    {
-        $this->updateWithAccumulation($this->getBulkUpdateInstance(), $rows, force: true);
-
-        return $this;
-    }
-
-    public function updateOrAccumulate(iterable $rows): static
-    {
-        $this->updateWithAccumulation($this->getBulkUpdateInstance(), $rows);
-
-        return $this;
-    }
-
-    public function updateAndReturn(iterable $rows, array $select = ['*']): Collection
-    {
-        $result = $this->getEloquent()->newCollection();
-        $bulkUpdate = $this->getBulkUpdateInstance(
-            $select,
-            fn(Collection $collection) => $result->push(...$collection),
-        );
-
-        $this->updateWithAccumulation($bulkUpdate, $rows, force: true);
-
-        return $result;
-    }
-
-    public function upsert(iterable $rows): static
-    {
-        $this->upsertWithAccumulation($this->getBulkUpsertInstance(), $rows, force: true);
-
-        return $this;
-    }
-
-    public function upsertOrAccumulate(iterable $rows): static
-    {
-        $this->upsertWithAccumulation($this->getBulkUpsertInstance(), $rows);
-
-        return $this;
-    }
-
-    public function upsertAndReturn(iterable $rows, array $select = ['*']): Collection
-    {
-        $result = $this->getEloquent()->newCollection();
-        $bulkUpsert = $this->getBulkUpsertInstance(
-            $select,
-            fn(Collection $collection) => $result->push(...$collection),
-        );
-        $this->upsertWithAccumulation($bulkUpsert, $rows, force: true);
-
-        return $result;
-    }
-
-    public function saveAccumulated(): void
-    {
-        $bulkInsert = $this->getBulkInsertInstance();
-        $bulkUpdate = $this->getBulkUpdateInstance();
-        $bulkUpsert = $this->getBulkUpsertInstance();
-
-        if (empty($this->waitingRows['insertOrIgnore']) === false) {
-            $this->insertWithoutAccumulation($bulkInsert, $this->waitingRows['insertOrIgnore'], true);
-            $this->waitingRows['insertOrIgnore'] = [];
-        }
-
-        if (empty($this->waitingRows['insert']) === false) {
-            $this->insertWithoutAccumulation($bulkInsert, $this->waitingRows['insert'], true);
-            $this->waitingRows['insert'] = [];
-        }
-
-        if (empty($this->waitingRows['update']) === false) {
-            $this->updateWithoutAccumulation($bulkUpdate, $this->waitingRows['update'], true);
-            $this->waitingRows['update'] = [];
-        }
-
-        if (empty($this->waitingRows['upsert']) === false) {
-            $this->upsertWithoutAccumulation($bulkUpsert, $this->waitingRows['upsert']);
-            $this->waitingRows['upsert'] = [];
-        }
-    }
-
-    private function when(string $event, ?callable $callback): static
-    {
-        if ($callback !== null) {
-            $this->listeners[$event][] = is_callable($callback)
-                ? Closure::fromCallable($callback)
-                : $callback;
-        }
-
-        return $this;
-    }
-
-    private function accumulate(array &$storage, iterable $rows): Generator
-    {
-        $generator = $this->separateIterableRowsFeature->handle($this->chunkSize, $rows);
-
-        foreach ($generator as $list) {
-            foreach ($list as $item) {
-                $identifierIndex = $this->getIdentifierIndexForRow($item);
-                $storage[$identifierIndex] ??= [];
-                $storage[$identifierIndex][] = $item;
-
-                if (count($storage[$identifierIndex]) % $this->chunkSize === 0) {
-                    yield [
-                        'rows' => $storage[$identifierIndex],
-                        'identifiers' => $this->identifies[$identifierIndex],
-                    ];
-
-                    $storage[$identifierIndex] = [];
-                }
+            if (is_array($attributes[0])) {
+                $this->uniqueBy = $attributes;
+            } else {
+                $this->uniqueBy = [$attributes];
             }
         }
+
+        return $this;
     }
 
-    private function getIdentifierIndexForRow(object|array $row): int
+    public function orUniqueBy(array|callable $attributes): static
     {
+        if (is_callable($attributes)) {
+            $this->uniqueBy = [Closure::fromCallable($attributes)];
+        } else {
+            $attributes = array_values($attributes);
+
+            if (is_array($attributes[0])) {
+                $this->uniqueBy = array_merge($this->uniqueBy, $attributes);
+            } else {
+                $this->uniqueBy[] = $attributes;
+            }
+        }
+
+        return $this;
+    }
+
+    public function setEvents(array $events): static
+    {
+        $this->getEventDispatcher()->restrict($events);
+
+        return $this;
+    }
+
+    public function disableEvents(): static
+    {
+        return $this->setEvents([]);
+    }
+
+    public function create(iterable $rows, bool $ignoreConflicts = false): static
+    {
+        $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
+        $this->accumulate($storageKey, $rows);
+
+        foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
+            $this->insert($accumulation, $ignoreConflicts);
+        }
+
+        return $this;
+    }
+
+    public function createOrAccumulate(iterable $rows, bool $ignoreConflicts = false): static
+    {
+        $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
+        $this->accumulate($storageKey, $rows);
+
+        foreach ($this->getReadyChunks($storageKey) as $accumulation) {
+            $this->insert($accumulation, $ignoreConflicts);
+        }
+
+        return $this;
+    }
+
+    public function createAndReturn(
+        iterable $rows,
+        array $columns = ['*'],
+        bool $ignoreConflicts = false
+    ): Collection {
+        $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
+        $this->accumulate($storageKey, $rows);
+        $result = $this->model->newCollection();
+
+        foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
+            $this->getEventDispatcher()->once(
+                BulkEventEnum::SAVED_MANY,
+                function (Collection $collection) use ($result): void {
+                    $result->push(...$collection);
+                }
+            );
+
+            $this->insert($accumulation, $ignoreConflicts, $columns);
+        }
+
+        return $result;
+    }
+
+    private function accumulate(string $storageKey, iterable $rows): void
+    {
+        foreach ($rows as $row) {
+            $model = $this->convertRowToModel($row);
+            $uniqueAttributes = $this->getUniqueAttributesForModel($row, $model);
+            $hash = hash('crc32c', implode(',', $uniqueAttributes));
+
+            $this->storage[$storageKey][$hash] ??= new BulkAccumulationEntity($uniqueAttributes);
+            $this->storage[$storageKey][$hash]->rows[] = new BulkAccumulationItemEntity($row, $model);
+        }
+    }
+
+    private function convertRowToModel(mixed $row): BulkModel
+    {
+        if ($row instanceof BulkModel) {
+            return $row;
+        }
+
+        if ($row instanceof stdClass) {
+            $row = (array) $row;
+        }
+
         if (is_object($row) && method_exists($row, 'toArray')) {
             $row = $row->toArray();
         }
 
-        foreach ($this->identifies as $index => $attributes) {
-            foreach ($attributes as $attribute) {
-                if ($row instanceof BulkModel && $row->getAttribute($attribute) === null) {
+        if (is_object($row)) {
+            $row = get_class_vars(get_class($row));
+        }
+
+        if (is_array($row)) {
+            return Container::getInstance()->make(
+                get_class($this->model),
+                ['attributes' => $row]
+            );
+        }
+
+        throw new BulkValueTypeIsNotSupported($row);
+    }
+
+    private function getUniqueAttributesForModel(mixed $row, BulkModel $model): array
+    {
+        $modelAttributes = $model->attributesToArray();
+
+        foreach ($this->uniqueBy as $uniqueBy) {
+            if ($uniqueBy instanceof Closure) {
+                $result = $uniqueBy($row);
+
+                if (is_array($result) || is_string($result)) {
+                    return (array) $result;
+                }
+            }
+
+            $result = [];
+
+            foreach ($uniqueBy as $attribute) {
+                if (array_key_exists($attribute, $modelAttributes) === false) {
                     continue 2;
                 }
 
-                if (is_array($row)
-                    && (array_key_exists($attribute, $row) === false || empty($row[$attribute]))
-                ) {
-                    continue 2;
+                $result[] = $attribute;
+            }
+
+            return $result;
+        }
+
+        throw new BulkIdentifierDidNotFind($row, $this->uniqueBy);
+    }
+
+    /**
+     * @param string $storageKey
+     * @param bool $force
+     *
+     * @return Generator<BulkAccumulationEntity>
+     */
+    private function getReadyChunks(string $storageKey, bool $force = false): Generator
+    {
+        foreach ($this->storage[$storageKey] as $key => $accumulation) {
+            if ($force) {
+                yield $accumulation;
+                unset($this->storage[$storageKey][$key]);
+            } elseif (count($accumulation->rows) >= $this->chunkSize) {
+                $chunks = array_chunk($accumulation->rows, $this->chunkSize);
+
+                foreach ($chunks as $chunk) {
+                    if (count($chunk) === $this->chunkSize) {
+                        yield new BulkAccumulationEntity(
+                            $accumulation->uniqueBy,
+                            $chunk
+                        );
+                    } else {
+                        $this->storage[$storageKey][$key] = new BulkAccumulationEntity(
+                            $accumulation->uniqueBy,
+                            $chunk,
+                        );
+                    }
                 }
+            }
+        }
+    }
 
-                if (is_object($row) && (isset($row->{$attribute}) === false || $row->{$attribute} === null)) {
-                    continue 2;
+    private function insert(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
+    {
+        /** @var InsertScenario $scenario */
+        $scenario = Container::getInstance()->make(InsertScenario::class);
+        $scenario->handle(
+            $this->model,
+            $accumulation,
+            $this->getEventDispatcher(),
+            $ignore,
+            $this->getDateFields(),
+            $this->getSelectColumnsForInsert($columns),
+            $this->getDeletedAtColumn(),
+        );
+    }
+
+    private function getDateFields(): array
+    {
+        if (isset($this->dateFields) === false) {
+            $this->dateFields = [];
+
+            foreach ($this->model->getDates() as $field) {
+                $this->dateFields[$field] = $this->model->getDateFormat();
+            }
+
+            if ($this->getDeletedAtColumn() !== null) {
+                $this->dateFields[$this->getDeletedAtColumn()] = $this->model->getDateFormat();
+            }
+
+            foreach ($this->model->getCasts() as $key => $value) {
+                if (is_string($value) && preg_match('/^(date(?:time)?)(?::(.+?))?$/', $value, $matches)) {
+                    if ($matches[1] === 'date') {
+                        $this->dateFields[$key] = $matches[2] ?? 'Y-m-d';
+                    } else {
+                        $this->dateFields[$key] = $matches[2] ?? $this->model->getDateFormat();
+                    }
                 }
             }
-
-            return $index;
         }
 
-        throw new BulkIdentifierDidNotFind($row, $this->identifies);
+        return $this->dateFields;
     }
 
-    private function getBulkInsertInstance(?array $columns = ['*'], ?callable $onSaved = null): BulkInsert
+    private function getSelectColumnsForInsert(array $columns): array
     {
-        return $this->bulkInsert
-            ->onCreating(
-                $this->getSingularListener($this->listeners['beforeCreating'])
-            )
-            ->onCreated(
-                $this->getSingularListener($this->listeners['afterCreating'])
-            )
-            ->onDeleting(
-                $this->getSingularListener($this->listeners['beforeDeleting'])
-            )
-            ->onDeleted(
-                $this->getSingularListener($this->listeners['afterDeleting'])
-            )
-            ->onSaved(
-                $this->getSavedSingularListener($this->listeners['afterSaving'], $onSaved)
-            )
-            ->chunk($this->chunkSize)
-            ->select($columns)
-            ->setEvents($this->events);
+        if (in_array('*', $columns, true)) {
+            return ['*'];
+        }
+
+        if ($this->model->getIncrementing()) {
+            $columns[] = $this->model->getKeyName();
+        } elseif ($this->model->usesTimestamps()) {
+            $columns[] = $this->model->getCreatedAtColumn();
+        }
+
+        return array_unique($columns);
     }
 
-    private function getBulkUpsertInstance(?array $columns = ['*'], ?callable $onSaved = null): BulkUpsert
+    private function getDeletedAtColumn(): ?string
     {
-        return $this->bulkUpsert
-            ->onCreating(
-                $this->getSingularListener($this->listeners['beforeCreating'])
-            )
-            ->onCreated(
-                $this->getSingularListener($this->listeners['afterCreating'])
-            )
-            ->onUpdating($this->getOnUpdatingCallback())
-            ->onUpdated(
-                $this->getSingularListener($this->listeners['afterUpdating'])
-            )
-            ->onDeleting(
-                $this->getSingularListener($this->listeners['beforeDeleting'])
-            )
-            ->onDeleted(
-                $this->getSingularListener($this->listeners['afterDeleting'])
-            )
-            ->onRestoring(
-                $this->getSingularListener($this->listeners['beforeRestoring'])
-            )
-            ->onRestored(
-                $this->getSingularListener($this->listeners['afterRestoring'])
-            )
-            ->onSaving(
-                $this->getSingularListener($this->listeners['beforeSaving'])
-            )
-            ->onSaved(
-                $this->getSavedSingularListener($this->listeners['afterSaving'], $onSaved)
-            )
-            ->chunk($this->chunkSize)
-            ->select($columns)
-            ->setEvents($this->events);
+        if (isset($this->deletedAtColumn) === false) {
+            $this->deletedAtColumn = method_exists($this->model, 'getDeletedAtColumn')
+                ? $this->model->getDeletedAtColumn()
+                : null;
+        }
+
+        return $this->deletedAtColumn;
     }
 
-    private function getSingularListener(array $callbacks): ?Closure
+    private function getEventDispatcher(): BulkEventDispatcher
     {
-        if (empty($callbacks)) {
-            return null;
+        if (isset($this->eventDispatcher) === false) {
+            $this->eventDispatcher = new BulkEventDispatcher(get_class($this->model));
         }
 
-        return static function (Collection $collection) use ($callbacks): Collection {
-            foreach ($callbacks as $callback) {
-                $collection = $callback($collection) ?? $collection;
-            }
-
-            return $collection;
-        };
-    }
-
-    private function getSavedSingularListener(array $callbacks, ?callable $onSaved): ?Closure
-    {
-        if (empty($callbacks) && $onSaved === null) {
-            return null;
-        }
-
-        return static function (Collection $collection) use ($callbacks, $onSaved): void {
-            foreach ($callbacks as $callback) {
-                $callback(clone $collection);
-            }
-
-            if ($onSaved !== null) {
-                $onSaved(clone $collection);
-            }
-        };
-    }
-
-    private function insertWithAccumulation(
-        BulkInsert $bulkInsert,
-        iterable $rows,
-        bool $ignore = false,
-        bool $force = false,
-    ): void
-    {
-        $storageKey = $ignore ? 'insertOrIgnore' : 'insert';
-        $storage = &$this->waitingRows[$storageKey];
-
-        foreach ($this->accumulate($storage, $rows) as $config) {
-            ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkInsert->insert($this->getEloquent(), $identifiers, $chunk, $ignore);
-        }
-
-        if ($force) {
-            $this->insertWithoutAccumulation($bulkInsert, $storage, $ignore);
-            $storage = [];
-        }
-    }
-
-    private function insertWithoutAccumulation(
-        BulkInsert $bulkInsert,
-        array $storage,
-        bool $ignore = false,
-    ): void
-    {
-        foreach ($storage as $identifierIndex => $chunk) {
-            if (empty($chunk) === false) {
-                $bulkInsert->insert(
-                    $this->getEloquent(),
-                    $this->identifies[$identifierIndex],
-                    $chunk,
-                    $ignore,
-                );
-            }
-        }
-    }
-
-    private function updateWithAccumulation(BulkUpdate $bulkUpdate, iterable $rows, bool $force = false): void
-    {
-        $storage = &$this->waitingRows['update'];
-
-        foreach ($this->accumulate($storage, $rows) as $config) {
-            ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkUpdate->update($this->getEloquent(), $chunk, $identifiers);
-        }
-
-        if ($force) {
-            $this->updateWithoutAccumulation($bulkUpdate, $storage);
-            $storage = [];
-        }
-    }
-
-    private function updateWithoutAccumulation(BulkUpdate $bulkUpdate, array $storage): void
-    {
-        foreach ($storage as $identifierIndex => $chunk) {
-            if (empty($chunk) === false) {
-                $bulkUpdate->update(
-                    $this->getEloquent(),
-                    $chunk,
-                    $this->identifies[$identifierIndex],
-                );
-                $storage[$identifierIndex] = [];
-            }
-        }
-    }
-
-    private function upsertWithAccumulation(BulkUpsert $bulkUpsert, iterable $rows, bool $force = false): void
-    {
-        $storage = &$this->waitingRows['upsert'];
-
-        foreach ($this->accumulate($storage, $rows) as $config) {
-            ['rows' => $chunk, 'identifiers' => $identifiers] = $config;
-            $bulkUpsert->upsert($this->getEloquent(), $chunk, $identifiers);
-        }
-
-        if ($force) {
-            $this->upsertWithoutAccumulation($bulkUpsert, $storage);
-            $storage = [];
-        }
-    }
-
-    private function upsertWithoutAccumulation(BulkUpsert $bulkUpsert, array $storage): void
-    {
-        foreach ($storage as $identifierIndex => $chunk) {
-            if (empty($chunk) === false) {
-                $bulkUpsert->upsert(
-                    $this->getEloquent(),
-                    $chunk,
-                    $this->identifies[$identifierIndex],
-                );
-                $storage[$identifierIndex] = [];
-            }
-        }
-    }
-
-    private function getEloquent(): BulkModel
-    {
-        if (isset($this->eloquent)) {
-            return $this->eloquent;
-        }
-
-        throw new BulkModelWasNotTransferred();
+        return $this->eventDispatcher;
     }
 }

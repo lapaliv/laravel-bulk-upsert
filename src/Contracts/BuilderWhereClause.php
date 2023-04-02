@@ -4,6 +4,9 @@ namespace Lapaliv\BulkUpsert\Contracts;
 
 use Closure;
 
+/**
+ * @internal
+ */
 interface BuilderWhereClause
 {
     public function where(

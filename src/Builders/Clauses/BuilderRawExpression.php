@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Builders\Clauses;
 
+/**
+ * @internal
+ */
 class BuilderRawExpression
 {
     public function __construct(private string $expression)

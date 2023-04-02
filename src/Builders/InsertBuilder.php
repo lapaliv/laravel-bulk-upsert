@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Builders;
 
+/**
+ * @internal
+ */
 class InsertBuilder
 {
     private ?string $table = null;
@@ -40,6 +43,7 @@ class InsertBuilder
 
     /**
      * @param array<int|string, scalar[]> $row
+     *
      * @return $this
      */
     public function addValue(array $row): static
@@ -59,6 +63,7 @@ class InsertBuilder
 
     /**
      * @param string[] $columns
+     *
      * @return $this
      */
     public function columns(array $columns): static

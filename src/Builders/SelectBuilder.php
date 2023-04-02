@@ -5,6 +5,9 @@ namespace Lapaliv\BulkUpsert\Builders;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
 
+/**
+ * @internal
+ */
 class SelectBuilder implements BuilderWhereClause
 {
     use BuilderWhere;
@@ -38,6 +41,7 @@ class SelectBuilder implements BuilderWhereClause
 
     /**
      * @param string[] $columns
+     *
      * @return $this
      */
     public function select(array $columns): static

@@ -16,6 +16,7 @@ class BulkDriverManager implements DriverManager
 
     /**
      * @param BulkModel $eloquent
+     *
      * @return Driver
      */
     public function getForModel(BulkModel $eloquent): Driver

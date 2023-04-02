@@ -4,7 +4,11 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 
+/**
+ * @internal
+ */
 class SelectExistingRowsFeature
 {
     public function __construct(
@@ -15,11 +19,12 @@ class SelectExistingRowsFeature
 
     public function handle(
         BulkModel $eloquent,
-        Collection $collection,
+        BulkAccumulationEntity $data,
         array $selectColumns,
-        array $uniqueAttributes,
         ?string $deletedAtColumn = null,
     ): Collection {
+        $collection = $data->getModels();
+
         if ($collection->isEmpty()) {
             return $eloquent->newCollection();
         }
@@ -32,7 +37,7 @@ class SelectExistingRowsFeature
             $builder->withTrashed();
         }
 
-        $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueAttributes, $collection);
+        $this->addWhereClauseToBuilderFeature->handle($builder, $data->uniqueBy, $collection);
 
         return $builder->get();
     }

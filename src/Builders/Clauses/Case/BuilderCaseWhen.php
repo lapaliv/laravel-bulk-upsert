@@ -5,6 +5,9 @@ namespace Lapaliv\BulkUpsert\Builders\Clauses\Case;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
 
+/**
+ * @internal
+ */
 class BuilderCaseWhen
 {
     use BuilderWhere;

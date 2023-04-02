@@ -7,68 +7,53 @@ use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\Driver;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 
+/**
+ * @internal
+ */
 class FinishSaveFeature
 {
-    public function __construct(
-        private FireModelEventsFeature $fireModelEventsFeature,
-        private UpdateBuilder $builder,
-    ) {
-        //
-    }
-
     /**
      * @param BulkModel $eloquent
-     * @param Collection $collection
+     * @param BulkAccumulationEntity $data
+     * @param BulkEventDispatcher $eventDispatcher
      * @param ConnectionInterface $connection
      * @param Driver $driver
-     * @param string[] $events
+     *
      * @return void
      */
     public function handle(
         BulkModel $eloquent,
-        Collection $collection,
+        BulkAccumulationEntity $data,
+        BulkEventDispatcher $eventDispatcher,
         ConnectionInterface $connection,
         Driver $driver,
-        array $events,
     ): void {
-        if (empty($eloquent->getTouchedRelations())) {
-            $collection->each(
-                function (BulkModel $model) use ($events): void {
-                    $this->fireModelEventsFeature->handle($model, [BulkEventEnum::SAVED], $events);
-                    $model->syncOriginal();
-                }
-            );
+        if (empty($eloquent->getTouchedRelations()) === false) {
+            $relations = $this->getTouchedRelations($eloquent, $data);
 
-            return;
-        }
-
-        $collection->each(
-            function (BulkModel $model) use ($events): void {
-                $this->fireModelEventsFeature->handle($model, [BulkEventEnum::SAVED], $events);
+            if (empty($relations) === false) {
+                $this->touchRelations($relations, $eventDispatcher, $connection, $driver);
             }
-        );
-
-        $relations = $this->getTouchedRelations($eloquent, $collection);
-
-        if (empty($relations) === false) {
-            $this->touchRelations($relations, $connection, $driver);
         }
 
-        $collection->each(
-            fn (BulkModel $model) => $model->syncOriginal()
-        );
+        $this->syncOriginal($data, $eventDispatcher);
     }
 
-    private function getTouchedRelations(BulkModel $eloquent, Collection $collection): array
+    private function getTouchedRelations(BulkModel $eloquent, BulkAccumulationEntity $data): array
     {
         /** @var array<string, Collection> $result */
         $result = [];
 
-        /** @var BulkModel $model */
-        foreach ($collection as $model) {
-            $result = $model->getRelations();
+        foreach ($data->rows as $row) {
+            if ($row->skipped || $row->model->exists === false) {
+                continue;
+            }
+
+            $result = $row->model->getRelations();
 
             foreach ($eloquent->getTouchedRelations() as $relationName) {
                 /** @var BulkModel|null $relation */
@@ -88,10 +73,12 @@ class FinishSaveFeature
      * @param Collection[] $relations
      * @param ConnectionInterface $connection
      * @param Driver $driver
+     *
      * @return void
      */
     private function touchRelations(
         array $relations,
+        BulkEventDispatcher $eventDispatcher,
         ConnectionInterface $connection,
         Driver $driver,
     ): void {
@@ -102,7 +89,8 @@ class FinishSaveFeature
 
             /** @var BulkModel $model */
             $model = $collection->first();
-            $this->builder->reset()->table($model->getTable());
+            $builder = new UpdateBuilder();
+            $builder->table($model->getTable());
 
             if ($model->usesTimestamps() === false) {
                 continue;
@@ -116,24 +104,31 @@ class FinishSaveFeature
                     fn (BulkModel $model) => $model->isDirty()
                 )
                 ->each(
-                    fn (BulkModel $model) => $this->builder->addSet(
+                    fn (BulkModel $model) => $builder->addSet(
                         $model->getUpdatedAtColumn(),
                         [$model->getKeyName() => $model->getKey()],
                         $model->getAttribute($model->getUpdatedAtColumn())
                     )
                 );
 
-            $updateResult = $driver->update($connection, $this->builder);
+            $updateResult = $driver->update($connection, $builder);
 
             if ($updateResult > 0) {
                 $collection->each(
-                    fn (BulkModel $model) => $this->fireModelEventsFeature->handle(
-                        $model,
-                        [BulkEventEnum::SAVED],
-                        [BulkEventEnum::SAVED]
-                    )
+                    function (BulkModel $model) use ($eventDispatcher) {
+                        $eventDispatcher->dispatch(BulkEventEnum::SAVED, $model);
+                    }
                 );
             }
         }
+    }
+
+    private function syncOriginal(BulkAccumulationEntity $data, BulkEventDispatcher $eventDispatcher): void
+    {
+        $data->getModels()->each(
+            function (BulkModel $model): void {
+                $model->syncOriginal();
+            }
+        );
     }
 }

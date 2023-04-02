@@ -8,6 +8,9 @@ use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
 use Lapaliv\BulkUpsert\Builders\Clauses\Case\BuilderCaseWhen;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
 
+/**
+ * @internal
+ */
 class UpdateBuilder implements BuilderWhereClause
 {
     use BuilderWhere;
@@ -49,8 +52,9 @@ class UpdateBuilder implements BuilderWhereClause
 
     /**
      * @param string $field
-     * @param array<string, scalar[]|scalar> $filters
-     * @param int|float|string|bool|null $value
+     * @param array<string, scalar|scalar[]> $filters
+     * @param bool|float|int|string|null $value
+     *
      * @return $this
      */
     public function addSet(string $field, array $filters, int|float|string|null|bool $value): static

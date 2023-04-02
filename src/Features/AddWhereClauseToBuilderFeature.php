@@ -8,12 +8,16 @@ use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 
+/**
+ * @internal
+ */
 class AddWhereClauseToBuilderFeature
 {
     /**
-     * @param QueryBuilder|EloquentBuilder|BuilderWhereClause $builder
+     * @param BuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param string[] $uniqueAttributes
-     * @param array<int, array<string, scalar|BulkModel>> $rows
+     * @param array<int, array<string, BulkModel|scalar>> $rows
+     *
      * @return void
      */
     public function handle(
@@ -31,10 +35,11 @@ class AddWhereClauseToBuilderFeature
     }
 
     /**
-     * @param QueryBuilder|EloquentBuilder|BuilderWhereClause $builder
+     * @param BuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param iterable $rows
      * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
+     *
      * @return void
      */
     protected function makeBuilder(
@@ -104,6 +109,7 @@ class AddWhereClauseToBuilderFeature
     /**
      * @param array<int, array<string, scalar>> $rows
      * @param string $column
+     *
      * @return array<scalar, array<int, array<string, mixed>>>
      */
     private function groupBy(iterable $rows, string $column): array
@@ -126,6 +132,7 @@ class AddWhereClauseToBuilderFeature
      * Returns values from groups with original type.
      *
      * @param mixed[] $groups
+     *
      * @return scalar[]
      */
     private function getOriginalsFromGroup(array $groups): array
@@ -162,6 +169,7 @@ class AddWhereClauseToBuilderFeature
         }
 
         $result = [];
+
         foreach ($groups as $uniqueAttribute => $values) {
             $result[$uniqueAttribute] = count($values);
         }

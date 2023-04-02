@@ -9,6 +9,9 @@ use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 
+/**
+ * @internal
+ */
 class MySqlDriverInsert
 {
     public function __construct(
@@ -41,12 +44,13 @@ class MySqlDriverInsert
         $connection->commit();
 
         return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
-            ? (int)$lastPrimaryBeforeInserting
+            ? (int) $lastPrimaryBeforeInserting
             : null;
     }
 
     /**
      * @param InsertBuilder $builder
+     *
      * @return array{
      *     sql: string,
      *     bindings: mixed[],
@@ -59,6 +63,7 @@ class MySqlDriverInsert
 
         foreach ($builder->getValues() as $value) {
             $item = [];
+
             foreach ($builder->getColumns() as $column) {
                 $item[] = $this->mixedValueToSqlConverter->handle($value[$column] ?? null, $bindings);
             }

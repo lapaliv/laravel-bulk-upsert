@@ -2,217 +2,224 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios;
 
-use Carbon\Carbon;
+use DateTime;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Query\Expression;
+use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\DriverManager;
-use Lapaliv\BulkUpsert\Converters\CollectionToScalarArraysConverter;
-use Lapaliv\BulkUpsert\Entities\BulkScenarioConfig;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Features\AlignFieldsFeature;
-use Lapaliv\BulkUpsert\Features\FillWasRecentlyCreatedFeature;
+use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
-use Lapaliv\BulkUpsert\Features\FireModelEventsFeature;
-use Lapaliv\BulkUpsert\Features\FreshTimestampsFeature;
-use Lapaliv\BulkUpsert\Features\PrepareInsertBuilderFeature;
 use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
+use Lapaliv\BulkUpsert\Scenarios\Insert\InsertScenarioGetBuilderFeature;
 
+/**
+ * @internal
+ */
 class InsertScenario
 {
     public function __construct(
-        private CollectionToScalarArraysConverter $collectionToScalarArraysConverter,
-        private AlignFieldsFeature $alignFieldsFeature,
+        private InsertScenarioGetBuilderFeature $getInsertBuilderFeature,
         private DriverManager $driverManager,
-        private FillWasRecentlyCreatedFeature $fillWasRecentlyCreatedFeature,
-        private PrepareInsertBuilderFeature $prepareInsertBuilderFeature,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private FinishSaveFeature $finishSaveFeature,
-        private FreshTimestampsFeature $freshTimestampsFeature,
-        private FireModelEventsFeature $fireModelEventsFeature,
     ) {
         //
     }
 
-    /**
-     * @param BulkModel $eloquent
-     * @param Collection<int, BulkModel> $collection
-     * @param BulkScenarioConfig $scenarioConfig
-     * @param bool $ignore
-     * @return void
-     */
     public function handle(
         BulkModel $eloquent,
-        Collection $collection,
-        BulkScenarioConfig $scenarioConfig,
+        BulkAccumulationEntity $data,
+        BulkEventDispatcher $eventDispatcher,
         bool $ignore,
+        array $dateFields,
+        array $selectColumns,
+        ?string $deletedAtColumn,
     ): void {
-        if ($collection->isEmpty()) {
+        if (empty($data->rows)) {
             return;
         }
 
-        // there aren't any events and callbacks
-        if ($this->canUseSimpleInsert($scenarioConfig)) {
-            $this->simpleInsert($eloquent, $collection, $scenarioConfig->dateFields);
-
-            return;
+        if ($eventDispatcher->hasListeners(BulkEventEnum::inserting())) {
+            $this->prepareModelsToCreating($eloquent, $data, $eventDispatcher, $deletedAtColumn);
         }
 
-        $startedAt = Carbon::now()->startOfSecond();
+        $this->freshTimestamps($eloquent, $data);
 
-        $builder = $this->prepareInsertBuilderFeature->handle(
-            $eloquent,
-            $collection,
-            $scenarioConfig,
-            $ignore,
-        );
+        $startedAt = new DateTime();
+        $builder = $this->getInsertBuilderFeature->handle($eloquent, $data, $ignore, $dateFields);
 
         if ($builder === null) {
             return;
         }
 
         $driver = $this->driverManager->getForModel($eloquent);
-        $lastInsertedId = $driver->insert(
-            $eloquent->getConnection(),
-            $builder,
-            $eloquent->getIncrementing() ? $eloquent->getKeyName() : null,
-        );
+        $lastInsertedId = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
         unset($builder);
 
-        // there aren't any callbacks and events after creating
-        if ($this->needToSelect($scenarioConfig) === false) {
+        if ($eventDispatcher->hasListeners(BulkEventEnum::inserted()) === false) {
             return;
         }
 
-        $collection = $this->selectExistingRowsFeature->handle(
-            $eloquent,
-            $collection,
-            $scenarioConfig->selectColumns,
-            $scenarioConfig->uniqueAttributes,
-            $scenarioConfig->deletedAtColumn,
-        );
+        $models = $this->selectExistingRowsFeature->handle($eloquent, $data, $selectColumns, $deletedAtColumn);
+        $this->prepareModelsToGiving($eloquent, $data, $models, $lastInsertedId, $startedAt);
+        unset($models, $startedAt, $lastInsertedId);
 
-        $this->fillWasRecentlyCreatedFeature->handle(
-            $eloquent,
-            $collection,
-            $scenarioConfig->dateFields,
-            $lastInsertedId,
-            $startedAt,
-        );
-        unset($startedAt, $lastInsertedId);
-
-        $collection->each(
-            fn (BulkModel $model) => $this->fireModelEventsFeature->handle(
-                $model,
-                $scenarioConfig->events,
-                $this->getEventsForSelectedRows($scenarioConfig)
-            )
-        );
-
-        $this->runCreatedCallback($scenarioConfig, $collection);
-        $this->runDeletedCallback($scenarioConfig, $collection);
-
-        $this->finishSaveFeature->handle(
-            $eloquent,
-            $collection,
-            $eloquent->getConnection(),
-            $driver,
-            $scenarioConfig->events,
-        );
-
-        $scenarioConfig->savedCallback?->handle($collection);
+        $this->fireInsertedEvents($eloquent, $data, $eventDispatcher, $deletedAtColumn);
+        $this->finishSaveFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
     }
 
-    /**
-     * @param BulkModel $eloquent
-     * @param Collection $collection
-     * @param string[] $dateFields
-     * @return void
-     */
-    private function simpleInsert(BulkModel $eloquent, Collection $collection, array $dateFields): void
-    {
-        $collection->map(
-            fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
-        );
+    private function prepareModelsToCreating(
+        BulkModel $eloquent,
+        BulkAccumulationEntity $data,
+        BulkEventDispatcher $eventDispatcher,
+        ?string $deletedAtColumn,
+    ): void {
+        $allModels = $eloquent->newCollection();
+        $deletingModels = $eloquent->newCollection();
+        $bulkRows = new BulkRows();
 
-        $this->driverManager->getForModel($eloquent)
-            ->simpleInsert(
-                $eloquent->newQuery(),
-                $this->alignFieldsFeature->handle(
-                    $this->collectionToScalarArraysConverter->handle($collection, $dateFields),
-                    new Expression('default')
-                )
-            );
-    }
+        foreach ($data->rows as $accumulatedRow) {
+            if ($eventDispatcher->dispatch(BulkEventEnum::SAVING, $accumulatedRow->model) === false
+                || $eventDispatcher->dispatch(BulkEventEnum::CREATING, $accumulatedRow->model) === false
+            ) {
+                $accumulatedRow->skipped = true;
 
-    private function canUseSimpleInsert(BulkScenarioConfig $scenarioConfig): bool
-    {
-        $result = $scenarioConfig->creatingCallback === null
-            && $scenarioConfig->createdCallback === null
-            && $scenarioConfig->savedCallback === null
-            && empty($scenarioConfig->events);
-
-        if ($result && $scenarioConfig->deletedAtColumn !== null) {
-            return $scenarioConfig->deletingCallback === null
-                && $scenarioConfig->deletedCallback === null;
-        }
-
-        return $result;
-    }
-
-    private function needToSelect(BulkScenarioConfig $scenarioConfig): bool
-    {
-        $result = $scenarioConfig->createdCallback !== null
-            || $scenarioConfig->savedCallback !== null
-            || in_array(BulkEventEnum::CREATED, $scenarioConfig->events)
-            || in_array(BulkEventEnum::SAVED, $scenarioConfig->events);
-
-        if ($result === false && $scenarioConfig->deletedAtColumn !== null) {
-            return $scenarioConfig->deletedCallback !== null
-                || in_array(BulkEventEnum::DELETED, $scenarioConfig->events);
-        }
-
-        return $result;
-    }
-
-    private function getEventsForSelectedRows(BulkScenarioConfig $scenarioConfig): array
-    {
-        $result = [BulkEventEnum::CREATED];
-
-        if ($scenarioConfig->deletedAtColumn !== null) {
-            $result[] = BulkEventEnum::DELETED;
-        }
-
-        return $result;
-    }
-
-    private function runCreatedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
-    {
-        if ($scenarioConfig->createdCallback !== null) {
-            $insertedModels = $collection->filter(
-                fn (BulkModel $model) => $model->wasRecentlyCreated
-            );
-
-            if ($insertedModels->isNotEmpty()) {
-                $scenarioConfig->createdCallback->handle($insertedModels);
+                continue;
             }
 
-            unset($insertedModels);
+            $allModels->push($accumulatedRow->model);
+
+            if ($deletedAtColumn !== null
+                && $accumulatedRow->model->getAttribute($deletedAtColumn) !== null
+            ) {
+                if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $accumulatedRow->model) === false) {
+                    $accumulatedRow->skipped = true;
+                } else {
+                    $deletingModels->push($accumulatedRow->model);
+                }
+            }
+
+            $bulkRows->push(
+                new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+            );
+        }
+
+        if ($allModels->isNotEmpty()) {
+            $eventDispatcher->dispatch(BulkEventEnum::CREATING_MANY, $allModels, $bulkRows);
+
+            if ($deletingModels->isNotEmpty()) {
+                $eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $deletingModels, $bulkRows);
+            }
+
+            $eventDispatcher->dispatch(BulkEventEnum::SAVING_MANY, $allModels, $bulkRows);
+        }
+
+        unset($allModels, $deletingModels, $bulkRows);
+    }
+
+    private function freshTimestamps(BulkModel $eloquent, BulkAccumulationEntity $data): void
+    {
+        if ($eloquent->usesTimestamps()) {
+            foreach ($data->rows as $accumulatedRow) {
+                if ($accumulatedRow->skipped) {
+                    continue;
+                }
+
+                $accumulatedRow->model->updateTimestamps();
+            }
         }
     }
 
-    private function runDeletedCallback(BulkScenarioConfig $scenarioConfig, Collection $collection): void
-    {
-        if ($scenarioConfig->deletedAtColumn !== null && $scenarioConfig->deletedCallback !== null) {
-            $deletedModels = $collection->filter(
-                fn (BulkModel $model) => $model->getAttribute($scenarioConfig->deletedAtColumn) !== null
+    private function prepareModelsToGiving(
+        BulkModel $eloquent,
+        BulkAccumulationEntity $data,
+        Collection $existingRows,
+        ?int $lastInsertedId,
+        DateTimeInterface $startedAt,
+    ): void {
+        $hasIncrementing = $eloquent->getIncrementing();
+        $createdAtColumn = $eloquent->usesTimestamps()
+            ? $eloquent->getCreatedAtColumn()
+            : null;
+        $keyedExistingRows = $existingRows->keyBy(
+            function (BulkModel $model) use ($data): string {
+                return $this->getUniqueKeyForModel($model, $data->uniqueBy);
+            }
+        );
+
+        foreach ($data->rows as $row) {
+            $key = $this->getUniqueKeyForModel($row->model, $data->uniqueBy);
+
+            if ($keyedExistingRows->has($key)) {
+                $row->model = $keyedExistingRows->get($key);
+
+                if ($hasIncrementing) {
+                    $row->model->wasRecentlyCreated = $row->model->getKey() > $lastInsertedId;
+                } elseif ($createdAtColumn !== null
+                    && $row->model->getAttribute($createdAtColumn) instanceof DateTimeInterface
+                ) {
+                    $row->model->wasRecentlyCreated = $startedAt < $row->model->getAttribute($createdAtColumn);
+                }
+            }
+        }
+    }
+
+    private function fireInsertedEvents(
+        BulkModel $eloquent,
+        BulkAccumulationEntity $data,
+        BulkEventDispatcher $eventDispatcher,
+        ?string $deletedAtColumn,
+    ): void {
+        $allModels = $eloquent->newCollection();
+        $deletedModels = $eloquent->newCollection();
+        $bulkRows = new BulkRows();
+
+        foreach ($data->rows as $accumulatedRow) {
+            if ($accumulatedRow->skipped || $accumulatedRow->model->exists === false) {
+                continue;
+            }
+
+            $allModels->push($accumulatedRow->model);
+
+            $eventDispatcher->dispatch(BulkEventEnum::CREATED, $accumulatedRow->model);
+
+            if ($deletedAtColumn !== null
+                && $accumulatedRow->model->getAttribute($deletedAtColumn) !== null
+            ) {
+                $deletedModels->push($accumulatedRow->model);
+                $eventDispatcher->dispatch(BulkEventEnum::DELETED, $accumulatedRow->model);
+            }
+
+            $eventDispatcher->dispatch(BulkEventEnum::SAVED, $accumulatedRow->model);
+
+            $bulkRows->push(
+                new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy, $accumulatedRow->skipped)
             );
+        }
+
+        if ($allModels->isNotEmpty()) {
+            $eventDispatcher->dispatch(BulkEventEnum::CREATED_MANY, $allModels, $bulkRows);
 
             if ($deletedModels->isNotEmpty()) {
-                $scenarioConfig->deletedCallback->handle($deletedModels);
+                $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $allModels, $bulkRows);
             }
 
-            unset($deletedModels);
+            $eventDispatcher->dispatch(BulkEventEnum::SAVED_MANY, $allModels, $bulkRows);
         }
+    }
+
+    private function getUniqueKeyForModel(BulkModel $model, array $unique): string
+    {
+        $key = '';
+
+        foreach ($unique as $attribute) {
+            $key .= ':' . ($model->getAttribute($attribute) ?? '');
+        }
+
+        return hash('crc32c', $key);
     }
 }

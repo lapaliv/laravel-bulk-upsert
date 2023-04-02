@@ -11,6 +11,9 @@ use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsert;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverUpdate;
 use Throwable;
 
+/**
+ * @internal
+ */
 class MySqlDriver implements Driver
 {
     public function __construct(
