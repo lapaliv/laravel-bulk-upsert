@@ -18,7 +18,7 @@ use Mockery\VerificationDirector;
  *
  * @coversNothing
  */
-class CreateAnyTest extends TestCase
+final class CreateAnyTest extends TestCase
 {
     /**
      * @param string $methodName

@@ -21,12 +21,12 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
  * @property string|null $avatar
  * @property int $posts_count
  * @property bool $is_admin
- * @property float $balance
- * @property CarbonInterface $birthday
+ * @property float|null $balance
+ * @property CarbonInterface|null $birthday
  * @property array|null $phones
- * @property CarbonInterface $last_visited_at
- * @property CarbonInterface $created_at
- * @property CarbonInterface $updated_at
+ * @property CarbonInterface|null $last_visited_at
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
  * @property CarbonInterface|null $deleted_at
  *
  * @method static UserFactory factory($count = null, $state = [])

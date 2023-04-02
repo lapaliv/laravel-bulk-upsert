@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
  *
  * @coversNothing
  */
-class CreateOrAccumulateTest extends TestCase
+final class CreateOrAccumulateTest extends TestCase
 {
     /**
      * @param Closure $callback

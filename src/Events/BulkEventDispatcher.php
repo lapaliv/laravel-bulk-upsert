@@ -46,9 +46,7 @@ class BulkEventDispatcher
         $this->localListeners[$event] ??= [];
         $this->localListeners[$event][] = [
             'once' => $once,
-            'listener' => is_callable($listener)
-                ? Closure::fromCallable($listener)
-                : $listener,
+            'listener' => $listener,
         ];
 
         return $this;
@@ -151,10 +149,5 @@ class BulkEventDispatcher
         }
 
         return null;
-    }
-
-    private static function convertArrayToCallable(array $callback): callable
-    {
-        return $callback;
     }
 }

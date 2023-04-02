@@ -43,7 +43,7 @@ class MySqlDriverInsert
 
         $connection->commit();
 
-        return is_numeric($lastPrimaryBeforeInserting) || is_int($lastPrimaryBeforeInserting)
+        return is_numeric($lastPrimaryBeforeInserting)
             ? (int) $lastPrimaryBeforeInserting
             : null;
     }

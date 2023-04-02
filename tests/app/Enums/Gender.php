@@ -3,11 +3,12 @@
 namespace Lapaliv\BulkUpsert\Tests\App\Enums;
 
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use UnexpectedValueException;
 
 /**
  * @internal
  */
-class Gender implements CastsAttributes
+final class Gender implements CastsAttributes
 {
     private const MALE = 'male';
     private const FEMALE = 'female';
@@ -36,6 +37,7 @@ class Gender implements CastsAttributes
         return match ($value) {
             self::MALE => new self(self::MALE),
             self::FEMALE => new self(self::FEMALE),
+            default => throw new UnexpectedValueException('Value ' . $value . ' is undefined')
         };
     }
 

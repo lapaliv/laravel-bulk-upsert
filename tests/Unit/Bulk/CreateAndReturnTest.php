@@ -14,7 +14,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
  *
  * @coversNothing
  */
-class CreateAndReturnTest extends TestCase
+final class CreateAndReturnTest extends TestCase
 {
     /**
      * @param Closure $callback
