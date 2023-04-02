@@ -146,9 +146,11 @@ class BulkEventDispatcher
             $listener = [Container::getInstance()->make($class), $method];
         }
 
-        return is_callable($listener)
-            ? Closure::fromCallable($listener)
-            : $listener;
+        if (is_callable($listener)) {
+            return Closure::fromCallable($listener);
+        }
+
+        return null;
     }
 
     private static function convertArrayToCallable(array $callback): callable

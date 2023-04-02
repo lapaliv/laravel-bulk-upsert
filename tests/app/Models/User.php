@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
+use Lapaliv\BulkUpsert\Tests\App\Builders\UserBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Enums\Gender;
 use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
@@ -29,6 +30,7 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
  * @property CarbonInterface|null $deleted_at
  *
  * @method static UserFactory factory($count = null, $state = [])
+ * @method static UserBuilder query()
  */
 abstract class User extends Model
 {
@@ -85,6 +87,11 @@ abstract class User extends Model
             $table->timestamps();
             $table->softDeletes();
         });
+    }
+
+    public function newEloquentBuilder($query): UserBuilder
+    {
+        return new UserBuilder($query);
     }
 
     public function newCollection(array $models = []): UserCollection

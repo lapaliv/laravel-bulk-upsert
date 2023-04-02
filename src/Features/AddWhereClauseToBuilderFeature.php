@@ -110,7 +110,7 @@ class AddWhereClauseToBuilderFeature
      * @param array<int, array<string, scalar>> $rows
      * @param string $column
      *
-     * @return array<scalar, array<int, array<string, mixed>>>
+     * @return array<string, array{original: mixed, children: mixed[]}>
      */
     private function groupBy(iterable $rows, string $column): array
     {

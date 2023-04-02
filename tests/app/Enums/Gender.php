@@ -17,12 +17,12 @@ class Gender implements CastsAttributes
         //
     }
 
-    public static function male(): static
+    public static function male(): self
     {
         return new self(self::MALE);
     }
 
-    public static function female(): static
+    public static function female(): self
     {
         return new self(self::FEMALE);
     }

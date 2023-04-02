@@ -34,11 +34,18 @@ class SelectExistingRowsFeature
             ->limit($collection->count());
 
         if ($deletedAtColumn !== null) {
+            /** @phpstan-ignore-next-line */
             $builder->withTrashed();
         }
 
         $this->addWhereClauseToBuilderFeature->handle($builder, $data->uniqueBy, $collection);
 
-        return $builder->get();
+        $result = $builder->get();
+
+        if ($result instanceof Collection) {
+            return $result;
+        }
+
+        return new Collection($result->all());
     }
 }

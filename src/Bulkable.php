@@ -5,16 +5,24 @@ namespace Lapaliv\BulkUpsert;
 use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Events\QueuedClosure;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 
 /**
- * @method static BulkBuilder query()
+ * @method static BulkBuilder|Builder query()
  */
 trait Bulkable
 {
-    public function newEloquentBuilder($query): BulkBuilder
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param \Illuminate\Database\Query\Builder $query
+     *
+     * @return Builder
+     */
+    public function newEloquentBuilder($query)
     {
         return new BulkBuilder($query);
     }
