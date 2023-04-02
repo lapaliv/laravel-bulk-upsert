@@ -21,7 +21,6 @@ class BulkRow
         public BulkModel $model,
         public mixed $original,
         public array $unique,
-        public bool $wasSkipped = false,
     ) {
         //
     }

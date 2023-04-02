@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Scenarios\Insert;
+namespace Lapaliv\BulkUpsert\Features;
 
 use DateTime;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
@@ -13,7 +13,7 @@ use stdClass;
 /**
  * @internal
  */
-class InsertScenarioGetBuilderFeature
+class GetInsertBuilderFeature
 {
     public function handle(
         BulkModel $eloquent,

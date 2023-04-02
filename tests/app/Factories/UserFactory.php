@@ -43,7 +43,7 @@ abstract class UserFactory extends Factory
             'phones' => [$this->faker->phoneNumber()],
             'last_visited_at' => $this->faker->randomElement([
                 null,
-                $this->faker->dateTime(),
+                $this->faker->dateTimeBetween('-3 years'),
             ]),
             'update_uuid' => $this->faker->uuid(),
         ];

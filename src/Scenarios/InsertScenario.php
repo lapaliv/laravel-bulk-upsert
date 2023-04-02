@@ -13,9 +13,9 @@ use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
+use Lapaliv\BulkUpsert\Features\GetInsertBuilderFeature;
 use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
 use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
-use Lapaliv\BulkUpsert\Scenarios\Insert\InsertScenarioGetBuilderFeature;
 
 /**
  * @internal
@@ -23,7 +23,7 @@ use Lapaliv\BulkUpsert\Scenarios\Insert\InsertScenarioGetBuilderFeature;
 class InsertScenario
 {
     public function __construct(
-        private InsertScenarioGetBuilderFeature $getInsertBuilderFeature,
+        private GetInsertBuilderFeature $getInsertBuilderFeature,
         private DriverManager $driverManager,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
         private FinishSaveFeature $finishSaveFeature,
@@ -102,8 +102,8 @@ class InsertScenario
                 && $accumulatedRow->model->getAttribute($deletedAtColumn) !== null
             ) {
                 if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $accumulatedRow->model) === false) {
-                    $accumulatedRow->skipCreating = true;
                     $accumulatedRow->skipDeleting = true;
+                    $accumulatedRow->model->setAttribute($deletedAtColumn, null);
                 } else {
                     $deletingModels->push($accumulatedRow->model);
                     $deletingBulkRows->push(
@@ -132,8 +132,8 @@ class InsertScenario
                 if ($eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $deletingModels, $deletingBulkRows) === false) {
                     foreach ($data->rows as $row) {
                         if ($row->model->getAttribute($deletedAtColumn) !== null) {
-                            $row->skipCreating = true;
                             $row->skipDeleting = true;
+                            $row->model->setAttribute($deletedAtColumn, null);
                         }
                     }
                 }
