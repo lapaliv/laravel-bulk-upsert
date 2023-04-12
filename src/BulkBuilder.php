@@ -84,7 +84,14 @@ class BulkBuilder extends Builder
             ->identifyBy($uniqueAttributes)
             ->updateOnly(array_unique($updateAttributes));
 
-        $callback = function (Collection $collection) use ($bulk, $model, $uniqueAttributes, $chunk, $updateAttributes, &$result): void {
+        $callback = function (Collection $collection) use ($bulk, $model, $uniqueAttributes, $chunk, $updateAttributes, &$result, $values): void {
+            $collection->each(
+                function(Model $model) use($values): void {
+                    foreach($values as $key => $value){
+                        $model->setAttribute($key, $value);
+                    }
+                }
+            );
             $bulk->update($collection);
         };
 
