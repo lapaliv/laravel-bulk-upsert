@@ -69,6 +69,9 @@ class BulkBuilder extends Builder
             return;
         }
 
+        $uniqueAttributes = empty($uniqueAttributes)
+            ? [$model->getKeyName()]
+            : $uniqueAttributes;
         $updateAttributes = array_keys($values);
 
         if ($model->usesTimestamps()) {
