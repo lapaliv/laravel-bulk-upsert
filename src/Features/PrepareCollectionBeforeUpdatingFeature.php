@@ -10,7 +10,9 @@ class PrepareCollectionBeforeUpdatingFeature
 {
     public function __construct(
         private KeyByFeature $keyByFeature,
-    ) {
+        private GetDirtyAttributesFeature $getDirtyAttributesFeature,
+    )
+    {
         //
     }
 
@@ -28,7 +30,8 @@ class PrepareCollectionBeforeUpdatingFeature
         ?array $updateAttributes,
         Collection $actual,
         Collection $expected,
-    ): Collection {
+    ): Collection
+    {
         $keyedActual = $this->keyByFeature->handle($actual, $uniqueAttributes);
         $keyedExpected = $this->keyByFeature->handle($expected, $uniqueAttributes);
         $result = $eloquent->newCollection();
@@ -46,7 +49,8 @@ class PrepareCollectionBeforeUpdatingFeature
                 // Saving the correct format of the attributeValue.
                 // For example, if the attributeValue is a json string
                 // then it will be  a string with string (""[..]"") not a string with json ("[]")
-                foreach ($expectedModel->getDirty() as $attributeName => $attributeValue) {
+                $dirtyAttributes = $this->getDirtyAttributesFeature->handle($expectedModel);
+                foreach ($dirtyAttributes as $attributeName => $attributeValue) {
                     $actualModel->setAttribute(
                         $attributeName,
                         $expectedModel->getAttribute($attributeName),

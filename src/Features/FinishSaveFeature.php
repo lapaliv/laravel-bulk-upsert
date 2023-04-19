@@ -14,6 +14,7 @@ class FinishSaveFeature
     public function __construct(
         private FireModelEventsFeature $fireModelEventsFeature,
         private UpdateBuilder $builder,
+        private GetDirtyAttributesFeature $getDirtyAttributesFeature,
     ) {
         //
     }
@@ -113,7 +114,7 @@ class FinishSaveFeature
                     fn (BulkModel $model) => $model->updateTimestamps()
                 )
                 ->filter(
-                    fn (BulkModel $model) => $model->isDirty()
+                    fn (BulkModel $model) => empty($this->getDirtyAttributesFeature->handle($model)) === false
                 )
                 ->each(
                     fn (BulkModel $model) => $this->builder->addSet(
