@@ -12,6 +12,9 @@ use Traversable;
  * @template TModel of BulkModel
  * @template TOriginal of mixed
  *
+ * @method BulkRow|null get($key, $default = null)
+ * @method array<int, BulkRow<TModel, TOriginal>> all()
+ *
  * @implements Iterator<int, BulkRow<TModel, TOriginal>>
  */
 class BulkRows extends Collection

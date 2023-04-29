@@ -43,13 +43,6 @@ class UpdateBuilder implements BuilderWhereClause
         return $this->sets;
     }
 
-    public function addSetWithoutFilters(string $field, int|float|string|null|bool $value): static
-    {
-        $this->sets[$field] = $value;
-
-        return $this;
-    }
-
     /**
      * @param string $field
      * @param array<string, scalar|scalar[]> $filters
@@ -85,17 +78,6 @@ class UpdateBuilder implements BuilderWhereClause
     public function limit(int $limit): static
     {
         $this->limit = $limit;
-
-        return $this;
-    }
-
-    public function reset(): static
-    {
-        $this->table = null;
-        $this->limit = null;
-        $this->sets = [];
-        $this->wheres = [];
-        $this->fields = [];
 
         return $this;
     }

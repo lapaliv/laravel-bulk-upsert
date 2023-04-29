@@ -11,8 +11,6 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 final class CreateAndReturnTest extends TestCase
 {

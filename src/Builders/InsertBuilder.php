@@ -106,15 +106,4 @@ class InsertBuilder
 
         return $this;
     }
-
-    public function reset(): static
-    {
-        $this->table = null;
-        $this->columns = [];
-        $this->values = [];
-        $this->onConflictDoNothing = false;
-        $this->onConflictUpdateBuilder = null;
-
-        return $this;
-    }
 }

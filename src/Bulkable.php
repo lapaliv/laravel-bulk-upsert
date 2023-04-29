@@ -141,4 +141,9 @@ trait Bulkable
     {
         static::registerModelEvent(BulkEventEnum::RESTORED_MANY, $callback);
     }
+
+    public function initializeBulkable(): void
+    {
+        $this->setObservableEvents(BulkEventEnum::collection());
+    }
 }

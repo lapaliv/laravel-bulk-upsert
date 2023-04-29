@@ -13,8 +13,6 @@ use Mockery\VerificationDirector;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 class CreateSoftDeletingCallbackTest extends TestCase
 {

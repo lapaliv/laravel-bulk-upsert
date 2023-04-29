@@ -10,6 +10,9 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
  * @internal
  *
  * @method ArrayIterator|User[] getIterator()
+ * @method User|null first(callable $callback = null, $default = null)
+ * @method User|null last(callable $callback = null, $default = null)
+ * @method User|null get($key, $default = null)
  */
 class UserCollection extends Collection
 {

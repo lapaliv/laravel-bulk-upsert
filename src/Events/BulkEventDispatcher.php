@@ -11,7 +11,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
  */
 class BulkEventDispatcher
 {
-    private array $localListeners = [];
+    private array $listeners = [];
     private ?array $enabledEvents = null;
 
     public function __construct(private BulkModel $model)
@@ -27,8 +27,8 @@ class BulkEventDispatcher
             return $this;
         }
 
-        $this->localListeners[$event] ??= [];
-        $this->localListeners[$event][] = [
+        $this->listeners[$event] ??= [];
+        $this->listeners[$event][] = [
             'once' => $once,
             'listener' => $listener,
         ];
@@ -71,16 +71,16 @@ class BulkEventDispatcher
             }
         }
 
-        if (array_key_exists($event, $this->localListeners) === false) {
+        if (array_key_exists($event, $this->listeners) === false) {
             return null;
         }
 
-        foreach ($this->localListeners[$event] as $key => $config) {
+        foreach ($this->listeners[$event] as $key => $config) {
             ['once' => $once, 'listener' => $listener] = $config;
             $response = $listener(...$payload);
 
             if ($once) {
-                unset($this->localListeners[$event][$key]);
+                unset($this->listeners[$event][$key]);
             }
 
             if ($isHalt && $response === false) {
@@ -100,7 +100,7 @@ class BulkEventDispatcher
                 return true;
             }
 
-            if (array_key_exists($event, $this->localListeners)) {
+            if (array_key_exists($event, $this->listeners)) {
                 if (is_array($this->enabledEvents)
                     && in_array($event, $this->enabledEvents, true) === false
                 ) {

@@ -16,8 +16,6 @@ use Mockery\VerificationDirector;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 class CreateCollectionCallbacksTest extends TestCase
 {

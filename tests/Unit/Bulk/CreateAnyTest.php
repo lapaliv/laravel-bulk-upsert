@@ -15,8 +15,6 @@ use Mockery\VerificationDirector;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 final class CreateAnyTest extends TestCase
 {

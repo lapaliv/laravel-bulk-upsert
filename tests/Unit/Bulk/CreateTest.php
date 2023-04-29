@@ -10,8 +10,6 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 final class CreateTest extends TestCase
 {

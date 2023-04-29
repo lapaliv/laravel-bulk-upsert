@@ -16,8 +16,6 @@ use Mockery\VerificationDirector;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 class CreateSoftDeletingCollectionCallbackTest extends TestCase
 {

@@ -16,6 +16,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Exceptions\BulkModelIsUndefined;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 use Lapaliv\BulkUpsert\Scenarios\InsertScenario;
+use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use stdClass;
 
 /**
@@ -47,7 +48,7 @@ class Bulk
     private BulkModel $model;
     private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
     /**
-     * @var string[][]
+     * @var array<callable|string[]>
      */
     private array $uniqueBy = [];
     private BulkEventDispatcher $eventDispatcher;
@@ -92,6 +93,8 @@ class Bulk
         } else {
             throw new BulkModelIsUndefined();
         }
+
+        $this->uniqueBy([$model->getKeyName()]);
     }
 
 //    abstract public function upsert(iterable $rows): static;
@@ -127,35 +130,51 @@ class Bulk
      *
      * @return $this
      */
-    public function uniqueBy(array|callable $attributes): static
+    public function uniqueBy(string|array|callable $attributes): static
     {
         if (is_callable($attributes)) {
             $this->uniqueBy = [Closure::fromCallable($attributes)];
-        } else {
-            $attributes = array_values($attributes);
 
-            if (is_array($attributes[0])) {
-                $this->uniqueBy = $attributes;
-            } else {
-                $this->uniqueBy = [$attributes];
-            }
+            return $this;
+        }
+
+        if (is_string($attributes)) {
+            $this->uniqueBy = [[$attributes]];
+
+            return $this;
+        }
+
+        $attributes = array_values($attributes);
+
+        if (is_array($attributes[0])) {
+            $this->uniqueBy = $attributes;
+        } else {
+            $this->uniqueBy = [$attributes];
         }
 
         return $this;
     }
 
-    public function orUniqueBy(array|callable $attributes): static
+    public function orUniqueBy(string|array|callable $attributes): static
     {
         if (is_callable($attributes)) {
             $this->uniqueBy = [Closure::fromCallable($attributes)];
-        } else {
-            $attributes = array_values($attributes);
 
-            if (is_array($attributes[0])) {
-                $this->uniqueBy = array_merge($this->uniqueBy, $attributes);
-            } else {
-                $this->uniqueBy[] = $attributes;
-            }
+            return $this;
+        }
+
+        if (is_string($attributes)) {
+            $this->uniqueBy[] = [$attributes];
+
+            return $this;
+        }
+
+        $attributes = array_values($attributes);
+
+        if (is_array($attributes[0])) {
+            $this->uniqueBy = array_merge($this->uniqueBy, $attributes);
+        } else {
+            $this->uniqueBy[] = $attributes;
         }
 
         return $this;
@@ -234,19 +253,46 @@ class Bulk
         return $result;
     }
 
-//    abstract public function update(iterable $rows): static {
-//        $this->accumulate('update', $rows);
-//
-//        foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
-//            $this->runInsertScenario($accumulation);
-//        }
-//
-//        return $this;
-//    }
-//
-//    abstract public function updateOrAccumulate(iterable $rows): static;
-//
-//    abstract public function updateAndReturn(iterable $rows): Collection;
+    public function update(iterable $rows): static
+    {
+        $this->accumulate('update', $rows);
+
+        foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
+            $this->runUpdateScenario($accumulation);
+        }
+
+        return $this;
+    }
+
+    public function updateOrAccumulate(iterable $rows): static
+    {
+        $this->accumulate('update', $rows);
+
+        foreach ($this->getReadyChunks('update') as $accumulation) {
+            $this->runUpdateScenario($accumulation);
+        }
+
+        return $this;
+    }
+
+    public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection
+    {
+        $this->accumulate('update', $rows);
+        $result = $this->model->newCollection();
+
+        foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
+            $this->getEventDispatcher()->once(
+                BulkEventEnum::SAVED_MANY,
+                function (Collection $collection) use ($result): void {
+                    $result->push(...$collection);
+                }
+            );
+
+            $this->runUpdateScenario($accumulation, $columns);
+        }
+
+        return $result;
+    }
 
     private function accumulate(string $storageKey, iterable $rows): void
     {
@@ -279,10 +325,38 @@ class Bulk
         }
 
         if (is_array($row)) {
-            return Container::getInstance()->make(
+            /** @var BulkModel $result */
+            $result = Container::getInstance()->make(
                 get_class($this->model),
                 ['attributes' => $row]
             );
+
+            $keyName = $result->getKeyName();
+
+            if (isset($row[$keyName])) {
+                $result->{$keyName} = $row[$keyName];
+            }
+
+            if ($result->usesTimestamps()) {
+                $createdAt = $result->getCreatedAtColumn();
+                $updatedAt = $result->getCreatedAtColumn();
+
+                if (array_key_exists($createdAt, $row)) {
+                    $result->{$createdAt} = $row[$createdAt];
+                }
+
+                if (array_key_exists($updatedAt, $row)) {
+                    $result->{$updatedAt} = $row[$updatedAt];
+                }
+            }
+
+            $deletedAt = $this->getDeletedAtColumn();
+
+            if ($deletedAt !== null && array_key_exists($deletedAt, $row)) {
+                $result->{$deletedAt} = $row[$deletedAt];
+            }
+
+            return $result;
         }
 
         throw new BulkValueTypeIsNotSupported($row);
@@ -364,20 +438,19 @@ class Bulk
         );
     }
 
-//    private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
-//    {
-//        /** @var InsertScenario $scenario */
-//        $scenario = Container::getInstance()->make(InsertScenario::class);
-//        $scenario->handle(
-//            $this->model,
-//            $accumulation,
-//            $this->getEventDispatcher(),
-//            $ignore,
-//            $this->getDateFields(),
-//            $this->getSelectColumnsForInsert($columns),
-//            $this->getDeletedAtColumn(),
-//        );
-//    }
+    private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
+    {
+        /** @var UpdateScenario $scenario */
+        $scenario = Container::getInstance()->make(UpdateScenario::class);
+        $scenario->handle(
+            $this->model,
+            $accumulation,
+            $this->getEventDispatcher(),
+            $this->getDateFields(),
+            $this->getSelectColumnsForInsert($columns),
+            $this->getDeletedAtColumn(),
+        );
+    }
 
     private function getDateFields(): array
     {

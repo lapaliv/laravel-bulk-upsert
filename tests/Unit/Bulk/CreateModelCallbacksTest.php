@@ -14,8 +14,6 @@ use Mockery\VerificationDirector;
 
 /**
  * @internal
- *
- * @coversNothing
  */
 class CreateModelCallbacksTest extends TestCase
 {

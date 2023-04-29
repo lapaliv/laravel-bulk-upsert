@@ -46,7 +46,7 @@ class InsertScenario
         }
 
         if ($eventDispatcher->hasListeners(BulkEventEnum::inserting())) {
-            $this->prepareModelsToCreating($eloquent, $data, $eventDispatcher, $deletedAtColumn);
+            $this->prepareModelsForCreating($eloquent, $data, $eventDispatcher, $deletedAtColumn);
 
             if ($data->hasNotSkippedModels('skipCreating') === false) {
                 return;
@@ -71,14 +71,14 @@ class InsertScenario
         }
 
         $models = $this->selectExistingRowsFeature->handle($eloquent, $data, $selectColumns, $deletedAtColumn);
-        $this->prepareModelsToGiving($eloquent, $data, $models, $lastInsertedId, $startedAt);
+        $this->prepareModelsForGiving($eloquent, $data, $models, $lastInsertedId, $startedAt);
         unset($models, $startedAt, $lastInsertedId);
 
         $this->fireInsertedEvents($eloquent, $data, $eventDispatcher, $deletedAtColumn);
         $this->finishSaveFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
     }
 
-    private function prepareModelsToCreating(
+    private function prepareModelsForCreating(
         BulkModel $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
@@ -162,7 +162,7 @@ class InsertScenario
         }
     }
 
-    private function prepareModelsToGiving(
+    private function prepareModelsForGiving(
         BulkModel $eloquent,
         BulkAccumulationEntity $data,
         Collection $existingRows,
@@ -240,7 +240,7 @@ class InsertScenario
             $eventDispatcher->dispatch(BulkEventEnum::CREATED_MANY, $savedModels, $bulkRows);
 
             if ($deletedModels->isNotEmpty()) {
-                $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $savedModels, $deletedBulkRows);
+                $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $deletedModels, $deletedBulkRows);
             }
 
             $eventDispatcher->dispatch(BulkEventEnum::SAVED_MANY, $savedModels, $bulkRows);

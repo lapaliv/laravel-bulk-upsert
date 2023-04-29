@@ -130,4 +130,37 @@ class BulkEventEnum
             self::SAVED_MANY,
         ];
     }
+
+    public static function update(): array
+    {
+        return array_merge(self::inserting(), self::inserted());
+    }
+
+    public static function updating(): array
+    {
+        return [
+            self::SAVING,
+            self::UPDATING,
+            self::DELETING,
+            self::RESTORING,
+            self::SAVING_MANY,
+            self::UPDATING_MANY,
+            self::DELETING_MANY,
+            self::RESTORING_MANY,
+        ];
+    }
+
+    public static function updated(): array
+    {
+        return [
+            self::UPDATED,
+            self::DELETED,
+            self::RESTORED,
+            self::SAVED,
+            self::UPDATED_MANY,
+            self::DELETED_MANY,
+            self::RESTORED_MANY,
+            self::SAVED_MANY,
+        ];
+    }
 }

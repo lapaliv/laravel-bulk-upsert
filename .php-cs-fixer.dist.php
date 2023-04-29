@@ -72,5 +72,6 @@ return $config->setRules([
     'phpdoc_types_order' => [
         'null_adjustment' => 'always_last',
     ],
+    'php_unit_test_class_requires_covers' => false,
 ])
     ->setFinder($finder);

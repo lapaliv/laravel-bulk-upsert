@@ -6,6 +6,9 @@ use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Mockery\LegacyMockInterface;
+use Mockery\MockInterface;
+use Mockery\VerificationDirector;
 use PDO;
 
 /**
@@ -40,6 +43,16 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
         $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
         $this->app->register(BulkUpsertServiceProvider::class);
+    }
+
+    protected function spyShouldHaveReceived(LegacyMockInterface|MockInterface $spy): VerificationDirector
+    {
+        return $spy->shouldHaveReceived('__invoke');
+    }
+
+    protected function spyShouldNotHaveReceived(LegacyMockInterface|MockInterface $spy): void
+    {
+        $spy->shouldNotHaveReceived('__invoke');
     }
 
     private static function configureManager(): void
