@@ -70,7 +70,8 @@ class FinishSaveFeature
     }
 
     /**
-     * @param Collection[] $relations
+     * @param array $relations
+     * @param BulkEventDispatcher $eventDispatcher
      * @param ConnectionInterface $connection
      * @param Driver $driver
      *

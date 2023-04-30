@@ -16,8 +16,10 @@ class BulkAccumulationEntity
     public function __construct(
         public array $uniqueBy,
         public array $rows = [],
+        public array $updateOnly = [],
+        public array $updateExcept = [],
     ) {
-        //
+        // BulkAccumulationEntity
     }
 
     public function getNotSkippedModels(string $key = null): Collection

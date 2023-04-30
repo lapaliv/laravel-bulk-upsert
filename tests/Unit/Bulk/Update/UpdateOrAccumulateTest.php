@@ -3,17 +3,17 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Illuminate\Support\Facades\DB;
-use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class UpdateOrAccumulationTest extends TestCase
+class UpdateOrAccumulateTest extends TestCase
 {
-    use UpdateTestTrait;
+    use UserTestTrait;
 
     public function testBigChunkSize(): void
     {
@@ -41,8 +41,6 @@ class UpdateOrAccumulationTest extends TestCase
      * @param string $uniqBy
      *
      * @return void
-     *
-     * @throws JsonException
      *
      * @dataProvider dataProvider
      */

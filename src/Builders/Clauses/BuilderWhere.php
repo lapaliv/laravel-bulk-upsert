@@ -65,12 +65,4 @@ trait BuilderWhere
     {
         return $this->wheres;
     }
-
-    /**
-     * @return string[]
-     */
-    public function getFields(): array
-    {
-        return array_values($this->fields);
-    }
 }

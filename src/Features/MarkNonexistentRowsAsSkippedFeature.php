@@ -39,7 +39,8 @@ class MarkNonexistentRowsAsSkippedFeature
                 $nonexistent,
                 $this->selectExistingRowsFeature->handle(
                     $eloquent,
-                    $nonexistent,
+                    $nonexistent->getNotSkippedModels(),
+                    $data->uniqueBy,
                     $selectColumns,
                     $deletedAtColumn,
                 )
@@ -50,7 +51,7 @@ class MarkNonexistentRowsAsSkippedFeature
     private function mark(
         BulkAccumulationEntity $result,
         BulkAccumulationEntity $nonExistent,
-        Collection $selected,
+        Collection $exists,
     ): void {
         $mapIndexesAndKeys = [];
 
@@ -60,7 +61,7 @@ class MarkNonexistentRowsAsSkippedFeature
         }
 
         /** @var array<string, BulkModel> $keyedSelected */
-        $keyedSelected = $this->keyByFeature->handle($selected, $nonExistent->uniqueBy);
+        $keyedSelected = $this->keyByFeature->handle($exists, $nonExistent->uniqueBy);
 
         foreach ($nonExistent->rows as $row) {
             $key = $this->getUniqueKeyFeature->handle($row->model, $nonExistent->uniqueBy);

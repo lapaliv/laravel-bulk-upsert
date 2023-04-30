@@ -2,15 +2,13 @@
 
 namespace Lapaliv\BulkUpsert\Exceptions;
 
-class BulkAttributeTypeIsNotScalar extends BulkException
-{
-    public function __construct(private string $name)
-    {
-        parent::__construct('Attribute type is not scalar');
-    }
+use Lapaliv\BulkUpsert\Contracts\BulkException;
+use RuntimeException;
 
-    public function getName(): string
+class BulkAttributeTypeIsNotScalar extends RuntimeException implements BulkException
+{
+    public function __construct(string $name)
     {
-        return $this->name;
+        parent::__construct('The attribute [' . $name . '] has not scalar type');
     }
 }

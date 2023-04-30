@@ -106,13 +106,13 @@ class UpdateAfterWritingEventsTest extends TestCase
     public function modelDataProvider(): array
     {
         return [
-            //            'saved' => [
-            //                function () {
-            //                    return App::make(UserGenerator::class)
-            //                        ->createCollectionAndDirty(2);
-            //                },
-            //                [BulkEventEnum::SAVED],
-            //            ],
+            'saved' => [
+                function () {
+                    return App::make(UserGenerator::class)
+                        ->createCollectionAndDirty(2);
+                },
+                [BulkEventEnum::SAVED],
+            ],
             'saved && deleted' => [
                 function () {
                     return App::make(UserGenerator::class)->createCollectionAndDirty(

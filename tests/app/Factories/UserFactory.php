@@ -24,7 +24,13 @@ abstract class UserFactory extends Factory
     {
         return [
             'name' => $this->faker->name(),
-            'email' => $this->faker->randomLetter() . Carbon::now()->format('Uu') . '@' . $this->faker->domainName(),
+            'email' => implode('', [
+                $this->faker->randomLetter(),
+                Carbon::now()->format('Uu'),
+                $this->faker->randomDigit(),
+                '@',
+                $this->faker->domainName(),
+            ]),
             'gender' => $this->faker->randomElement([
                 Gender::male(),
                 Gender::female(),

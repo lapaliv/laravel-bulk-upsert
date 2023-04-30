@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Closure;
@@ -22,7 +22,7 @@ use Mockery\MockInterface;
 /**
  * @internal
  */
-class UpdateBeforeWritingEventDependenciesTest extends TestCase
+class CreateBeforeWritingEventDependenciesTest extends TestCase
 {
     use UserTestTrait;
 
@@ -61,10 +61,10 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = MySqlUser::query()
             ->bulk()
-            ->uniqueBy(['id']);
+            ->uniqueBy(['email']);
 
         // act
-        $sut->update($users);
+        $sut->create($users);
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
@@ -72,7 +72,7 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ->once()
                 ->withArgs(
                     static function (User $user) use ($users): bool {
-                        return $user->id === $users[1]['id'];
+                        return $user->email === $users[1]['email'];
                     }
                 );
         }
@@ -84,9 +84,9 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
                     static function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
                         return $actualUsers->count() === 1
                             && $bulkRows->count() === 1
-                            && $actualUsers->get(0)->id === $users[1]['id']
+                            && $actualUsers->get(0)->email === $users[1]['email']
                             && $bulkRows->get(0)->original === $users[1]
-                            && $bulkRows->get(0)->model->id === $users[1]['id'];
+                            && $bulkRows->get(0)->model->email === $users[1]['email'];
                     }
                 );
         }
@@ -127,10 +127,10 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = MySqlUser::query()
             ->bulk()
-            ->uniqueBy(['id']);
+            ->uniqueBy(['email']);
 
         // act
-        $sut->update($users);
+        $sut->create($users);
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
@@ -177,10 +177,10 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = MySqlUser::query()
             ->bulk()
-            ->uniqueBy(['id']);
+            ->uniqueBy(['email']);
 
         // act
-        $sut->update($users);
+        $sut->create($users);
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
@@ -198,139 +198,89 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
             'saving' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(2)
+                        ->makeCollection(2)
                         ->toArray();
                 },
                 BulkEventEnum::SAVING,
                 [
                     'model' => [
                         BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATING,
+                        BulkEventEnum::CREATED,
                     ],
                     'collection' => [
                         BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATING_MANY,
+                        BulkEventEnum::CREATED_MANY,
                     ],
                 ],
             ],
-            'updating' => [
+            'creating' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(2)
+                        ->makeCollection(2)
                         ->toArray();
                 },
-                BulkEventEnum::UPDATING,
+                BulkEventEnum::CREATING,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATED,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATING_MANY,
+                        BulkEventEnum::CREATED_MANY,
                     ],
                 ],
             ],
             'saving && deleting' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
+                        ->makeCollection(2, ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
                 BulkEventEnum::SAVING,
                 [
                     'model' => [
                         BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATING,
+                        BulkEventEnum::CREATED,
                         BulkEventEnum::DELETING,
                         BulkEventEnum::DELETED,
                     ],
                     'collection' => [
                         BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATING_MANY,
+                        BulkEventEnum::CREATED_MANY,
                         BulkEventEnum::DELETING_MANY,
                         BulkEventEnum::DELETED_MANY,
                     ],
                 ],
             ],
-            'updating && deleting' => [
+            'creating && deleting' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
+                        ->makeCollection(2, ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
-                BulkEventEnum::UPDATING,
+                BulkEventEnum::CREATING,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATED,
+                        BulkEventEnum::DELETING,
+                        BulkEventEnum::DELETED,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
-                    ],
-                ],
-            ],
-            'saving && restoring' => [
-                function () {
-                    return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(
-                            2,
-                            ['deleted_at' => Carbon::now()],
-                            ['deleted_at' => null]
-                        )
-                        ->toArray();
-                },
-                BulkEventEnum::SAVING,
-                [
-                    'model' => [
-                        BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
-                        BulkEventEnum::RESTORING,
-                        BulkEventEnum::RESTORED,
-                    ],
-                    'collection' => [
-                        BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
-                    ],
-                ],
-            ],
-            'updating && restoring' => [
-                function () {
-                    return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(
-                            2,
-                            ['deleted_at' => Carbon::now()],
-                            ['deleted_at' => null]
-                        )
-                        ->toArray();
-                },
-                BulkEventEnum::UPDATING,
-                [
-                    'model' => [
-                        BulkEventEnum::UPDATED,
-                    ],
-                    'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATING_MANY,
+                        BulkEventEnum::CREATED_MANY,
+                        BulkEventEnum::DELETING_MANY,
+                        BulkEventEnum::DELETED_MANY,
                     ],
                 ],
             ],
             'deleting' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollection(2, ['deleted_at' => null])
-                        ->each(
-                            function (User $user) {
-                                $user->deleted_at = Carbon::now();
-                            }
-                        )
+                        ->makeCollection(2, ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
                 BulkEventEnum::DELETING,
@@ -344,28 +294,6 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
                     ],
                 ],
             ],
-            'restoring' => [
-                function () {
-                    return App::make(UserGenerator::class)
-                        ->createCollection(2, ['deleted_at' => Carbon::now()])
-                        ->each(
-                            function (User $user) {
-                                $user->deleted_at = null;
-                            }
-                        )
-                        ->toArray();
-                },
-                BulkEventEnum::RESTORING,
-                [
-                    'model' => [
-                        BulkEventEnum::RESTORED,
-                    ],
-                    'collection' => [
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
-                    ],
-                ],
-            ],
         ];
     }
 
@@ -374,78 +302,65 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
         return [
             'saving many' => [
                 function () {
-                    $firstUser = App::make(UserGenerator::class)->createOneAndDirty();
-                    $secondUser = App::make(UserGenerator::class)->createOneAndDirty(
-                        ['deleted_at' => null],
+                    $firstUser = App::make(UserGenerator::class)->makeOne();
+                    $secondUser = App::make(UserGenerator::class)->makeOne(
                         ['deleted_at' => Carbon::now()],
-                    );
-                    $thirdUser = App::make(UserGenerator::class)->createOneAndDirty(
-                        ['deleted_at' => Carbon::now()],
-                        ['deleted_at' => null],
                     );
 
                     return [
                         $firstUser->toArray(),
                         $secondUser->toArray(),
-                        $thirdUser->toArray(),
                     ];
                 },
                 BulkEventEnum::SAVING_MANY,
                 [
                     'model' => [
                         BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATING,
+                        BulkEventEnum::CREATED,
                         BulkEventEnum::DELETING,
                         BulkEventEnum::DELETED,
-                        BulkEventEnum::RESTORING,
-                        BulkEventEnum::RESTORED,
                     ],
                     'collection' => [
                         BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATING_MANY,
+                        BulkEventEnum::CREATED_MANY,
                         BulkEventEnum::DELETING_MANY,
                         BulkEventEnum::DELETED_MANY,
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
                     ],
                 ],
             ],
-            'updating many' => [
+            'creating many' => [
                 function () {
-                    $firstUser = App::make(UserGenerator::class)->createOneAndDirty();
-                    $secondUser = App::make(UserGenerator::class)->createOneAndDirty(
-                        ['deleted_at' => null],
+                    $firstUser = App::make(UserGenerator::class)->makeOne();
+                    $secondUser = App::make(UserGenerator::class)->makeOne(
                         ['deleted_at' => Carbon::now()],
-                    );
-                    $thirdUser = App::make(UserGenerator::class)->createOneAndDirty(
-                        ['deleted_at' => Carbon::now()],
-                        ['deleted_at' => null],
                     );
 
                     return [
                         $firstUser->toArray(),
                         $secondUser->toArray(),
-                        $thirdUser->toArray(),
                     ];
                 },
-                BulkEventEnum::UPDATING_MANY,
+                BulkEventEnum::CREATING_MANY,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::CREATED,
+                        BulkEventEnum::DELETING,
+                        BulkEventEnum::DELETED,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::CREATED_MANY,
+                        BulkEventEnum::DELETING_MANY,
+                        BulkEventEnum::DELETED_MANY,
                     ],
                 ],
             ],
             'deleting many' => [
                 function () {
                     return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(
+                        ->makeCollection(
                             3,
-                            ['deleted_at' => null],
                             ['deleted_at' => Carbon::now()],
                         )
                         ->toArray();
@@ -457,26 +372,6 @@ class UpdateBeforeWritingEventDependenciesTest extends TestCase
                     ],
                     'collection' => [
                         BulkEventEnum::DELETED_MANY,
-                    ],
-                ],
-            ],
-            'restoring many' => [
-                function () {
-                    return App::make(UserGenerator::class)
-                        ->createCollectionAndDirty(
-                            3,
-                            ['deleted_at' => Carbon::now()],
-                            ['deleted_at' => null],
-                        )
-                        ->toArray();
-                },
-                BulkEventEnum::RESTORING_MANY,
-                [
-                    'model' => [
-                        BulkEventEnum::RESTORED,
-                    ],
-                    'collection' => [
-                        BulkEventEnum::RESTORED_MANY,
                     ],
                 ],
             ],

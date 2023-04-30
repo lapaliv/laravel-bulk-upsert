@@ -5,17 +5,29 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
 class UpdateDifferentUniqueByTest extends TestCase
 {
-    use UpdateTestTrait;
+    use UserTestTrait;
 
-    public function test(): void
+    /**
+     * @param array|string $uniqueBy
+     * @param array|string $orUniqueBy
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider dataProvider
+     */
+    public function test(string|array $uniqueBy, string|array $orUniqueBy): void
     {
         // arrange
         $userWithEmail = Arr::except(
@@ -29,8 +41,8 @@ class UpdateDifferentUniqueByTest extends TestCase
         $connectionName = $this->userGenerator->makeOne()->getConnectionName();
         $sut = MySqlUser::query()
             ->bulk()
-            ->uniqueBy('email')
-            ->orUniqueBy('id');
+            ->uniqueBy($uniqueBy)
+            ->orUniqueBy($orUniqueBy);
 
         // act
         $sut->update([$userWithEmail, $userWithId]);
@@ -79,5 +91,14 @@ class UpdateDifferentUniqueByTest extends TestCase
             'email' => $userWithEmail['email'],
             'created_at' => Carbon::now()->toDateTimeString(),
         ], 'mysql');
+    }
+
+    public function dataProvider(): array
+    {
+        return [
+            'email, id' => ['email', 'id'],
+            '[email], [id]' => [['email'], ['id']],
+            '[[email]], [[id]]' => [[['email']], [['id']]],
+        ];
     }
 }

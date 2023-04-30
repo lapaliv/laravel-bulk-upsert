@@ -9,11 +9,11 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 class UserGenerator
 {
-    public function makeCollection(int $count): UserCollection
+    public function makeCollection(int $count, array $attributes = []): UserCollection
     {
         return MySqlUser::factory()
             ->count($count)
-            ->make();
+            ->make($attributes);
     }
 
     public function makeOne(array $attributes = []): User
@@ -38,6 +38,7 @@ class UserGenerator
         }
 
         $result->save();
+        $result->wasRecentlyCreated = false;
 
         $tmpUser = $this->makeOne($dirtyAttributes);
 
@@ -50,8 +51,6 @@ class UserGenerator
         $result->birthday = $tmpUser->birthday;
         $result->phones = $tmpUser->phones;
         $result->last_visited_at = $tmpUser->last_visited_at;
-        //        $result->created_at = $tmpUser->created_at;
-        //        $result->updated_at = $tmpUser->updated_at;
         $result->deleted_at = $tmpUser->deleted_at;
 
         return $result;

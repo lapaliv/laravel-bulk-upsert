@@ -19,7 +19,6 @@ class InsertBuilder
      */
     private array $values = [];
     private bool $onConflictDoNothing = false;
-    private ?UpdateBuilder $onConflictUpdateBuilder = null;
 
     public function getInto(): ?string
     {
@@ -80,29 +79,7 @@ class InsertBuilder
 
     public function onConflictDoNothing(bool $value): static
     {
-        if ($value) {
-            $this->onConflictUpdateBuilder = null;
-        }
-
         $this->onConflictDoNothing = $value;
-
-        return $this;
-    }
-
-    public function doUpdateAtConflict(): bool
-    {
-        return $this->onConflictUpdateBuilder !== null;
-    }
-
-    public function getConflictUpdateBuilder(): ?UpdateBuilder
-    {
-        return $this->onConflictUpdateBuilder;
-    }
-
-    public function onConflictUpdate(UpdateBuilder $builder): static
-    {
-        $this->onConflictDoNothing = false;
-        $this->onConflictUpdateBuilder = $builder;
 
         return $this;
     }

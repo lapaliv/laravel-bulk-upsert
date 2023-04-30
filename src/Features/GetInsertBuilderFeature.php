@@ -7,6 +7,7 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
 use stdClass;
 
@@ -20,6 +21,7 @@ class GetInsertBuilderFeature
         BulkAccumulationEntity $data,
         bool $ignore,
         array $dateFields,
+        ?string $deletedAtColumn,
     ): ?InsertBuilder {
         $result = new InsertBuilder();
         $result->into($eloquent->getTable())->onConflictDoNothing($ignore);
@@ -30,7 +32,7 @@ class GetInsertBuilderFeature
                 continue;
             }
 
-            $array = $this->convertModelToArray($row->model, $dateFields);
+            $array = $this->convertModelToArray($row, $dateFields, $deletedAtColumn);
             $result->addValue($array);
 
             foreach ($array as $key => $value) {
@@ -45,12 +47,19 @@ class GetInsertBuilderFeature
         return $result->columns($columns);
     }
 
-    private function convertModelToArray(BulkModel $model, array $dateFields): array
-    {
-        $result = $model->attributesToArray();
+    private function convertModelToArray(
+        BulkAccumulationItemEntity $row,
+        array $dateFields,
+        ?string $deletedAtColumn,
+    ): array {
+        $result = [];
 
-        foreach ($result as $key => $value) {
-            if ($value !== null && array_key_exists($key, $dateFields)) {
+        foreach ($row->model->attributesToArray() as $key => $value) {
+            if ($key === $deletedAtColumn && $row->skipDeleting) {
+                continue;
+            }
+
+            if ($value !== null && isset($dateFields[$key])) {
                 $date = new DateTime($value);
                 $result[$key] = $date->format($dateFields[$key]);
 
@@ -67,7 +76,7 @@ class GetInsertBuilderFeature
                 } elseif (method_exists($value, 'toArray')) {
                     $value = $value->toArray();
                 } elseif ($value instanceof CastsAttributes) {
-                    $value = $value->set($model, $key, $value, $result);
+                    $value = $value->set($row->model, $key, $value, $result);
                 } else {
                     throw new BulkAttributeTypeIsNotScalar($key);
                 }

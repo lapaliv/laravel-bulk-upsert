@@ -34,8 +34,8 @@ class GetUpdateBuilderFeature
         foreach ($data->rows as $row) {
             $this->collectRowAttributes(
                 $eloquent,
+                $data,
                 $row,
-                $data->uniqueBy,
                 $groupedAttributes,
                 $dateFields,
                 $deletedAtColumn,
@@ -64,13 +64,13 @@ class GetUpdateBuilderFeature
 
     private function collectRowAttributes(
         BulkModel $eloquent,
+        BulkAccumulationEntity $data,
         BulkAccumulationItemEntity $row,
-        array $uniqueBy,
         array &$groups,
         array $dateFields,
         ?string $deletedAtColumn,
     ): void {
-        $uniqueAttributes = $this->getUniqueAttributeValues($uniqueBy, $row->model, $dateFields);
+        $uniqueAttributes = $this->getUniqueAttributeValues($data->uniqueBy, $row->model, $dateFields);
         $uniqueAttributesHash = hash('crc32c', json_encode($uniqueAttributes, JSON_THROW_ON_ERROR));
         $attributes = $this->attributesToScalarArrayConverter->handle(
             $row->model,
@@ -79,7 +79,7 @@ class GetUpdateBuilderFeature
         );
 
         foreach ($attributes as $key => $value) {
-            if (in_array($key, $uniqueBy, true) || $key === $eloquent->getKeyName()) {
+            if (in_array($key, $data->uniqueBy, true) || $key === $eloquent->getKeyName()) {
                 continue;
             }
 
@@ -91,8 +91,18 @@ class GetUpdateBuilderFeature
                 if ($row->isRestoring && $row->skipRestoring) {
                     continue;
                 }
-            } elseif ($row->skipUpdating) {
-                continue;
+            } else {
+                if ($row->skipUpdating) {
+                    continue;
+                }
+
+                if (empty($data->updateOnly) === false && in_array($key, $data->updateOnly, true) === false) {
+                    continue;
+                }
+
+                if (empty($data->updateExcept) === false && in_array($key, $data->updateExcept, true)) {
+                    continue;
+                }
             }
 
             $valueHash = hash('crc32c', $value . ':' . gettype($value));

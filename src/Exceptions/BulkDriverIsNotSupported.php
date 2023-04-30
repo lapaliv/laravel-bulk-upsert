@@ -2,15 +2,13 @@
 
 namespace Lapaliv\BulkUpsert\Exceptions;
 
-class BulkDriverIsNotSupported extends BulkException
-{
-    public function __construct(private string $driverName)
-    {
-        parent::__construct('Database driver is not supported');
-    }
+use Lapaliv\BulkUpsert\Contracts\BulkException;
+use LogicException;
 
-    public function getDriverName(): string
+class BulkDriverIsNotSupported extends LogicException implements BulkException
+{
+    public function __construct(string $driverName)
     {
-        return $this->driverName;
+        parent::__construct('Database driver [' . $driverName . '] is not supported');
     }
 }

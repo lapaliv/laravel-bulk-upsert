@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Events;
 
+use DateTime;
 use Illuminate\Container\Container;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -19,26 +20,36 @@ class BulkEventDispatcher
         //
     }
 
-    public function listen(string $event, mixed $listener, bool $once = false): static
+    public function listen(string $event, mixed $listener, bool $once = false): ?string
     {
         $listener = self::convertListenerToClosure($listener);
 
         if ($listener === null) {
-            return $this;
+            return null;
         }
 
+        $key = hash('crc32c', (new DateTime())->format('Y-m-d H:i:s.u'));
         $this->listeners[$event] ??= [];
-        $this->listeners[$event][] = [
+        $this->listeners[$event][$key] = [
             'once' => $once,
             'listener' => $listener,
         ];
 
-        return $this;
+        return $key;
     }
 
-    public function once(string $event, ?callable $listener): static
+    public function once(string $event, ?callable $listener): ?string
     {
         return $this->listen($event, $listener, true);
+    }
+
+    public function forget(string $event, ?string $key): static
+    {
+        if ($key !== null) {
+            unset($this->listeners[$event][$key]);
+        }
+
+        return $this;
     }
 
     public function dispatch(string $event, ...$payload): mixed
@@ -57,11 +68,7 @@ class BulkEventDispatcher
             if ($isHalt && $response === false) {
                 return false;
             }
-
-            return null;
-        }
-
-        if (method_exists($dispatcher, 'getListeners')) {
+        } elseif (method_exists($dispatcher, 'getListeners')) {
             foreach ($dispatcher->getListeners($nativeEvent) as $listener) {
                 $response = $listener($nativeEvent, $payload);
 

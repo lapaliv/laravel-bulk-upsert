@@ -4,7 +4,6 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 
 /**
  * @internal
@@ -19,16 +18,11 @@ class SelectExistingRowsFeature
 
     public function handle(
         BulkModel $eloquent,
-        BulkAccumulationEntity $data,
+        Collection $collection,
+        array $uniqueBy,
         array $selectColumns,
         ?string $deletedAtColumn = null,
     ): Collection {
-        $collection = $data->getNotSkippedModels();
-
-        if ($collection->isEmpty()) {
-            return $eloquent->newCollection();
-        }
-
         $builder = $eloquent->newQuery()
             ->select($selectColumns)
             ->limit($collection->count());
@@ -38,7 +32,7 @@ class SelectExistingRowsFeature
             $builder->withTrashed();
         }
 
-        $this->addWhereClauseToBuilderFeature->handle($builder, $data->uniqueBy, $collection);
+        $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueBy, $collection);
 
         $result = $builder->get();
 

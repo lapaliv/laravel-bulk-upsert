@@ -102,51 +102,37 @@ class BulkEventEnum
         ];
     }
 
-    public static function insert(): array
+    public static function create(): array
     {
-        return array_merge(self::inserting(), self::inserted());
+        return array_merge(self::creating(), self::created());
     }
 
-    public static function inserting(): array
+    public static function creating(): array
     {
         return [
-            self::SAVING,
             self::CREATING,
-            self::DELETING,
-            self::SAVING_MANY,
             self::CREATING_MANY,
-            self::DELETING_MANY,
         ];
     }
 
-    public static function inserted(): array
+    public static function created(): array
     {
         return [
             self::CREATED,
-            self::DELETED,
-            self::SAVED,
             self::CREATED_MANY,
-            self::DELETED_MANY,
-            self::SAVED_MANY,
         ];
     }
 
     public static function update(): array
     {
-        return array_merge(self::inserting(), self::inserted());
+        return array_merge(self::creating(), self::created());
     }
 
     public static function updating(): array
     {
         return [
-            self::SAVING,
             self::UPDATING,
-            self::DELETING,
-            self::RESTORING,
-            self::SAVING_MANY,
             self::UPDATING_MANY,
-            self::DELETING_MANY,
-            self::RESTORING_MANY,
         ];
     }
 
@@ -154,12 +140,69 @@ class BulkEventEnum
     {
         return [
             self::UPDATED,
-            self::DELETED,
-            self::RESTORED,
-            self::SAVED,
             self::UPDATED_MANY,
+        ];
+    }
+
+    public static function delete(): array
+    {
+        return array_merge(self::deleting(), self::deleted());
+    }
+
+    public static function deleting(): array
+    {
+        return [
+            self::DELETING,
+            self::DELETING_MANY,
+        ];
+    }
+
+    public static function deleted(): array
+    {
+        return [
+            self::DELETED,
             self::DELETED_MANY,
+        ];
+    }
+
+    public static function restore(): array
+    {
+        return array_merge(self::restoring(), self::restored());
+    }
+
+    public static function restoring(): array
+    {
+        return [
+            self::RESTORING,
+            self::RESTORING_MANY,
+        ];
+    }
+
+    public static function restored(): array
+    {
+        return [
+            self::RESTORED,
             self::RESTORED_MANY,
+        ];
+    }
+
+    public static function save(): array
+    {
+        return array_merge(self::saving(), self::saved());
+    }
+
+    public static function saving(): array
+    {
+        return [
+            self::SAVING,
+            self::SAVING_MANY,
+        ];
+    }
+
+    public static function saved(): array
+    {
+        return [
+            self::SAVED,
             self::SAVED_MANY,
         ];
     }
