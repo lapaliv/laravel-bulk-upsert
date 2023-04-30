@@ -10,7 +10,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\MassAssignmentException;
 
 /**
  * @property bool $wasRecentlyCreated
@@ -138,27 +137,6 @@ interface BulkModel
     public function getIncrementing();
 
     /**
-     * Fill the model with an array of attributes.
-     *
-     * @param array<string, mixed> $attributes
-     *
-     * @return $this
-     *
-     * @throws MassAssignmentException
-     */
-    public function fill(array $attributes);
-
-    /**
-     * Set the array of model attributes. No checking is done.
-     *
-     * @param array $attributes
-     * @param bool $sync
-     *
-     * @return $this
-     */
-    public function setRawAttributes(array $attributes, $sync = false);
-
-    /**
      * Sync the original attributes with the current.
      *
      * @return $this
@@ -194,31 +172,6 @@ interface BulkModel
      * @return array
      */
     public function getTouchedRelations();
-
-    /**
-     * Touch the owning relations of the model.
-     *
-     * @return void
-     */
-    public function touchOwners();
-
-    /**
-     * Set the value of the "created at" attribute.
-     *
-     * @param mixed $value
-     *
-     * @return $this
-     */
-    public function setCreatedAt($value);
-
-    /**
-     * Set the value of the "updated at" attribute.
-     *
-     * @param mixed $value
-     *
-     * @return $this
-     */
-    public function setUpdatedAt($value);
 
     /**
      * Update the creation and update timestamps.

@@ -76,6 +76,7 @@ class UpdateScenario
         }
 
         $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
+        $this->syncChanges($data);
         $this->finishSaveFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
 
         unset($driver);
@@ -342,5 +343,16 @@ class UpdateScenario
             $savedBulkRows, $updatedBulkRows, $deletedBulkRows, $restoredBulkRows,
             $savedModels, $updatedModels, $deletedModels, $restoredModels,
         );
+    }
+
+    private function syncChanges(BulkAccumulationEntity $data): void
+    {
+        foreach ($data->rows as $row) {
+            if ($row->skipSaving) {
+                continue;
+            }
+
+            $row->model->syncChanges();
+        }
     }
 }
