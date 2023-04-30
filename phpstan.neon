@@ -6,3 +6,4 @@ parameters:
     excludePaths:
         - .*
         - vendor
+        - tests

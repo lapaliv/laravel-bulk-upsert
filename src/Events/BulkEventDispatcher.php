@@ -65,6 +65,7 @@ class BulkEventDispatcher
         if (in_array($event, BulkEventEnum::model())) {
             $response = $dispatcher->dispatch($nativeEvent, $payload[0], $isHalt);
 
+            // @phpstan-ignore-next-line
             if ($isHalt && $response === false) {
                 return false;
             }

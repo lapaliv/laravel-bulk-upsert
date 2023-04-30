@@ -56,6 +56,7 @@ final class CreateAndReturnTest extends TestCase
             ->uniqueBy(['email']);
 
         // act
+        /** @var UserCollection $result */
         $result = $sut->createAndReturn($users);
 
         // assert

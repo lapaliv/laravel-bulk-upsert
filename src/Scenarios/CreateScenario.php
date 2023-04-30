@@ -266,7 +266,9 @@ class CreateScenario
             $key = $this->getUniqueKeyFeature->handle($row->model, $data->uniqueBy);
 
             if ($keyedExistingRows->has($key)) {
-                $row->model = $keyedExistingRows->get($key);
+                /** @var BulkModel $existingRow */
+                $existingRow = $keyedExistingRows->get($key);
+                $row->model = $existingRow;
 
                 if ($hasIncrementing) {
                     $row->model->wasRecentlyCreated = $row->model->getKey() > $lastInsertedId;

@@ -3,7 +3,6 @@
 namespace Lapaliv\BulkUpsert\Collection;
 
 use Illuminate\Support\Collection;
-use Iterator;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Traversable;
@@ -11,11 +10,6 @@ use Traversable;
 /**
  * @template TModel of BulkModel
  * @template TOriginal of mixed
- *
- * @method BulkRow|null get($key, $default = null)
- * @method array<int, BulkRow<TModel, TOriginal>> all()
- *
- * @implements Iterator<int, BulkRow<TModel, TOriginal>>
  */
 class BulkRows extends Collection
 {
@@ -25,5 +19,24 @@ class BulkRows extends Collection
     public function getIterator(): Traversable
     {
         return parent::getIterator();
+    }
+
+    /**
+     * @param $key
+     * @param $default
+     *
+     * @return BulkRow<TModel, TOriginal>|null
+     */
+    public function get($key, $default = null)
+    {
+        return parent::get($key, $default);
+    }
+
+    /**
+     * @return array<int, BulkRow<TModel, TOriginal>>
+     */
+    public function all()
+    {
+        return parent::all();
     }
 }
