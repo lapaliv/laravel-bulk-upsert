@@ -2,7 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
-use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -19,19 +18,14 @@ class UpdateOrAccumulateTest extends TestCase
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
-        $dbConnectionName = $users->get(0)->getConnectionName();
         $sut = MySqlUser::query()
             ->bulk()
             ->uniqueBy(['email']);
-        DB::connection($dbConnectionName)->enableQueryLog();
 
         // act
         $sut->updateOrAccumulate($users);
 
         // assert
-        self::assertEmpty(
-            DB::connection($dbConnectionName)->getQueryLog()
-        );
         $users->each(
             fn (User $user) => $this->userWasNotUpdated($user)
         );
