@@ -19,7 +19,7 @@ use Mockery;
 /**
  * @internal
  */
-class UpdateBuilderCallbacksTest extends TestCase
+final class UpdateBuilderCallbacksTest extends TestCase
 {
     use UserTestTrait;
 

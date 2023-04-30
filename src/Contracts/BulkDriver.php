@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 
-interface Driver
+interface BulkDriver
 {
     public function insert(
         ConnectionInterface $connection,

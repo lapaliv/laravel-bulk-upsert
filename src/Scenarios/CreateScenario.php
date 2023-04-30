@@ -6,16 +6,16 @@ use DateTime;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
 use Lapaliv\BulkUpsert\Features\GetInsertBuilderFeature;
 use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
 use Lapaliv\BulkUpsert\Features\SelectExistingRowsFeature;
+use Lapaliv\BulkUpsert\Features\TouchRelationsFeature;
 
 /**
  * @internal
@@ -24,10 +24,10 @@ class CreateScenario
 {
     public function __construct(
         private GetInsertBuilderFeature $getInsertBuilderFeature,
-        private DriverManager $driverManager,
+        private BulkDriverManager $driverManager,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
-        private FinishSaveFeature $finishSaveFeature,
         private GetUniqueKeyFeature $getUniqueKeyFeature,
+        private TouchRelationsFeature $touchRelationsFeature,
     ) {
         //
     }
@@ -72,29 +72,30 @@ class CreateScenario
         $lastInsertedId = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
         unset($builder);
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saved()) === false
-            && $eventDispatcher->hasListeners(BulkEventEnum::created()) === false
-            && $eventDispatcher->hasListeners(BulkEventEnum::deleted()) === false
+        if ($eventDispatcher->hasListeners(BulkEventEnum::saved())
+            || $eventDispatcher->hasListeners(BulkEventEnum::created())
+            || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
         ) {
-            unset($driver, $lastInsertedId, $startedAt);
+            $models = $this->selectExistingRowsFeature->handle(
+                $eloquent,
+                $data->getNotSkippedModels('skipSaving'),
+                $data->uniqueBy,
+                $selectColumns,
+                $deletedAtColumn
+            );
+            $this->prepareModelsForGiving($eloquent, $data, $models, $lastInsertedId, $startedAt);
+            unset($models);
 
-            return;
+            $this->fireCreatedEvents($eloquent, $data, $eventDispatcher);
         }
 
-        $models = $this->selectExistingRowsFeature->handle(
-            $eloquent,
-            $data->getNotSkippedModels('skipSaving'),
-            $data->uniqueBy,
-            $selectColumns,
-            $deletedAtColumn
-        );
-        $this->prepareModelsForGiving($eloquent, $data, $models, $lastInsertedId, $startedAt);
-        unset($models, $startedAt, $lastInsertedId);
+        unset($startedAt, $lastInsertedId);
 
-        $this->fireCreatedEvents($eloquent, $data, $eventDispatcher);
-        $this->finishSaveFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
+        $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
 
         unset($driver);
+
+        $this->syncOriginal($data);
     }
 
     private function dispatchSavingEvents(
@@ -346,5 +347,16 @@ class CreateScenario
         }
 
         unset($savedBulkRows, $savedModels);
+    }
+
+    private function syncOriginal(BulkAccumulationEntity $data): void
+    {
+        foreach ($data->rows as $row) {
+            if ($row->skipSaving) {
+                continue;
+            }
+
+            $row->model->syncOriginal();
+        }
     }
 }

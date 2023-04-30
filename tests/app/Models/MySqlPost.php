@@ -5,26 +5,26 @@ namespace Lapaliv\BulkUpsert\Tests\App\Models;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
-use Lapaliv\BulkUpsert\Tests\App\Factories\MySqlUserFactory;
+use Lapaliv\BulkUpsert\Tests\App\Factories\MySqlPostFactory;
 
 /**
  * @internal
  *
  * @property-read CommentCollection $comments
  *
- * @method static MySqlUserFactory factory($count = null, $state = [])
+ * @method static MySqlPostFactory factory($count = null, $state = [])
  */
-final class MySqlUser extends User
+final class MySqlPost extends Post
 {
     protected $connection = 'mysql';
 
     public function comments(): HasMany|CommentBuilder
     {
-        return $this->hasMany(MySqlComment::class, 'user_id');
+        return $this->hasMany(MySqlComment::class, 'post_id', 'id');
     }
 
-    protected static function newFactory(): MySqlUserFactory
+    public static function newFactory(): MySqlPostFactory
     {
-        return new MySqlUserFactory();
+        return new MySqlPostFactory();
     }
 }

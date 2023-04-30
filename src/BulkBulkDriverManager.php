@@ -2,24 +2,24 @@
 
 namespace Lapaliv\BulkUpsert;
 
+use Lapaliv\BulkUpsert\Contracts\BulkDriver;
+use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Contracts\Driver;
-use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Exceptions\BulkDriverIsNotSupported;
 
-class BulkDriverManager implements DriverManager
+class BulkBulkDriverManager implements BulkDriverManager
 {
     /**
-     * @var Driver[]
+     * @var BulkDriver[]
      */
     private array $drivers = [];
 
     /**
      * @param BulkModel $eloquent
      *
-     * @return Driver
+     * @return BulkDriver
      */
-    public function getForModel(BulkModel $eloquent): Driver
+    public function getForModel(BulkModel $eloquent): BulkDriver
     {
         $driverName = $eloquent->getConnection()->getDriverName();
         $driver = $this->get($driverName);
@@ -31,18 +31,18 @@ class BulkDriverManager implements DriverManager
         return $driver;
     }
 
-    public function registerDriver(string $name, Driver $driver): void
+    public function registerDriver(string $name, BulkDriver $driver): void
     {
         $this->drivers[$name] = $driver;
     }
 
-    public function get(string $name): ?Driver
+    public function get(string $name): ?BulkDriver
     {
         return $this->drivers[$name] ?? null;
     }
 
     /**
-     * @return array<string, Driver>
+     * @return array<string, BulkDriver>
      */
     public function all(): array
     {

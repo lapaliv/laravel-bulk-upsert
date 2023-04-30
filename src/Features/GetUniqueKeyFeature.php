@@ -4,6 +4,9 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
+/**
+ * @internal
+ */
 class GetUniqueKeyFeature
 {
     /**

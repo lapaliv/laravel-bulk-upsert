@@ -7,6 +7,9 @@ use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
 
+/**
+ * @internal
+ */
 class UpsertScenario
 {
     public function __construct(

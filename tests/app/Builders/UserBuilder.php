@@ -7,11 +7,13 @@ use Lapaliv\BulkUpsert\BulkBuilderTrait;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 /**
+ * @internal
+ *
  * @method User firstOrFail($columns = ['*'])
  * @method UserBuilder onlyTrashed()
  * @method UserBuilder withTrashed()
  */
-class UserBuilder extends Builder
+final class UserBuilder extends Builder
 {
     use BulkBuilderTrait;
 }

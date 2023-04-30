@@ -4,7 +4,10 @@ namespace Lapaliv\BulkUpsert\Tests\App\Observers;
 
 use Closure;
 
-class UserObserver
+/**
+ * @internal
+ */
+final class UserObserver
 {
     public static array $listeners = [];
 

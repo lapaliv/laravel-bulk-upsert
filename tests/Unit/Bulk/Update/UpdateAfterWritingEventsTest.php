@@ -19,7 +19,7 @@ use Mockery;
 /**
  * @internal
  */
-class UpdateAfterWritingEventsTest extends TestCase
+final class UpdateAfterWritingEventsTest extends TestCase
 {
     /**
      * @param Closure $data

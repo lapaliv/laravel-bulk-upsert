@@ -26,6 +26,11 @@ abstract class Model extends Eloquent implements BulkModel
         parent::registerModelEvent($event, $callback);
     }
 
+    public static function dropTable(): void
+    {
+        self::getSchema()->dropIfExists(self::table());
+    }
+
     protected static function getSchema(): Builder
     {
         return Manager::schema(

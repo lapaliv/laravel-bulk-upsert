@@ -8,6 +8,9 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
 use stdClass;
 
+/**
+ * @internal
+ */
 class AttributesToScalarArrayConverter
 {
     public function handle(BulkModel $model, array $attributes, array $dateFields): array

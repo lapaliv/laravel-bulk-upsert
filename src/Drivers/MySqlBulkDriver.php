@@ -6,7 +6,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
-use Lapaliv\BulkUpsert\Contracts\Driver;
+use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsert;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverUpdate;
 use Throwable;
@@ -14,7 +14,7 @@ use Throwable;
 /**
  * @internal
  */
-class MySqlDriver implements Driver
+class MySqlBulkDriver implements BulkDriver
 {
     public function __construct(
         private MySqlDriverInsert $insertFeature,

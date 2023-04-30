@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 /**
  * @internal
  */
-class UpsertOrAccumulateTest extends TestCase
+final class UpsertOrAccumulateTest extends TestCase
 {
     use UserTestTrait;
 

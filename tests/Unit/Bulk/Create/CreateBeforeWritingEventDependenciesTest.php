@@ -22,7 +22,7 @@ use Mockery\MockInterface;
 /**
  * @internal
  */
-class CreateBeforeWritingEventDependenciesTest extends TestCase
+final class CreateBeforeWritingEventDependenciesTest extends TestCase
 {
     use UserTestTrait;
 

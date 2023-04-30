@@ -11,7 +11,7 @@ use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 /**
  * @internal
  */
-class UpdateOnlyAndExceptTest extends TestCase
+final class UpdateOnlyAndExceptTest extends TestCase
 {
     use UserTestTrait;
 

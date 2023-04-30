@@ -9,7 +9,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\UserBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Enums\Gender;
-use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
 
 /**
  * @internal
@@ -30,7 +29,6 @@ use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
  * @property CarbonInterface|null $updated_at
  * @property CarbonInterface|null $deleted_at
  *
- * @method static UserFactory factory($count = null, $state = [])
  * @method static UserBuilder query()
  */
 abstract class User extends Model
@@ -66,7 +64,6 @@ abstract class User extends Model
 
     public static function createTable(): void
     {
-        self::getSchema()->dropIfExists(self::table());
         self::getSchema()->create(self::table(), function (Blueprint $table): void {
             $table->id();
 

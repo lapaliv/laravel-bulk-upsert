@@ -3,23 +3,26 @@
 namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Lapaliv\BulkUpsert\Contracts\DriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\FinishSaveFeature;
 use Lapaliv\BulkUpsert\Features\GetUpdateBuilderFeature;
 use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
+use Lapaliv\BulkUpsert\Features\TouchRelationsFeature;
 
+/**
+ * @internal
+ */
 class UpdateScenario
 {
     public function __construct(
         private MarkNonexistentRowsAsSkippedFeature $markNonexistentRowsAsSkipped,
         private GetUpdateBuilderFeature $getUpdateBuilderFeature,
-        private DriverManager $driverManager,
-        private FinishSaveFeature $finishSaveFeature,
+        private BulkDriverManager $driverManager,
+        private TouchRelationsFeature $touchRelationsFeature,
     ) {
         //
     }
@@ -65,21 +68,19 @@ class UpdateScenario
             unset($builder);
         }
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saved()) === false
-            && $eventDispatcher->hasListeners(BulkEventEnum::updated()) === false
-            && $eventDispatcher->hasListeners(BulkEventEnum::deleted()) === false
-            && $eventDispatcher->hasListeners(BulkEventEnum::restored()) === false
+        if ($eventDispatcher->hasListeners(BulkEventEnum::saved())
+            || $eventDispatcher->hasListeners(BulkEventEnum::updated())
+            || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
+            || $eventDispatcher->hasListeners(BulkEventEnum::restored())
         ) {
-            unset($driver);
-
-            return;
+            $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
+            $this->syncChanges($data);
         }
 
-        $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
-        $this->syncChanges($data);
-        $this->finishSaveFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
-
+        $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
         unset($driver);
+
+        $this->syncOriginal($data);
     }
 
     private function dispatchSavingEvents(
@@ -353,6 +354,17 @@ class UpdateScenario
             }
 
             $row->model->syncChanges();
+        }
+    }
+
+    private function syncOriginal(BulkAccumulationEntity $data): void
+    {
+        foreach ($data->rows as $row) {
+            if ($row->skipSaving) {
+                continue;
+            }
+
+            $row->model->syncOriginal();
         }
     }
 }

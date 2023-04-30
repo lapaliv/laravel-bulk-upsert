@@ -12,7 +12,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 /**
  * @internal
  */
-class TransmittingModelIntoConstructorTest extends TestCase
+final class TransmittingModelIntoConstructorTest extends TestCase
 {
     public function testBulkModel(): void
     {

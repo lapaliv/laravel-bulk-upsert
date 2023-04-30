@@ -14,7 +14,7 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
  * @method User|null last(callable $callback = null, $default = null)
  * @method User|null get($key, $default = null)
  */
-class UserCollection extends Collection
+final class UserCollection extends Collection
 {
     //
 }

@@ -12,7 +12,7 @@ use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 /**
  * @internal
  */
-class UpdateAndReturnTest extends TestCase
+final class UpdateAndReturnTest extends TestCase
 {
     use UserTestTrait;
 

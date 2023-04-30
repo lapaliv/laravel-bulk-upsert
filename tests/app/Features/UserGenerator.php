@@ -7,7 +7,10 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
-class UserGenerator
+/**
+ * @internal
+ */
+final class UserGenerator
 {
     public function makeCollection(int $count, array $attributes = []): UserCollection
     {

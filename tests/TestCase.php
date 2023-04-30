@@ -5,6 +5,8 @@ namespace Lapaliv\BulkUpsert\Tests;
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
@@ -31,7 +33,13 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
         self::configureManager();
 
+        MySqlComment::dropTable();
+        MySqlPost::dropTable();
+        MySqlUser::dropTable();
+
         MySqlUser::createTable();
+        MySqlPost::createTable();
+        MySqlComment::createTable();
     }
 
     protected function setUp(): void
