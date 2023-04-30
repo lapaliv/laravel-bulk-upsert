@@ -7,7 +7,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkDriverIsNotSupported;
 
-class BulkBulkDriverManager implements BulkDriverManager
+final class BulkBulkDriverManager implements BulkDriverManager
 {
     /**
      * @var BulkDriver[]
