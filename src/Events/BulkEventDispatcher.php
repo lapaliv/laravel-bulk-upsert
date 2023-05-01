@@ -54,7 +54,7 @@ class BulkEventDispatcher
 
     public function dispatch(string $event, ...$payload): mixed
     {
-        if ($this->hasListener($event) === false) {
+        if (!$this->hasListener($event)) {
             return null;
         }
 
@@ -79,7 +79,7 @@ class BulkEventDispatcher
             }
         }
 
-        if (array_key_exists($event, $this->listeners) === false) {
+        if (!array_key_exists($event, $this->listeners)) {
             return null;
         }
 
@@ -110,7 +110,7 @@ class BulkEventDispatcher
 
             if (array_key_exists($event, $this->listeners)) {
                 if (is_array($this->enabledEvents)
-                    && in_array($event, $this->enabledEvents, true) === false
+                    && !in_array($event, $this->enabledEvents, true)
                 ) {
                     continue;
                 }

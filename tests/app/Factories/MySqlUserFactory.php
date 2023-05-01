@@ -2,7 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Factories;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
@@ -24,13 +23,7 @@ final class MySqlUserFactory extends Factory
     {
         return [
             'name' => $this->faker->name(),
-            'email' => implode('', [
-                $this->faker->randomLetter(),
-                Carbon::now()->format('Uu'),
-                $this->faker->randomDigit(),
-                '@',
-                $this->faker->domainName(),
-            ]),
+            'email' => $this->faker->uuid() . '@' . $this->faker->domainName(),
             'gender' => $this->faker->randomElement([
                 Gender::male(),
                 Gender::female(),

@@ -54,10 +54,6 @@ class UpdateScenario
             }
         }
 
-        if ($data->hasNotSkippedModels('skipUpdating') === false) {
-            return;
-        }
-
         $this->freshTimestamps($eloquent, $data);
 
         $builder = $this->getUpdateBuilderFeature->handle($eloquent, $data, $dateFields, $deletedAtColumn);
@@ -65,22 +61,29 @@ class UpdateScenario
 
         if ($builder !== null) {
             $driver->update($eloquent->getConnection(), $builder);
-            unset($builder);
         }
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saved())
+        unset($builder);
+
+        $hasEndListeners = $eventDispatcher->hasListeners(BulkEventEnum::saved())
             || $eventDispatcher->hasListeners(BulkEventEnum::updated())
             || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
-            || $eventDispatcher->hasListeners(BulkEventEnum::restored())
-        ) {
+            || $eventDispatcher->hasListeners(BulkEventEnum::restored());
+
+        if ($hasEndListeners) {
             $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
             $this->syncChanges($data);
         }
 
-        $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
+        if (!empty($eloquent->getTouchedRelations())) {
+            $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
+        }
+
         unset($driver);
 
-        $this->syncOriginal($data);
+        if ($hasEndListeners) {
+            $this->syncOriginal($data);
+        }
     }
 
     private function dispatchSavingEvents(
@@ -187,7 +190,7 @@ class UpdateScenario
             }
 
             if ($hasDeleteListeners
-                && $row->skipDeleting === false
+                && !$row->skipDeleting
                 && $row->model->getAttribute($deletedAtColumn) !== null
                 && $row->model->getOriginal($deletedAtColumn) === null
             ) {
@@ -204,7 +207,7 @@ class UpdateScenario
             }
 
             if ($hasRestoreListeners
-                && $row->skipRestoring === false
+                && !$row->skipRestoring
                 && $row->model->getAttribute($deletedAtColumn) === null
                 && $row->model->getOriginal($deletedAtColumn) !== null
             ) {
@@ -289,7 +292,7 @@ class UpdateScenario
                 continue;
             }
 
-            if ($hasUpdatedListeners && $accumulatedRow->skipUpdating === false) {
+            if ($hasUpdatedListeners && !$accumulatedRow->skipUpdating) {
                 $eventDispatcher->dispatch(BulkEventEnum::UPDATED, $accumulatedRow->model);
                 $updatedModels->push($accumulatedRow->model);
                 $updatedBulkRows->push(
@@ -297,7 +300,7 @@ class UpdateScenario
                 );
             }
 
-            if ($hasDeletedListeners && $accumulatedRow->isDeleting && $accumulatedRow->skipDeleting === false) {
+            if ($hasDeletedListeners && $accumulatedRow->isDeleting && !$accumulatedRow->skipDeleting) {
                 $eventDispatcher->dispatch(BulkEventEnum::DELETED, $accumulatedRow->model);
                 $deletedModels->push($accumulatedRow->model);
                 $deletedBulkRows->push(
@@ -305,7 +308,7 @@ class UpdateScenario
                 );
             }
 
-            if ($hasRestoredListeners && $accumulatedRow->isRestoring && $accumulatedRow->skipRestoring === false) {
+            if ($hasRestoredListeners && $accumulatedRow->isRestoring && !$accumulatedRow->skipRestoring) {
                 $eventDispatcher->dispatch(BulkEventEnum::RESTORED, $accumulatedRow->model);
                 $restoredModels->push($accumulatedRow->model);
                 $restoredBulkRows->push(
@@ -313,7 +316,7 @@ class UpdateScenario
                 );
             }
 
-            if ($hasSavedListeners && $accumulatedRow->skipSaving === false) {
+            if ($hasSavedListeners && !$accumulatedRow->skipSaving) {
                 $eventDispatcher->dispatch(BulkEventEnum::SAVED, $accumulatedRow->model);
                 $savedModels->push($accumulatedRow->model);
                 $savedBulkRows->push(

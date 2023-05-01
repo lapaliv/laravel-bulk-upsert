@@ -57,8 +57,6 @@ class CreateScenario
             }
         }
 
-        $this->freshTimestamps($eloquent, $data);
-
         $startedAt = new DateTime();
         $builder = $this->getInsertBuilderFeature->handle($eloquent, $data, $ignore, $dateFields, $deletedAtColumn);
 
@@ -72,13 +70,14 @@ class CreateScenario
         $lastInsertedId = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
         unset($builder);
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saved())
+        $hasEndEvents = $eventDispatcher->hasListeners(BulkEventEnum::saved())
             || $eventDispatcher->hasListeners(BulkEventEnum::created())
-            || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
-        ) {
+            || $eventDispatcher->hasListeners(BulkEventEnum::deleted());
+
+        if ($hasEndEvents) {
             $models = $this->selectExistingRowsFeature->handle(
                 $eloquent,
-                $data->getNotSkippedModels('skipSaving'),
+                $data->getNotSkippedModels('skipCreating'),
                 $data->uniqueBy,
                 $selectColumns,
                 $deletedAtColumn
@@ -91,11 +90,15 @@ class CreateScenario
 
         unset($startedAt, $lastInsertedId);
 
-        $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
+        if (!empty($eloquent->getTouchedRelations())) {
+            $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
+        }
 
         unset($driver);
 
-        $this->syncOriginal($data);
+        if ($hasEndEvents) {
+            $this->syncOriginal($data);
+        }
     }
 
     private function dispatchSavingEvents(
@@ -103,7 +106,7 @@ class CreateScenario
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saving()) === false) {
+        if (!$eventDispatcher->hasListeners(BulkEventEnum::saving())) {
             return;
         }
 
@@ -139,7 +142,7 @@ class CreateScenario
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
-        if ($eventDispatcher->hasListeners(BulkEventEnum::creating()) === false) {
+        if (!$eventDispatcher->hasListeners(BulkEventEnum::creating())) {
             return;
         }
 
@@ -186,7 +189,7 @@ class CreateScenario
         BulkEventDispatcher $eventDispatcher,
         string $deletedAtColumn
     ): void {
-        if ($eventDispatcher->hasListeners(BulkEventEnum::delete()) === false) {
+        if (!$eventDispatcher->hasListeners(BulkEventEnum::delete())) {
             return;
         }
 
@@ -229,19 +232,6 @@ class CreateScenario
         unset($models, $bulkRows);
     }
 
-    private function freshTimestamps(BulkModel $eloquent, BulkAccumulationEntity $data): void
-    {
-        if ($eloquent->usesTimestamps()) {
-            foreach ($data->rows as $accumulatedRow) {
-                if ($accumulatedRow->skipCreating) {
-                    continue;
-                }
-
-                $accumulatedRow->model->updateTimestamps();
-            }
-        }
-    }
-
     private function prepareModelsForGiving(
         BulkModel $eloquent,
         BulkAccumulationEntity $data,
@@ -276,7 +266,7 @@ class CreateScenario
                 } elseif ($createdAtColumn !== null
                     && $row->model->getAttribute($createdAtColumn) instanceof DateTimeInterface
                 ) {
-                    $row->model->wasRecentlyCreated = $startedAt < $row->model->getAttribute($createdAtColumn);
+                    $row->model->wasRecentlyCreated = $startedAt < $existingRow->getAttribute($createdAtColumn);
                 }
             }
         }
@@ -303,7 +293,7 @@ class CreateScenario
                 continue;
             }
 
-            if ($accumulatedRow->skipCreating === false && $accumulatedRow->model->exists) {
+            if (!$accumulatedRow->skipCreating && $accumulatedRow->model->exists) {
                 if ($hasCreatedListeners) {
                     $createdModels->push($accumulatedRow->model);
                     $createdBulkRows->push(
@@ -312,7 +302,7 @@ class CreateScenario
                     $eventDispatcher->dispatch(BulkEventEnum::CREATED, $accumulatedRow->model);
                 }
 
-                if ($hasDeletedListeners && $accumulatedRow->isDeleting && $accumulatedRow->skipDeleting === false) {
+                if ($hasDeletedListeners && $accumulatedRow->isDeleting && !$accumulatedRow->skipDeleting) {
                     $deletedModels->push($accumulatedRow->model);
                     $deletedBulkRows->push(
                         new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)

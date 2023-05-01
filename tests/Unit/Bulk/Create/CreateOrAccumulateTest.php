@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
+use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -58,8 +59,8 @@ final class CreateOrAccumulateTest extends TestCase
                 'birthday' => $user->birthday,
                 'phones' => $this->phonesToCast($user),
                 'last_visited_at' => $user->last_visited_at,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
+                'created_at' => Carbon::now()->toDateTimeString(),
+                'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => $user->deleted_at?->toDateTimeString(),
             ], $user->getConnectionName());
         }

@@ -340,11 +340,10 @@ class Bulk
     {
         foreach ($rows as $row) {
             $model = $this->convertRowToModel($row);
-            $uniqueAttributes = $this->getUniqueAttributesForModel($row, $model);
-            $hash = hash('crc32c', implode(',', $uniqueAttributes));
+            [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
 
-            $this->storage[$storageKey][$hash] ??= new BulkAccumulationEntity($uniqueAttributes);
-            $this->storage[$storageKey][$hash]->rows[] = new BulkAccumulationItemEntity($row, $model);
+            $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity($uniqueAttributes);
+            $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
         }
     }
 
@@ -406,28 +405,26 @@ class Bulk
 
     private function getUniqueAttributesForModel(mixed $row, BulkModel $model): array
     {
-        $modelAttributes = $model->attributesToArray();
-
-        foreach ($this->uniqueBy as $uniqueBy) {
+        foreach ($this->uniqueBy as $index => $uniqueBy) {
             if ($uniqueBy instanceof Closure) {
                 $result = $uniqueBy($row);
 
                 if (is_array($result) || is_string($result)) {
-                    return (array) $result;
+                    return [$index, (array) $result];
                 }
             }
 
             $result = [];
 
             foreach ($uniqueBy as $attribute) {
-                if (array_key_exists($attribute, $modelAttributes) === false) {
+                if (!array_key_exists($attribute, $model->getAttributes())) {
                     continue 2;
                 }
 
                 $result[] = $attribute;
             }
 
-            return $result;
+            return [$index, $result];
         }
 
         throw new BulkIdentifierDidNotFind($row, $this->uniqueBy);
@@ -516,7 +513,7 @@ class Bulk
 
     private function getDateFields(): array
     {
-        if (isset($this->dateFields) === false) {
+        if (!isset($this->dateFields)) {
             $this->dateFields = [];
 
             foreach ($this->model->getDates() as $field) {
@@ -560,7 +557,7 @@ class Bulk
 
     private function getDeletedAtColumn(): ?string
     {
-        if (isset($this->deletedAtColumn) === false) {
+        if (!isset($this->deletedAtColumn)) {
             $this->deletedAtColumn = method_exists($this->model, 'getDeletedAtColumn')
                 ? $this->model->getDeletedAtColumn()
                 : null;
@@ -571,7 +568,7 @@ class Bulk
 
     private function getEventDispatcher(): BulkEventDispatcher
     {
-        if (isset($this->eventDispatcher) === false) {
+        if (!isset($this->eventDispatcher)) {
             $this->eventDispatcher = new BulkEventDispatcher($this->model);
         }
 

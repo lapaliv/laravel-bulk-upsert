@@ -30,34 +30,17 @@ class TouchRelationsFeature
         ConnectionInterface $connection,
         BulkDriver $driver,
     ): void {
-        if (empty($eloquent->getTouchedRelations())) {
-            return;
-        }
-
-        $this->touchRelations(
-            $eloquent,
-            $this->convertModelsToCollection($eloquent, $data),
-            $eventDispatcher,
-            $connection,
-            $driver
-        );
-    }
-
-    private function convertModelsToCollection(
-        BulkModel $eloquent,
-        BulkAccumulationEntity $data,
-    ): Collection {
-        $result = $eloquent->newCollection();
+        $models = $eloquent->newCollection();
 
         foreach ($data->rows as $row) {
-            if ($row->skipSaving) {
+            if ($row->skipUpdating || $row->skipCreating) {
                 continue;
             }
 
-            $result->push($row->model);
+            $models->push($row->model);
         }
 
-        return $result;
+        $this->touchRelations($eloquent, $models, $eventDispatcher, $connection, $driver);
     }
 
     private function touchRelations(

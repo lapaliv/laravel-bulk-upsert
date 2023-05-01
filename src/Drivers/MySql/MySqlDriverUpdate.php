@@ -90,7 +90,7 @@ class MySqlDriverUpdate
         $result = [];
 
         foreach ($wheres as $where) {
-            if (empty($result) === false) {
+            if (!empty($result)) {
                 $result[] = $where->boolean;
             }
 

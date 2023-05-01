@@ -58,7 +58,7 @@ class AddWhereClauseToBuilderFeature
                         $this->addCondition($builder, $column, $children['original']);
 
                         // the latest child
-                        if (array_key_exists($uniqAttributeIndex + 2, $uniqueAttributes) === false) {
+                        if (!array_key_exists($uniqAttributeIndex + 2, $uniqueAttributes)) {
                             $childrenGroups = $this->groupBy($children['children'], $uniqueAttributes[$uniqAttributeIndex + 1]);
 
                             $this->addCondition(

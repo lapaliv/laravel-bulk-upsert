@@ -28,12 +28,12 @@ class MarkNonexistentRowsAsSkippedFeature
         $nonexistent = new BulkAccumulationEntity($data->uniqueBy);
 
         foreach ($data->rows as $accumulationRow) {
-            if ($accumulationRow->model->exists === false) {
+            if (!$accumulationRow->model->exists) {
                 $nonexistent->rows[] = $accumulationRow;
             }
         }
 
-        if (empty($nonexistent->rows) === false) {
+        if (!empty($nonexistent->rows)) {
             $this->mark(
                 $data,
                 $nonexistent,

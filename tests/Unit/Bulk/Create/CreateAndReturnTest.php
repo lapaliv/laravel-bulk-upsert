@@ -40,8 +40,8 @@ final class CreateAndReturnTest extends TestCase
                 'birthday' => $user->birthday,
                 'phones' => $this->phonesToCast($user),
                 'last_visited_at' => $user->last_visited_at,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
+                'created_at' => Carbon::now()->toDateTimeString(),
+                'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => $user->deleted_at?->toDateTimeString(),
             ], $user->getConnectionName());
         }

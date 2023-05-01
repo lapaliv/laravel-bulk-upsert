@@ -77,7 +77,7 @@ class UpsertScenario
         );
 
         foreach ($data->rows as $row) {
-            if ($row->skipUpdating && $row->model->wasRecentlyCreated === false) {
+            if ($row->skipUpdating && !$row->model->wasRecentlyCreated) {
                 $row->skipUpdating = false;
             } elseif ($row->skipUpdating) {
                 $row->skipSaving = true;

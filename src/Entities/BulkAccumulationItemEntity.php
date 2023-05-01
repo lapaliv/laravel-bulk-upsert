@@ -12,7 +12,6 @@ class BulkAccumulationItemEntity
     public function __construct(
         public mixed $row,
         public BulkModel $model,
-        public bool $skipped = false,
         public bool $skipSaving = false,
         public bool $skipCreating = false,
         public bool $skipUpdating = false,

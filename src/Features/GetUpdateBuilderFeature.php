@@ -32,6 +32,10 @@ class GetUpdateBuilderFeature
         $groupedAttributes = [];
 
         foreach ($data->rows as $row) {
+            if ($row->skipUpdating) {
+                continue;
+            }
+
             $this->collectRowAttributes(
                 $eloquent,
                 $data,
@@ -96,11 +100,11 @@ class GetUpdateBuilderFeature
                     continue;
                 }
 
-                if (empty($data->updateOnly) === false && in_array($key, $data->updateOnly, true) === false) {
+                if (!empty($data->updateOnly) && !in_array($key, $data->updateOnly, true)) {
                     continue;
                 }
 
-                if (empty($data->updateExcept) === false && in_array($key, $data->updateExcept, true)) {
+                if (!empty($data->updateExcept) && in_array($key, $data->updateExcept, true)) {
                     continue;
                 }
             }

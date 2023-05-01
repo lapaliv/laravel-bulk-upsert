@@ -2,8 +2,11 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Carbon\Carbon;
 use DateTime;
+use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
@@ -16,6 +19,12 @@ use stdClass;
  */
 class GetInsertBuilderFeature
 {
+    private DateTimeInterface $now;
+    private string $createdAtColumn;
+    private string $updatedAtColumn;
+    private string $createdAt;
+    private string $updatedAt;
+
     public function handle(
         BulkModel $eloquent,
         BulkAccumulationEntity $data,
@@ -27,17 +36,27 @@ class GetInsertBuilderFeature
         $result->into($eloquent->getTable())->onConflictDoNothing($ignore);
         $columns = [];
 
+        $this->createdAtColumn = $eloquent->getCreatedAtColumn();
+        $this->updatedAtColumn = $eloquent->getUpdatedAtColumn();
+
+        if ($eloquent->usesTimestamps()) {
+            $now = Carbon::now();
+            $this->createdAt = $now->format(
+                $dateFields[$this->createdAtColumn] ?? 'Y-m-d H:i:s'
+            );
+            $this->updatedAt = $now->format(
+                $dateFields[$this->updatedAtColumn] ?? 'Y-m-d H:i:s'
+            );
+        }
+
         foreach ($data->rows as $row) {
             if ($row->skipCreating) {
                 continue;
             }
 
-            $array = $this->convertModelToArray($row, $dateFields, $deletedAtColumn);
+            $columns = [];
+            $array = $this->convertModelToArray($row, $columns, $dateFields, $deletedAtColumn);
             $result->addValue($array);
-
-            foreach ($array as $key => $value) {
-                $columns[$key] = $key;
-            }
         }
 
         if (empty($columns)) {
@@ -49,18 +68,17 @@ class GetInsertBuilderFeature
 
     private function convertModelToArray(
         BulkAccumulationItemEntity $row,
+        array &$columns,
         array $dateFields,
         ?string $deletedAtColumn,
     ): array {
         $result = [];
 
-        foreach ($row->model->attributesToArray() as $key => $value) {
-            if ($key === $deletedAtColumn && $row->skipDeleting) {
-                continue;
-            }
+        foreach ($row->model->getAttributes() as $key => $value) {
+            $columns[$key] = $key;
 
             if ($value !== null && isset($dateFields[$key])) {
-                $date = new DateTime($value);
+                $date = $value instanceof DateTime ? $value : new DateTime($value);
                 $result[$key] = $date->format($dateFields[$key]);
 
                 continue;
@@ -75,20 +93,41 @@ class GetInsertBuilderFeature
                     $value = (array) $value;
                 } elseif (method_exists($value, 'toArray')) {
                     $value = $value->toArray();
-                } elseif ($value instanceof CastsAttributes) {
+                } elseif ($value instanceof CastsAttributes && $row->model instanceof Model) {
                     $value = $value->set($row->model, $key, $value, $result);
                 } else {
                     throw new BulkAttributeTypeIsNotScalar($key);
                 }
             }
 
-            if (is_array($value)) {
-                $value = json_encode($value, JSON_THROW_ON_ERROR);
-            }
-
             $result[$key] = $value;
         }
 
+        $this->freshTimestamps($result, $columns, $row, $deletedAtColumn);
+
         return $result;
+    }
+
+    private function freshTimestamps(
+        array &$result,
+        array &$columns,
+        BulkAccumulationItemEntity $row,
+        ?string $deletedAtColumn,
+    ): void {
+        if ($row->isDeleting && $row->skipDeleting) {
+            $result[$deletedAtColumn] = null;
+        }
+
+        if ($row->model->usesTimestamps()) {
+            if (!isset($columns[$this->createdAtColumn])) {
+                $columns[$this->createdAtColumn] = $this->createdAtColumn;
+                $result[$this->createdAtColumn] = $this->createdAt;
+            }
+
+            if (!isset($columns[$this->updatedAtColumn])) {
+                $columns[$this->updatedAtColumn] = $this->updatedAtColumn;
+                $result[$this->updatedAtColumn] = $this->updatedAt;
+            }
+        }
     }
 }
