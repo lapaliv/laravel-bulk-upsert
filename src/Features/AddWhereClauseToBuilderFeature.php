@@ -96,7 +96,7 @@ class AddWhereClauseToBuilderFeature
         } elseif (is_object($value) && PHP_VERSION_ID >= 80100 && enum_exists(get_class($value))) {
             $builder->where($column, $value->value);
         } elseif (is_object($value) && method_exists($value, '__toString')) {
-            $builder->where($column, $value->__toString());
+            $builder->where($column, '=', $value->__toString());
         } elseif (is_array($value) && count($value) === 1) {
             $builder->where($column, '=', $value[0]);
         } elseif (is_array($value)) {
