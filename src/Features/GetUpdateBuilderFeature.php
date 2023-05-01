@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
@@ -13,6 +14,9 @@ use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
  */
 class GetUpdateBuilderFeature
 {
+    private string $updatedAtColumn;
+    private string $updatedAt;
+
     public function __construct(
         private AttributesToScalarArrayConverter $attributesToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
@@ -30,6 +34,13 @@ class GetUpdateBuilderFeature
         $result->table($eloquent->getTable());
         $limit = 0;
         $groupedAttributes = [];
+        $this->updatedAtColumn = $eloquent->getUpdatedAtColumn();
+
+        if ($eloquent->usesTimestamps()) {
+            $this->updatedAt = Carbon::now()->format(
+                $dateFields[$this->updatedAtColumn] ?? 'Y-m-d H:i:s'
+            );
+        }
 
         foreach ($data->rows as $row) {
             if ($row->skipUpdating) {
@@ -75,40 +86,45 @@ class GetUpdateBuilderFeature
         ?string $deletedAtColumn,
     ): void {
         $uniqueAttributes = $this->getUniqueAttributeValues($data->uniqueBy, $row->model, $dateFields);
-        $uniqueAttributesHash = hash('crc32c', json_encode($uniqueAttributes, JSON_THROW_ON_ERROR));
+        $uniqueAttributesHash = hash('crc32c', implode(',', $uniqueAttributes));
         $attributes = $this->attributesToScalarArrayConverter->handle(
             $row->model,
             $row->model->getDirty(),
             $dateFields,
         );
 
+        foreach ($data->uniqueBy as $uniqueAttribute) {
+            unset($attributes[$uniqueAttribute]);
+        }
+
+        unset($attributes[$eloquent->getKeyName()]);
+
+        if ($row->isDeleting && $row->skipDeleting) {
+            unset($attributes[$deletedAtColumn]);
+        } elseif ($row->isRestoring && $row->skipRestoring) {
+            unset($attributes[$deletedAtColumn]);
+        }
+
+        if (!empty($data->updateOnly)) {
+            foreach ($attributes as $key => $value) {
+                if (!in_array($key, $data->updateOnly, true)) {
+                    unset($attributes[$key]);
+                }
+            }
+        } elseif (!empty($data->updateExcept)) {
+            foreach ($attributes as $key => $value) {
+                if (in_array($key, $data->updateExcept, true)) {
+                    unset($attributes[$key]);
+                }
+            }
+        }
+
+        if ($eloquent->usesTimestamps() && !$row->model->isDirty($this->updatedAtColumn)) {
+            $attributes[$this->updatedAtColumn] ??= $this->updatedAt;
+            $row->model->{$this->updatedAtColumn} = $this->updatedAt;
+        }
+
         foreach ($attributes as $key => $value) {
-            if (in_array($key, $data->uniqueBy, true) || $key === $eloquent->getKeyName()) {
-                continue;
-            }
-
-            if ($key === $deletedAtColumn) {
-                if ($row->isDeleting && $row->skipDeleting) {
-                    continue;
-                }
-
-                if ($row->isRestoring && $row->skipRestoring) {
-                    continue;
-                }
-            } else {
-                if ($row->skipUpdating) {
-                    continue;
-                }
-
-                if (!empty($data->updateOnly) && !in_array($key, $data->updateOnly, true)) {
-                    continue;
-                }
-
-                if (!empty($data->updateExcept) && in_array($key, $data->updateExcept, true)) {
-                    continue;
-                }
-            }
-
             $valueHash = hash('crc32c', $value . ':' . gettype($value));
             $groups[$key] ??= [];
             $groups[$key][$valueHash] ??= ['value' => $value, 'filters' => []];

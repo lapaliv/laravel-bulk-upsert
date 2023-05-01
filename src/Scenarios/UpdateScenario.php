@@ -54,8 +54,6 @@ class UpdateScenario
             }
         }
 
-        $this->freshTimestamps($eloquent, $data);
-
         $builder = $this->getUpdateBuilderFeature->handle($eloquent, $data, $dateFields, $deletedAtColumn);
         $driver = $this->driverManager->getForModel($eloquent);
 
@@ -249,19 +247,6 @@ class UpdateScenario
         }
 
         unset($deletingModels, $deletingBulkRows, $restoringModels, $restoringBulkRows, $eventResult);
-    }
-
-    private function freshTimestamps(Model $eloquent, BulkAccumulationEntity $data): void
-    {
-        if ($eloquent->usesTimestamps()) {
-            foreach ($data->rows as $accumulatedRow) {
-                if ($accumulatedRow->skipSaving || $accumulatedRow->skipUpdating) {
-                    continue;
-                }
-
-                $accumulatedRow->model->updateTimestamps();
-            }
-        }
     }
 
     private function fireUpdatedEvents(

@@ -36,7 +36,7 @@ final class UpdateAndReturnTest extends TestCase
             ->uniqueBy([$uniqBy]);
 
         // act
-        $result = $sut->updateAndReturn($users);
+        $sut->updateAndReturn($users);
 
         // assert
         $users->each(
