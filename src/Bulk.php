@@ -481,6 +481,8 @@ class Bulk
             $this->getSelectColumns($columns, $accumulation->uniqueBy),
             $this->getDeletedAtColumn(),
         );
+
+        unset($scenario);
     }
 
     private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
@@ -495,6 +497,8 @@ class Bulk
             $this->getSelectColumns($columns, $accumulation->uniqueBy),
             $this->getDeletedAtColumn(),
         );
+
+        unset($scenario);
     }
 
     private function runUpsertScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
@@ -509,6 +513,8 @@ class Bulk
             $this->getSelectColumns($columns, $accumulation->uniqueBy),
             $this->getDeletedAtColumn(),
         );
+
+        unset($scenario);
     }
 
     private function getDateFields(): array

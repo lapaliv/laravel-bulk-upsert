@@ -316,7 +316,7 @@ class UpdateScenario
                 );
             }
 
-            if ($hasSavedListeners && !$accumulatedRow->skipSaving) {
+            if ($hasSavedListeners) {
                 $eventDispatcher->dispatch(BulkEventEnum::SAVED, $accumulatedRow->model);
                 $savedModels->push($accumulatedRow->model);
                 $savedBulkRows->push(

@@ -4,7 +4,6 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
 use DateTime;
-use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
@@ -18,7 +17,6 @@ use stdClass;
  */
 class GetInsertBuilderFeature
 {
-    private DateTimeInterface $now;
     private string $createdAtColumn;
     private string $updatedAtColumn;
     private string $createdAt;
