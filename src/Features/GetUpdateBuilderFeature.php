@@ -2,8 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
@@ -21,7 +21,7 @@ class GetUpdateBuilderFeature
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         array $dateFields,
         ?string $deletedAtColumn,
@@ -67,7 +67,7 @@ class GetUpdateBuilderFeature
     }
 
     private function collectRowAttributes(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkAccumulationItemEntity $row,
         array &$groups,
@@ -116,7 +116,7 @@ class GetUpdateBuilderFeature
         }
     }
 
-    private function getUniqueAttributeValues(array $uniqueBy, BulkModel $model, array $dateFields): array
+    private function getUniqueAttributeValues(array $uniqueBy, Model $model, array $dateFields): array
     {
         $result = [];
 

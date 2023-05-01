@@ -7,14 +7,14 @@ use Closure;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
-use Lapaliv\BulkUpsert\Exceptions\ModelHasToImplementBulkModelInterface;
+use Lapaliv\BulkUpsert\Exceptions\TransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
@@ -46,7 +46,7 @@ class Bulk
 {
     private const DEFAULT_CHUNK_SIZE = 100;
 
-    private BulkModel $model;
+    private Model $model;
     private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
     /**
      * @var array<callable|string[]>
@@ -85,16 +85,16 @@ class Bulk
      */
     private array $updateExcept = [];
 
-    public function __construct(BulkModel|string $model)
+    public function __construct(Model|string $model)
     {
         if (is_string($model) && class_exists($model)) {
             $model = Container::getInstance()->make($model);
         }
 
-        if ($model instanceof BulkModel) {
+        if ($model instanceof Model) {
             $this->model = $model;
         } else {
-            throw new ModelHasToImplementBulkModelInterface(
+            throw new TransmittedClassIsNotAModel(
                 is_object($model) ? get_class($model) : (string) $model
             );
         }
@@ -347,9 +347,9 @@ class Bulk
         }
     }
 
-    private function convertRowToModel(mixed $row): BulkModel
+    private function convertRowToModel(mixed $row): Model
     {
-        if ($row instanceof BulkModel) {
+        if ($row instanceof Model) {
             return $row;
         }
 
@@ -366,7 +366,7 @@ class Bulk
         }
 
         if (is_array($row)) {
-            /** @var BulkModel $result */
+            /** @var Model $result */
             $result = Container::getInstance()->make(
                 get_class($this->model),
                 ['attributes' => $row]
@@ -403,7 +403,7 @@ class Bulk
         throw new BulkValueTypeIsNotSupported($row);
     }
 
-    private function getUniqueAttributesForModel(mixed $row, BulkModel $model): array
+    private function getUniqueAttributesForModel(mixed $row, Model $model): array
     {
         foreach ($this->uniqueBy as $index => $uniqueBy) {
             if ($uniqueBy instanceof Closure) {

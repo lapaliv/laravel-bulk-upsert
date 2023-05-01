@@ -2,14 +2,16 @@
 
 namespace Lapaliv\BulkUpsert\Contracts;
 
+use Illuminate\Database\Eloquent\Model;
+
 interface BulkDriverManager
 {
     /**
-     * @param BulkModel $eloquent
+     * @param Model $eloquent
      *
      * @return BulkDriver
      */
-    public function getForModel(BulkModel $eloquent): BulkDriver;
+    public function getForModel(Model $eloquent): BulkDriver;
 
     public function registerDriver(string $name, BulkDriver $driver): void;
 

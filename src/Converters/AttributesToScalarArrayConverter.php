@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Converters;
 
 use DateTime;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
 use stdClass;
 
@@ -13,7 +13,7 @@ use stdClass;
  */
 class AttributesToScalarArrayConverter
 {
-    public function handle(BulkModel $model, array $attributes, array $dateFields): array
+    public function handle(Model $model, array $attributes, array $dateFields): array
     {
         $result = [];
 

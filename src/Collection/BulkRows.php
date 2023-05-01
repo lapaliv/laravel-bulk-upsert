@@ -2,13 +2,13 @@
 
 namespace Lapaliv\BulkUpsert\Collection;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Traversable;
 
 /**
- * @template TModel of BulkModel
+ * @template TModel of Model
  * @template TOriginal of mixed
  */
 class BulkRows extends Collection

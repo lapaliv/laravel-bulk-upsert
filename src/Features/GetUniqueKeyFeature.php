@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * @internal
@@ -10,17 +10,17 @@ use Lapaliv\BulkUpsert\Contracts\BulkModel;
 class GetUniqueKeyFeature
 {
     /**
-     * @param array<string, scalar>|BulkModel $row
+     * @param array<string, scalar>|Model $row
      * @param string[] $attributes
      *
      * @return string
      */
-    public function handle(array|BulkModel $row, array $attributes): string
+    public function handle(array|Model $row, array $attributes): string
     {
         $key = '';
 
         foreach ($attributes as $attribute) {
-            if ($row instanceof BulkModel) {
+            if ($row instanceof Model) {
                 $key .= $row->getAttribute($attribute);
             } else {
                 $key .= $row[$attribute];

@@ -2,9 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios;
 
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -28,7 +28,7 @@ class UpdateScenario
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         array $dateFields,
@@ -87,7 +87,7 @@ class UpdateScenario
     }
 
     private function dispatchSavingEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
@@ -125,7 +125,7 @@ class UpdateScenario
     }
 
     private function dispatchUpdatingEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
@@ -167,7 +167,7 @@ class UpdateScenario
     }
 
     private function dispatchDeletingAndRestoringEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         string $deletedAtColumn,
@@ -251,7 +251,7 @@ class UpdateScenario
         unset($deletingModels, $deletingBulkRows, $restoringModels, $restoringBulkRows, $eventResult);
     }
 
-    private function freshTimestamps(BulkModel $eloquent, BulkAccumulationEntity $data): void
+    private function freshTimestamps(Model $eloquent, BulkAccumulationEntity $data): void
     {
         if ($eloquent->usesTimestamps()) {
             foreach ($data->rows as $accumulatedRow) {
@@ -265,7 +265,7 @@ class UpdateScenario
     }
 
     private function fireUpdatedEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {

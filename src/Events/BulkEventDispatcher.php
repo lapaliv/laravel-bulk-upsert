@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Events;
 
 use DateTime;
 use Illuminate\Container\Container;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
@@ -15,7 +15,7 @@ class BulkEventDispatcher
     private array $listeners = [];
     private ?array $enabledEvents = null;
 
-    public function __construct(private BulkModel $model)
+    public function __construct(private Model $model)
     {
         //
     }

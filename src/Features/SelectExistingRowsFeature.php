@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * @internal
@@ -17,7 +17,7 @@ class SelectExistingRowsFeature
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         Collection $collection,
         array $uniqueBy,
         array $selectColumns,

@@ -8,7 +8,6 @@ use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
@@ -26,7 +25,7 @@ class GetInsertBuilderFeature
     private string $updatedAt;
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         bool $ignore,
         array $dateFields,
@@ -93,7 +92,7 @@ class GetInsertBuilderFeature
                     $value = (array) $value;
                 } elseif (method_exists($value, 'toArray')) {
                     $value = $value->toArray();
-                } elseif ($value instanceof CastsAttributes && $row->model instanceof Model) {
+                } elseif ($value instanceof CastsAttributes) {
                     $value = $value->set($row->model, $key, $value, $result);
                 } else {
                     throw new BulkAttributeTypeIsNotScalar($key);

@@ -4,8 +4,8 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 
 /**
@@ -16,7 +16,7 @@ class AddWhereClauseToBuilderFeature
     /**
      * @param BuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param string[] $uniqueAttributes
-     * @param array<int, array<string, BulkModel|scalar>> $rows
+     * @param array<int, array<string, Model|scalar>> $rows
      *
      * @return void
      */
@@ -179,9 +179,9 @@ class AddWhereClauseToBuilderFeature
         return array_keys($result);
     }
 
-    private function getValue(array|BulkModel $row, string $column): mixed
+    private function getValue(array|Model $row, string $column): mixed
     {
-        if ($row instanceof BulkModel) {
+        if ($row instanceof Model) {
             return $row->getAttribute($column);
         }
 

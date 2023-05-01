@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios;
 
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
@@ -21,7 +21,7 @@ class UpsertScenario
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         array $dateFields,
@@ -47,7 +47,7 @@ class UpsertScenario
     }
 
     private function create(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         array $dateFields,

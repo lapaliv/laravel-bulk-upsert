@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Exceptions;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use LogicException;
 
-class ModelHasToImplementBulkModelInterface extends LogicException implements BulkException
+class TransmittedClassIsNotAModel extends LogicException implements BulkException
 {
     public function __construct(string $className)
     {

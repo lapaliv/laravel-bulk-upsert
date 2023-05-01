@@ -7,12 +7,11 @@ use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Schema\Builder;
 use Lapaliv\BulkUpsert\Bulkable;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 
 /**
  * @internal
  */
-abstract class Model extends Eloquent implements BulkModel
+abstract class Model extends Eloquent
 {
     use Bulkable;
 

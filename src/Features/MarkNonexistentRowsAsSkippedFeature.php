@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 
 /**
@@ -20,7 +20,7 @@ class MarkNonexistentRowsAsSkippedFeature
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         array $selectColumns,
         ?string $deletedAtColumn,
@@ -60,7 +60,7 @@ class MarkNonexistentRowsAsSkippedFeature
             $mapIndexesAndKeys[$key] = $index;
         }
 
-        /** @var array<string, BulkModel> $keyedSelected */
+        /** @var array<string, Model> $keyedSelected */
         $keyedSelected = $this->keyByFeature->handle($exists, $nonExistent->uniqueBy);
 
         foreach ($nonExistent->rows as $row) {

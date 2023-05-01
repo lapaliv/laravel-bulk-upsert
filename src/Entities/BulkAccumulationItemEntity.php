@@ -2,7 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Entities;
 
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * @internal
@@ -11,7 +11,7 @@ class BulkAccumulationItemEntity
 {
     public function __construct(
         public mixed $row,
-        public BulkModel $model,
+        public Model $model,
         public bool $skipSaving = false,
         public bool $skipCreating = false,
         public bool $skipUpdating = false,

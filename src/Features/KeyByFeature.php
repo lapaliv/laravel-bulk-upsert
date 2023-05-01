@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * @internal
@@ -16,10 +16,10 @@ class KeyByFeature
     }
 
     /**
-     * @param array<int, array<string, scalar>>|Collection<BulkModel> $rows
+     * @param array<int, array<string, scalar>>|Collection<Model> $rows
      * @param string[] $attributes
      *
-     * @return array<string, BulkModel|scalar[]>
+     * @return array<string, Model|scalar[]>
      */
     public function handle(array|Collection $rows, array $attributes): array
     {

@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Scenarios;
 use DateTime;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -33,7 +33,7 @@ class CreateScenario
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         bool $ignore,
@@ -102,7 +102,7 @@ class CreateScenario
     }
 
     private function dispatchSavingEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
@@ -138,7 +138,7 @@ class CreateScenario
     }
 
     private function dispatchCreatingEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {
@@ -184,7 +184,7 @@ class CreateScenario
     }
 
     private function dispatchDeletingEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         string $deletedAtColumn
@@ -233,7 +233,7 @@ class CreateScenario
     }
 
     private function prepareModelsForGiving(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         Collection $existingRows,
         ?int $lastInsertedId,
@@ -244,7 +244,7 @@ class CreateScenario
             ? $eloquent->getCreatedAtColumn()
             : null;
         $keyedExistingRows = $existingRows->keyBy(
-            function (BulkModel $model) use ($data): string {
+            function (Model $model) use ($data): string {
                 return $this->getUniqueKeyFeature->handle($model, $data->uniqueBy);
             }
         );
@@ -257,7 +257,7 @@ class CreateScenario
             $key = $this->getUniqueKeyFeature->handle($row->model, $data->uniqueBy);
 
             if ($keyedExistingRows->has($key)) {
-                /** @var BulkModel $existingRow */
+                /** @var Model $existingRow */
                 $existingRow = $keyedExistingRows->get($key);
                 $row->model = $existingRow;
 
@@ -273,7 +273,7 @@ class CreateScenario
     }
 
     private function fireCreatedEvents(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
     ): void {

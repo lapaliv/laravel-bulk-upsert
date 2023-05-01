@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
@@ -24,7 +23,7 @@ class TouchRelationsFeature
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
         BulkEventDispatcher $eventDispatcher,
         ConnectionInterface $connection,
@@ -44,7 +43,7 @@ class TouchRelationsFeature
     }
 
     private function touchRelations(
-        Model|BulkModel $eloquent,
+        Model $eloquent,
         Collection $collection,
         BulkEventDispatcher $eventDispatcher,
         ConnectionInterface $connection,
@@ -112,7 +111,7 @@ class TouchRelationsFeature
 
         if ($updateResult > 0) {
             $collection->each(
-                function (BulkModel $model) use ($eventDispatcher) {
+                function (Model $model) use ($eventDispatcher) {
                     $eventDispatcher->dispatch(BulkEventEnum::SAVED, $model);
                 }
             );

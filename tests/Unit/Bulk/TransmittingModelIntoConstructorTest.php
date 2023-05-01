@@ -2,10 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lapaliv\BulkUpsert\Bulk;
-use Lapaliv\BulkUpsert\Exceptions\ModelHasToImplementBulkModelInterface;
+use Lapaliv\BulkUpsert\Exceptions\TransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
@@ -14,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
  */
 final class TransmittingModelIntoConstructorTest extends TestCase
 {
-    public function testBulkModel(): void
+    public function testModel(): void
     {
         // arrange
         $payload = new MySqlUser();
@@ -26,7 +25,7 @@ final class TransmittingModelIntoConstructorTest extends TestCase
         self::assertInstanceOf(Bulk::class, $bulk);
     }
 
-    public function testBulkModelClassName(): void
+    public function testModelClassName(): void
     {
         // arrange
         $payload = MySqlUser::class;
@@ -44,20 +43,20 @@ final class TransmittingModelIntoConstructorTest extends TestCase
         $payload = Str::random();
 
         // assert
-        $this->expectException(ModelHasToImplementBulkModelInterface::class);
+        $this->expectException(TransmittedClassIsNotAModel::class);
 
         // act
         new Bulk($payload);
     }
 
-    public function testNotBulkModel(): void
+    public function testNotModel(): void
     {
         // arrange
         $modelName = 'M' . Str::random();
-        eval('class ' . $modelName . ' extends ' . Model::class . '{}');
+        eval('class ' . $modelName . ' {}');
 
         // assert
-        $this->expectException(ModelHasToImplementBulkModelInterface::class);
+        $this->expectException(TransmittedClassIsNotAModel::class);
 
         // act
         new Bulk('\\' . $modelName);
