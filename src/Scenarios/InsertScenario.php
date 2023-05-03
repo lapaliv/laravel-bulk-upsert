@@ -53,7 +53,7 @@ class InsertScenario
 
         // there aren't any events and callbacks
         if ($this->canUseSimpleInsert($scenarioConfig)) {
-            $this->simpleInsert($eloquent, $collection, $scenarioConfig->dateFields);
+            $this->simpleInsert($eloquent, $collection, $scenarioConfig->dateFields, $ignore);
 
             return;
         }
@@ -127,9 +127,10 @@ class InsertScenario
      * @param BulkModel $eloquent
      * @param Collection $collection
      * @param string[] $dateFields
+     * @param bool $ignore
      * @return void
      */
-    private function simpleInsert(BulkModel $eloquent, Collection $collection, array $dateFields): void
+    private function simpleInsert(BulkModel $eloquent, Collection $collection, array $dateFields, bool $ignore): void
     {
         $collection->map(
             fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
@@ -141,7 +142,8 @@ class InsertScenario
                 $this->alignFieldsFeature->handle(
                     $this->collectionToScalarArraysConverter->handle($collection, $dateFields),
                     new Expression('default')
-                )
+                ),
+                $ignore
             );
     }
 

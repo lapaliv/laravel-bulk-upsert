@@ -20,7 +20,7 @@ class NullDriver implements Driver
         return 0;
     }
 
-    public function simpleInsert(Builder $builder, array $values): void
+    public function simpleInsert(Builder $builder, array $values, bool $ignore): void
     {
         // Nothing
     }
