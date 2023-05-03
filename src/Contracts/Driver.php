@@ -20,5 +20,5 @@ interface Driver
         UpdateBuilder $builder
     ): int;
 
-    public function simpleInsert(Builder $builder, array $values): void;
+    public function simpleInsert(Builder $builder, array $values, bool $ignore): void;
 }
