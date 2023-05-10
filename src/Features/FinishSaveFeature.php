@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkModel;
 use Lapaliv\BulkUpsert\Contracts\Driver;
@@ -13,8 +14,9 @@ class FinishSaveFeature
 {
     public function __construct(
         private FireModelEventsFeature $fireModelEventsFeature,
-        private UpdateBuilder $builder,
-    ) {
+        private UpdateBuilder          $builder,
+    )
+    {
         //
     }
 
@@ -27,12 +29,13 @@ class FinishSaveFeature
      * @return void
      */
     public function handle(
-        BulkModel $eloquent,
-        Collection $collection,
+        BulkModel           $eloquent,
+        Collection          $collection,
         ConnectionInterface $connection,
-        Driver $driver,
-        array $events,
-    ): void {
+        Driver              $driver,
+        array               $events,
+    ): void
+    {
         if (empty($eloquent->getTouchedRelations())) {
             $collection->each(
                 function (BulkModel $model) use ($events): void {
@@ -57,7 +60,7 @@ class FinishSaveFeature
         }
 
         $collection->each(
-            fn (BulkModel $model) => $model->syncOriginal()
+            fn(BulkModel $model) => $model->syncOriginal()
         );
     }
 
@@ -91,32 +94,38 @@ class FinishSaveFeature
      * @return void
      */
     private function touchRelations(
-        array $relations,
+        array               $relations,
         ConnectionInterface $connection,
-        Driver $driver,
-    ): void {
-        foreach ($relations as $collection) {
-            if ($collection->isEmpty()) {
+        Driver              $driver,
+    ): void
+    {
+        foreach ($relations as $relation) {
+            if ($relation instanceof Model) {
+                $relation->touch();
+                continue;
+            }
+
+            if (! $relation instanceof Collection || $relation->isEmpty()) {
                 continue;
             }
 
             /** @var BulkModel $model */
-            $model = $collection->first();
+            $model = $relation->first();
             $this->builder->reset()->table($model->getTable());
 
             if ($model->usesTimestamps() === false) {
                 continue;
             }
 
-            $collection = $collection
+            $relation = $relation
                 ->each(
-                    fn (BulkModel $model) => $model->updateTimestamps()
+                    fn(BulkModel $model) => $model->updateTimestamps()
                 )
                 ->filter(
-                    fn (BulkModel $model) => $model->isDirty()
+                    fn(BulkModel $model) => $model->isDirty()
                 )
                 ->each(
-                    fn (BulkModel $model) => $this->builder->addSet(
+                    fn(BulkModel $model) => $this->builder->addSet(
                         $model->getUpdatedAtColumn(),
                         [$model->getKeyName() => $model->getKey()],
                         $model->getAttribute($model->getUpdatedAtColumn())
@@ -126,8 +135,8 @@ class FinishSaveFeature
             $updateResult = $driver->update($connection, $this->builder);
 
             if ($updateResult > 0) {
-                $collection->each(
-                    fn (BulkModel $model) => $this->fireModelEventsFeature->handle(
+                $relation->each(
+                    fn(BulkModel $model) => $this->fireModelEventsFeature->handle(
                         $model,
                         [BulkEventEnum::SAVED],
                         [BulkEventEnum::SAVED]
