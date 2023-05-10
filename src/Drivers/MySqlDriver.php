@@ -16,7 +16,8 @@ class MySqlDriver implements Driver
     public function __construct(
         private MySqlDriverInsert $insertFeature,
         private MySqlDriverUpdate $updateFeature
-    ) {
+    )
+    {
         //
     }
 
@@ -28,9 +29,13 @@ class MySqlDriver implements Driver
         return $this->insertFeature->handle($connection, $builder, $primaryKeyName);
     }
 
-    public function simpleInsert(Builder $builder, array $values): void
+    public function simpleInsert(Builder $builder, array $values, bool $ignore): void
     {
-        $builder->insert($values);
+        if ($ignore) {
+            $builder->insertOrIgnore($values);
+        } else {
+            $builder->insert($values);
+        }
     }
 
     /**
