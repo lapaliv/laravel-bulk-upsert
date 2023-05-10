@@ -24,5 +24,4 @@ class BulkEventEnum
     public const RESTORED = 'restored';
     public const RESTORING_MANY = 'restoringMany';
     public const RESTORED_MANY = 'restoredMany';
-
 }

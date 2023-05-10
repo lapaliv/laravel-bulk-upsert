@@ -29,7 +29,7 @@ final class FireModelEventsFeatureTest extends UnitTestCase
         // arrange
         Event::fake();
         $model = new MySqlEntityWithAutoIncrement();
-        $model::registerModelEvent($event, fn() => true);
+        $model::registerModelEvent($event, fn () => true);
         $dispatchingEvents = $this->getEloquentNativeEventNamesFeature->handle($model, [$event]);
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);
@@ -54,7 +54,7 @@ final class FireModelEventsFeatureTest extends UnitTestCase
         // arrange
         Event::fake();
         $model = new MySqlEntityWithAutoIncrement();
-        $model::registerModelEvent($event, fn() => true);
+        $model::registerModelEvent($event, fn () => true);
         $dispatchingEvents = $this->getEloquentNativeEventNamesFeature->handle($model, [$event]);
         /** @var FireModelEventsFeature $sut */
         $sut = $this->app->make(FireModelEventsFeature::class);

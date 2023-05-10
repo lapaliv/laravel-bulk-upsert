@@ -16,8 +16,7 @@ class MySqlDriver implements Driver
     public function __construct(
         private MySqlDriverInsert $insertFeature,
         private MySqlDriverUpdate $updateFeature
-    )
-    {
+    ) {
         //
     }
 

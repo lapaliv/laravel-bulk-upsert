@@ -89,8 +89,8 @@ class BulkBuilder extends Builder
 
         $callback = function (Collection $collection) use ($bulk, $model, $uniqueAttributes, $chunk, $updateAttributes, &$result, $values): void {
             $collection->each(
-                function(Model $model) use($values): void {
-                    foreach($values as $key => $value){
+                function (Model $model) use ($values): void {
+                    foreach ($values as $key => $value) {
                         $model->setAttribute($key, $value);
                     }
                 }
@@ -110,8 +110,7 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    ): void
-    {
+    ): void {
         if (empty($uniqueAttributes)) {
             $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
@@ -147,8 +146,7 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    )
-    {
+    ) {
         if (empty($uniqueAttributes)) {
             $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
@@ -179,8 +177,7 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         array $updateAttributes = [],
         int $chunk = 100,
-    ): void
-    {
+    ): void {
         if (empty($uniqueAttributes)) {
             $uniqueAttributes = [$this->getModel()->getKeyName()];
         }
@@ -218,8 +215,7 @@ class BulkBuilder extends Builder
         array $uniqueAttributes = [],
         ?array $updateAttributes = null,
         int $chunk = 100,
-    )
-    {
+    ) {
         if (empty($uniqueAttributes)) {
             $uniqueAttributes = [$this->getModel()->getKeyName()];
         }

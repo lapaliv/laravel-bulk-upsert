@@ -20,8 +20,7 @@ class PrepareUpdateBuilderFeature
         private AttributesToScalarArrayConverter $arrayToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
         private GetDirtyAttributesFeature $getDirtyAttributesFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -43,8 +42,7 @@ class PrepareUpdateBuilderFeature
         BulkModel $eloquent,
         Collection $collection,
         BulkScenarioConfig $scenarioConfig,
-    ): ?UpdateBuilder
-    {
+    ): ?UpdateBuilder {
         if ($collection->isEmpty()) {
             return null;
         }
@@ -97,8 +95,7 @@ class PrepareUpdateBuilderFeature
         Collection $collection,
         BulkScenarioConfig $scenarioConfig,
         array &$sets,
-    ): Collection
-    {
+    ): Collection {
         $updatingCollection = $eloquent->newCollection();
 
         /** @var BulkModel $model */
@@ -138,8 +135,7 @@ class PrepareUpdateBuilderFeature
         Collection $collection,
         BulkScenarioConfig $scenarioConfig,
         array &$sets,
-    ): Collection
-    {
+    ): Collection {
         $collection = $this->prepareModels($collection, $scenarioConfig);
         $collection = $scenarioConfig->savingCallback?->handle($collection) ?? $collection;
 
@@ -150,7 +146,7 @@ class PrepareUpdateBuilderFeature
         $collection = $eloquent->newCollection(
             $collection
                 ->filter(
-                    fn(BulkModel $model) => empty($this->getDirtyAttributesFeature->handle($model)) === false
+                    fn (BulkModel $model) => empty($this->getDirtyAttributesFeature->handle($model)) === false
                 )
                 ->all()
         );
@@ -211,13 +207,13 @@ class PrepareUpdateBuilderFeature
     {
         return $collection
             ->filter(
-                fn(BulkModel $model) => $this->fireModelEvents($model, $scenarioConfig)
+                fn (BulkModel $model) => $this->fireModelEvents($model, $scenarioConfig)
             )
             ->filter(
-                fn(BulkModel $model) => empty($this->getDirtyAttributesFeature->handle($model)) === false
+                fn (BulkModel $model) => empty($this->getDirtyAttributesFeature->handle($model)) === false
             )
             ->each(
-                fn(BulkModel $model) => $this->freshTimestampsFeature->handle($model)
+                fn (BulkModel $model) => $this->freshTimestampsFeature->handle($model)
             );
     }
 
@@ -233,7 +229,7 @@ class PrepareUpdateBuilderFeature
         if (empty($updateAttributes) === false) {
             $result = array_filter(
                 $result,
-                static fn(string $key) => in_array($key, $updateAttributes, true),
+                static fn (string $key) => in_array($key, $updateAttributes, true),
                 ARRAY_FILTER_USE_KEY
             );
         }
@@ -270,8 +266,7 @@ class PrepareUpdateBuilderFeature
         BulkModel $model,
         BulkScenarioConfig $scenarioConfig,
         array &$sets,
-    ): void
-    {
+    ): void {
         $attributes = $this->getDirtyAttributes($model, $scenarioConfig->updateAttributes);
 
         if (empty($attributes)) {
@@ -318,8 +313,7 @@ class PrepareUpdateBuilderFeature
         BulkModel $eloquent,
         BulkScenarioConfig $scenarioConfig,
         Collection $collection
-    ): Collection
-    {
+    ): Collection {
         if ($scenarioConfig->deletedAtColumn === null) {
             return $collection;
         }

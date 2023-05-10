@@ -10,7 +10,7 @@ class GetEloquentNativeEventNamesFeature
     {
         return array_filter(
             $events,
-            static fn(string $event) => $model::getEventDispatcher()->hasListeners(
+            static fn (string $event) => $model::getEventDispatcher()->hasListeners(
                 sprintf('eloquent.%s: %s', $event, get_class($model))
             )
         );

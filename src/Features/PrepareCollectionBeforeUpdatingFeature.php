@@ -11,8 +11,7 @@ class PrepareCollectionBeforeUpdatingFeature
     public function __construct(
         private KeyByFeature $keyByFeature,
         private GetDirtyAttributesFeature $getDirtyAttributesFeature,
-    )
-    {
+    ) {
         //
     }
 
@@ -30,8 +29,7 @@ class PrepareCollectionBeforeUpdatingFeature
         ?array $updateAttributes,
         Collection $actual,
         Collection $expected,
-    ): Collection
-    {
+    ): Collection {
         $keyedActual = $this->keyByFeature->handle($actual, $uniqueAttributes);
         $keyedExpected = $this->keyByFeature->handle($expected, $uniqueAttributes);
         $result = $eloquent->newCollection();
