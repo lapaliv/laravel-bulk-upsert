@@ -12,7 +12,7 @@ interface BulkDriver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): ?int;
+    ): null|int|array;
 
     public function update(
         ConnectionInterface $connection,
