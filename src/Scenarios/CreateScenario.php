@@ -24,26 +24,24 @@ use Lapaliv\BulkUpsert\Features\TouchRelationsFeature;
 class CreateScenario
 {
     public function __construct(
-        private GetInsertBuilderFeature   $getInsertBuilderFeature,
-        private BulkDriverManager         $driverManager,
+        private GetInsertBuilderFeature $getInsertBuilderFeature,
+        private BulkDriverManager $driverManager,
         private SelectExistingRowsFeature $selectExistingRowsFeature,
-        private GetUniqueKeyFeature       $getUniqueKeyFeature,
-        private TouchRelationsFeature     $touchRelationsFeature,
-    )
-    {
+        private GetUniqueKeyFeature $getUniqueKeyFeature,
+        private TouchRelationsFeature $touchRelationsFeature,
+    ) {
         //
     }
 
     public function handle(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        BulkEventDispatcher    $eventDispatcher,
-        bool                   $ignore,
-        array                  $dateFields,
-        array                  $selectColumns,
-        ?string                $deletedAtColumn,
-    ): void
-    {
+        BulkEventDispatcher $eventDispatcher,
+        bool $ignore,
+        array $dateFields,
+        array $selectColumns,
+        ?string $deletedAtColumn,
+    ): void {
         if (empty($data->rows)) {
             return;
         }
@@ -115,11 +113,10 @@ class CreateScenario
     }
 
     private function dispatchSavingEvents(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        BulkEventDispatcher    $eventDispatcher,
-    ): void
-    {
+        BulkEventDispatcher $eventDispatcher,
+    ): void {
         if (!$eventDispatcher->hasListeners(BulkEventEnum::saving())) {
             return;
         }
@@ -152,11 +149,10 @@ class CreateScenario
     }
 
     private function dispatchCreatingEvents(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        BulkEventDispatcher    $eventDispatcher,
-    ): void
-    {
+        BulkEventDispatcher $eventDispatcher,
+    ): void {
         if (!$eventDispatcher->hasListeners(BulkEventEnum::creating())) {
             return;
         }
@@ -199,12 +195,11 @@ class CreateScenario
     }
 
     private function dispatchDeletingEvents(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        BulkEventDispatcher    $eventDispatcher,
-        string                 $deletedAtColumn
-    ): void
-    {
+        BulkEventDispatcher $eventDispatcher,
+        string $deletedAtColumn
+    ): void {
         if (!$eventDispatcher->hasListeners(BulkEventEnum::delete())) {
             return;
         }
@@ -249,13 +244,12 @@ class CreateScenario
     }
 
     private function prepareModelsForGiving(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        Collection             $existingRows,
-        null|int|array         $lastInsertedIds,
-        DateTimeInterface      $startedAt,
-    ): void
-    {
+        Collection $existingRows,
+        null|int|array $lastInsertedIds,
+        DateTimeInterface $startedAt,
+    ): void {
         $hasIncrementing = $eloquent->getIncrementing();
         $createdAtColumn = $eloquent->usesTimestamps()
             ? $eloquent->getCreatedAtColumn()
@@ -290,11 +284,10 @@ class CreateScenario
     }
 
     private function fireCreatedEvents(
-        Model                  $eloquent,
+        Model $eloquent,
         BulkAccumulationEntity $data,
-        BulkEventDispatcher    $eventDispatcher,
-    ): void
-    {
+        BulkEventDispatcher $eventDispatcher,
+    ): void {
         $hasSavedListeners = $eventDispatcher->hasListeners(BulkEventEnum::saved());
         $hasCreatedListeners = $eventDispatcher->hasListeners(BulkEventEnum::created());
         $hasDeletedListeners = $eventDispatcher->hasListeners(BulkEventEnum::deleted());
