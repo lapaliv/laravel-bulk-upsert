@@ -119,7 +119,10 @@ class GetUpdateBuilderFeature
             }
         }
 
-        if ($eloquent->usesTimestamps() && !$row->model->isDirty($this->updatedAtColumn)) {
+        if (!empty($attributes)
+            && $eloquent->usesTimestamps()
+            && !$row->model->isDirty($this->updatedAtColumn)
+        ) {
             $attributes[$this->updatedAtColumn] ??= $this->updatedAt;
             $row->model->{$this->updatedAtColumn} = $this->updatedAt;
         }

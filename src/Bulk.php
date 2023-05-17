@@ -15,6 +15,8 @@ use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 use Lapaliv\BulkUpsert\Exceptions\TransmittedClassIsNotAModel;
+use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
@@ -520,25 +522,9 @@ class Bulk
     private function getDateFields(): array
     {
         if (!isset($this->dateFields)) {
-            $this->dateFields = [];
-
-            foreach ($this->model->getDates() as $field) {
-                $this->dateFields[$field] = $this->model->getDateFormat();
-            }
-
-            if ($this->getDeletedAtColumn() !== null) {
-                $this->dateFields[$this->getDeletedAtColumn()] = $this->model->getDateFormat();
-            }
-
-            foreach ($this->model->getCasts() as $key => $value) {
-                if (is_string($value) && preg_match('/^(date(?:time)?)(?::(.+?))?$/', $value, $matches)) {
-                    if ($matches[1] === 'date') {
-                        $this->dateFields[$key] = $matches[2] ?? 'Y-m-d';
-                    } else {
-                        $this->dateFields[$key] = $matches[2] ?? $this->model->getDateFormat();
-                    }
-                }
-            }
+            $feature = new GetDateFieldsFeature();
+            $this->dateFields = $feature->handle($this->model, $this->getDeletedAtColumn());
+            unset($feature);
         }
 
         return $this->dateFields;
@@ -564,9 +550,9 @@ class Bulk
     private function getDeletedAtColumn(): ?string
     {
         if (!isset($this->deletedAtColumn)) {
-            $this->deletedAtColumn = method_exists($this->model, 'getDeletedAtColumn')
-                ? $this->model->getDeletedAtColumn()
-                : null;
+            $feature = new GetDeletedAtColumnFeature();
+            $this->deletedAtColumn = $feature->handle($this->model);
+            unset($feature);
         }
 
         return $this->deletedAtColumn;

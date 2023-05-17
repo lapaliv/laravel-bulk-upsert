@@ -80,8 +80,7 @@ class CreateScenario
                 $models = $eloquent::query()
                     ->whereIn($eloquent->getKeyName(), $lastInsertedIds)
                     ->when($deletedAtColumn !== null, function (Builder $builder) {
-                        /** @noinspection PhpPossiblePolymorphicInvocationInspection */
-                        $builder->withTrashed();
+                        call_user_func([$builder, 'withTrashed']);
                     })
                     ->get();
             } else {
