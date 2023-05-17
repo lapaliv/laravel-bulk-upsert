@@ -40,15 +40,4 @@ class BulkAccumulationEntity
 
         return $result;
     }
-
-    public function hasNotSkippedModels(string $key): bool
-    {
-        foreach ($this->rows as $row) {
-            if ($row->{$key} === false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

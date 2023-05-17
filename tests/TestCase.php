@@ -7,6 +7,7 @@ use Illuminate\Database\Capsule\Manager;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
@@ -36,10 +37,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         MySqlComment::dropTable();
         MySqlPost::dropTable();
         MySqlUser::dropTable();
+        MySqlStory::dropTable();
 
         MySqlUser::createTable();
         MySqlPost::createTable();
         MySqlComment::createTable();
+        MySqlStory::createTable();
     }
 
     protected function setUp(): void

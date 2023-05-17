@@ -5,7 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\Story;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -109,5 +111,34 @@ final class CreateAndReturnTest extends TestCase
                 $this->fail('The model has extra attributes');
             }
         }
+    }
+
+    public function testWithoutIncrementing(): void
+    {
+        // arrange
+        $stories = MySqlStory::factory()
+            ->count(10)
+            ->make();
+        $sut = MySqlStory::query()
+            ->bulk()
+            ->uniqueBy(['uuid']);
+
+        // act
+        $result = $sut->createAndReturn($stories);
+
+        // assert
+        self::assertCount($stories->count(), $result);
+
+        $stories->each(
+            function (Story $story) use ($result): void {
+                /** @var Story $actualStory */
+                $actualStory = $result->where('uuid', $story->uuid)
+                    ->first();
+
+                self::assertNotNull($actualStory);
+                self::assertEquals($story->title, $actualStory->title);
+                self::assertEquals($story->content, $actualStory->content);
+            }
+        );
     }
 }
