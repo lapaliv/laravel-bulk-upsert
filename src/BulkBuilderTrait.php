@@ -109,6 +109,7 @@ trait BulkBuilderTrait
                 if ($collection->count() < $chunk) {
                     break;
                 }
+
                 $offset += $collection->count();
             }
         }
