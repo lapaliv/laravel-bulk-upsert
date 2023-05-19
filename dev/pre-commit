@@ -1,16 +1,5 @@
 #!/usr/bin/env php
 <?php
-echo 'Running tests.. ';
-exec('./vendor/bin/phpunit', $output1, $returnCode1);
-
-if ($returnCode1 !== 0) {
-    // Show full output
-    echo PHP_EOL . implode(PHP_EOL, $output1) . PHP_EOL;
-    echo 'Aborting commit..' . PHP_EOL;
-    exit(1);
-}
-// Show summary (last line)
-echo array_pop($output1) . PHP_EOL;
 
 echo 'Running cs-fixer.. ';
 exec('sh .git/hooks/cs-fixer.sh', $output2, $returnCode2);
@@ -23,4 +12,17 @@ if ($returnCode2 !== 0) {
 }
 // Show summary (last line)
 echo array_pop($output2) . PHP_EOL;
+
+echo 'Running tests.. ';
+exec('./vendor/bin/phpunit', $output1, $returnCode1);
+
+if ($returnCode1 !== 0) {
+    // Show full output
+    echo PHP_EOL . implode(PHP_EOL, $output1) . PHP_EOL;
+    echo 'Aborting commit..' . PHP_EOL;
+    exit(1);
+}
+// Show summary (last line)
+echo array_pop($output1) . PHP_EOL;
+
 exit(0);
