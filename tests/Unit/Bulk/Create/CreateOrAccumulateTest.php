@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -21,6 +22,8 @@ final class CreateOrAccumulateTest extends TestCase
      * @param class-string<User> $model
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */
@@ -52,6 +55,7 @@ final class CreateOrAccumulateTest extends TestCase
      * @dataProvider userModelsDataProvider
      *
      * @throws JsonException
+     * @throws BulkException
      */
     public function testSmallChunkSize(string $model): void
     {

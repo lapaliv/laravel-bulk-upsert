@@ -82,7 +82,7 @@ abstract class User extends Model
                 ->nullable();
             $table->json('phones')
                 ->nullable();
-            $table->timestamp('last_visited_at')
+            $table->dateTime('last_visited_at')
                 ->nullable();
             $table->uuid('update_uuid')
                 ->unique()

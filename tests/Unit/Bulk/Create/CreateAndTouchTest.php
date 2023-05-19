@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
@@ -26,6 +27,8 @@ final class CreateAndTouchTest extends TestCase
      * @param class-string<Comment> $commentModel
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider modelsDataProvider
      */

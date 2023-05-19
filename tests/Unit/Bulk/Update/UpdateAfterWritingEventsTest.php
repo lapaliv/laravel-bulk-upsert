@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
@@ -30,6 +31,8 @@ final class UpdateAfterWritingEventsTest extends TestCase
      * @return void
      *
      * @dataProvider modelDataProvider
+     *
+     * @throws BulkException
      */
     public function testModel(string $model, Closure $data, array $events): void
     {
@@ -77,6 +80,8 @@ final class UpdateAfterWritingEventsTest extends TestCase
      * @return void
      *
      * @dataProvider collectionDataProvider
+     *
+     * @throws BulkException
      */
     public function testCollection(string $model, Closure $data, string $event): void
     {

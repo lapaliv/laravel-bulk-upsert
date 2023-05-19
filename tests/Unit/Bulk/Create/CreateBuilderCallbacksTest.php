@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
@@ -32,6 +33,8 @@ final class CreateBuilderCallbacksTest extends TestCase
      * @return void
      *
      * @dataProvider dataProvider
+     *
+     * @throws BulkException
      */
     public function testModel(string $model, string $method, Closure $callback): void
     {
@@ -64,6 +67,8 @@ final class CreateBuilderCallbacksTest extends TestCase
      * @return void
      *
      * @dataProvider dataProvider
+     *
+     * @throws BulkException
      */
     public function testCollection(string $model, string $method, Closure $callback): void
     {

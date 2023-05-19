@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Illuminate\Support\Arr;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
@@ -24,6 +25,8 @@ final class UpdateAndReturnTest extends TestCase
      * @return void
      *
      * @dataProvider dataProvider
+     *
+     * @throws BulkException
      */
     public function testDatabase(string $model, string $uniqBy): void
     {
@@ -54,6 +57,8 @@ final class UpdateAndReturnTest extends TestCase
      * @return void
      *
      * @dataProvider dataProvider
+     *
+     * @throws BulkException
      */
     public function testResult(string $model, string $uniqBy): void
     {
@@ -88,6 +93,8 @@ final class UpdateAndReturnTest extends TestCase
      * @return void
      *
      * @dataProvider dataProvider
+     *
+     * @throws BulkException
      */
     public function testSelectColumns(string $model, string $uniqBy): void
     {

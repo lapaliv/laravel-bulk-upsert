@@ -101,7 +101,17 @@ class BulkEventDispatcher
 
     public function hasListeners(array $events): bool
     {
+        if (is_array($this->enabledEvents) && empty($this->enabledEvents)) {
+            return false;
+        }
+
         foreach ($events as $event) {
+            if (is_array($this->enabledEvents)
+                && !in_array($event, $this->enabledEvents, true)
+            ) {
+                continue;
+            }
+
             $nativeEvent = $this->getEloquentNativeEventName($event);
 
             if ($this->model::getEventDispatcher()->hasListeners($nativeEvent)) {
@@ -109,12 +119,6 @@ class BulkEventDispatcher
             }
 
             if (array_key_exists($event, $this->listeners)) {
-                if (is_array($this->enabledEvents)
-                    && !in_array($event, $this->enabledEvents, true)
-                ) {
-                    continue;
-                }
-
                 return true;
             }
         }
@@ -132,6 +136,14 @@ class BulkEventDispatcher
         $this->enabledEvents = $events;
 
         return $this;
+    }
+
+    /**
+     * @return string[]|null
+     */
+    public function getEnabledEvents(): ?array
+    {
+        return $this->enabledEvents;
     }
 
     private function isHaltEvent(string $event): bool

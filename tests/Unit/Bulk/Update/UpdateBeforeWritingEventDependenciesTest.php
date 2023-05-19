@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
@@ -36,6 +37,8 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      * @param array $dependencies
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider modelDataProvider
      */
@@ -108,6 +111,8 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @return void
      *
+     * @throws BulkException
+     *
      * @dataProvider modelDataProvider
      */
     public function testModelEventReturnsFalseAlways(
@@ -162,6 +167,8 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      * @param array $dependencies
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider collectionDataProvider
      */

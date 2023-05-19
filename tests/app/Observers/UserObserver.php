@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\App\Observers;
 
 use Closure;
+use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
  * @internal
@@ -14,6 +15,15 @@ final class UserObserver
     public static function listen(string $event, callable $callback): void
     {
         self::$listeners[$event] = Closure::fromCallable($callback);
+    }
+
+    public static function listenAny(callable $callback, array $except = []): void
+    {
+        foreach (BulkEventEnum::cases() as $event) {
+            if (!in_array($event, $except)) {
+                self::listen($event, $callback);
+            }
+        }
     }
 
     public static function flush(): void

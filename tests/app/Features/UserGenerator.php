@@ -17,7 +17,7 @@ final class UserGenerator
      */
     private string $model = MySqlUser::class;
 
-    public function setModel(string $model): static
+    public function setModel(string $model): self
     {
         $this->model = $model;
 

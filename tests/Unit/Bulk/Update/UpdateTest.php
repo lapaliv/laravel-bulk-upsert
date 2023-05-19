@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -22,6 +23,8 @@ final class UpdateTest extends TestCase
      * @param array|callable|string $uniqBy
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider dataProvider
      */
@@ -51,6 +54,7 @@ final class UpdateTest extends TestCase
      * @return void
      *
      * @throws JsonException
+     * @throws BulkException
      *
      * @dataProvider dataProvider
      */

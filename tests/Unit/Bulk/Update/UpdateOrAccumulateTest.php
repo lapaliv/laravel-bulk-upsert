@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -19,6 +20,8 @@ final class UpdateOrAccumulateTest extends TestCase
      * @param class-string<User> $model
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */
@@ -46,6 +49,8 @@ final class UpdateOrAccumulateTest extends TestCase
      * @param string $uniqBy
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider dataProvider
      */

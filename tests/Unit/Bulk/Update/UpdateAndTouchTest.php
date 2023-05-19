@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
@@ -26,6 +27,7 @@ final class UpdateAndTouchTest extends TestCase
      * @return void
      *
      * @throws JsonException
+     * @throws BulkException
      *
      * @dataProvider modelsDataProvider
      */

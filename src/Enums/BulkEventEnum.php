@@ -28,6 +28,9 @@ class BulkEventEnum
     public const RESTORING_MANY = 'restoringMany';
     public const RESTORED_MANY = 'restoredMany';
 
+    /**
+     * @return string[]
+     */
     public static function cases(): array
     {
         return [
@@ -54,6 +57,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function halt(): array
     {
         return [
@@ -70,6 +76,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function model(): array
     {
         return [
@@ -86,6 +95,20 @@ class BulkEventEnum
         ];
     }
 
+    public static function modelEnd(): array
+    {
+        return [
+            self::CREATED,
+            self::UPDATED,
+            self::SAVED,
+            self::DELETED,
+            self::RESTORED,
+        ];
+    }
+
+    /**
+     * @return string[]
+     */
     public static function collection(): array
     {
         return [
@@ -102,11 +125,17 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function create(): array
     {
         return array_merge(self::creating(), self::created());
     }
 
+    /**
+     * @return string[]
+     */
     public static function creating(): array
     {
         return [
@@ -115,6 +144,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function created(): array
     {
         return [
@@ -123,11 +155,17 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function update(): array
     {
-        return array_merge(self::creating(), self::created());
+        return array_merge(self::updating(), self::updated());
     }
 
+    /**
+     * @return string[]
+     */
     public static function updating(): array
     {
         return [
@@ -136,6 +174,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function updated(): array
     {
         return [
@@ -144,11 +185,17 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function delete(): array
     {
         return array_merge(self::deleting(), self::deleted());
     }
 
+    /**
+     * @return string[]
+     */
     public static function deleting(): array
     {
         return [
@@ -157,6 +204,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function deleted(): array
     {
         return [
@@ -165,11 +215,17 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function restore(): array
     {
         return array_merge(self::restoring(), self::restored());
     }
 
+    /**
+     * @return string[]
+     */
     public static function restoring(): array
     {
         return [
@@ -178,6 +234,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function restored(): array
     {
         return [
@@ -186,11 +245,17 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function save(): array
     {
         return array_merge(self::saving(), self::saved());
     }
 
+    /**
+     * @return string[]
+     */
     public static function saving(): array
     {
         return [
@@ -199,6 +264,9 @@ class BulkEventEnum
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function saved(): array
     {
         return [

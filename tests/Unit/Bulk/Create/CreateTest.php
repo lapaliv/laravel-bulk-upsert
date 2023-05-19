@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
@@ -23,6 +24,7 @@ final class CreateTest extends TestCase
      * @return void
      *
      * @throws JsonException
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */
@@ -65,6 +67,7 @@ final class CreateTest extends TestCase
      * @return void
      *
      * @throws JsonException
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */

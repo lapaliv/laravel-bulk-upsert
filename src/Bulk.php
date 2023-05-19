@@ -215,13 +215,100 @@ class Bulk
     }
 
     /**
-     * Disabled the all events.
+     * Disables the next events:
+     * - `saved`,
+     * - `created`,
+     * - `updated`,
+     * - `deleted`,
+     * - `restored`.
      *
      * @return $this
      */
-    public function disableEvents(): static
+    public function disableModelEndEvents(): static
     {
-        return $this->setEvents([]);
+        $enabledEvents = $this->getEventDispatcher()->getEnabledEvents() ?? [];
+
+        if (empty($enabledEvents)) {
+            $enabledEvents = BulkEventEnum::cases();
+        }
+
+        return $this->setEvents(
+            array_diff($enabledEvents, BulkEventEnum::modelEnd())
+        );
+    }
+
+    /**
+     * Disables the specified events or the all if `$events` equals `null`.
+     *
+     * @param array|null $events
+     *
+     * @return $this
+     */
+    public function disableEvents(array $events = null): static
+    {
+        if ($events === null) {
+            return $this->setEvents([]);
+        }
+
+        $enabledEvents = $this->getEventDispatcher()->getEnabledEvents() ?? [];
+
+        if (empty($enabledEvents)) {
+            $enabledEvents = BulkEventEnum::cases();
+        }
+
+        return $this->setEvents(
+            array_diff($enabledEvents, $events)
+        );
+    }
+
+    /**
+     * Disables the specified event.
+     *
+     * @param string $event
+     *
+     * @return $this
+     */
+    public function disableEvent(string $event): static
+    {
+        return $this->disableEvents([$event]);
+    }
+
+    /**
+     * Enables the specified events or the all if `$events` is empty.
+     *
+     * @param array|null $events
+     *
+     * @return $this
+     */
+    public function enableEvents(array $events = null): static
+    {
+        if (empty($events)) {
+            return $this->setEvents(BulkEventEnum::cases());
+        }
+
+        $enabledEvents = $this->getEventDispatcher()->getEnabledEvents() ?? [];
+
+        if (empty($enabledEvents)) {
+            return $this->setEvents($events);
+        }
+
+        return $this->setEvents(
+            array_unique(
+                array_merge($enabledEvents, $events)
+            )
+        );
+    }
+
+    /**
+     * Enables the specified event.
+     *
+     * @param string $event
+     *
+     * @return $this
+     */
+    public function enableEvent(string $event): static
+    {
+        return $this->enableEvents([$event]);
     }
 
     /**

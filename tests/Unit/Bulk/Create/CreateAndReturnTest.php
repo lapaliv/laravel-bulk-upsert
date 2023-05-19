@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
@@ -27,6 +28,7 @@ final class CreateAndReturnTest extends TestCase
      * @return void
      *
      * @throws JsonException
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */
@@ -66,6 +68,8 @@ final class CreateAndReturnTest extends TestCase
      *
      * @return void
      *
+     * @throws BulkException
+     *
      * @dataProvider userModelsDataProvider
      */
     public function testResult(string $model): void
@@ -101,6 +105,8 @@ final class CreateAndReturnTest extends TestCase
      * @param class-string<User> $model
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider userModelsDataProvider
      */
@@ -143,6 +149,8 @@ final class CreateAndReturnTest extends TestCase
      * @param class-string<User> $model
      *
      * @return void
+     *
+     * @throws BulkException
      *
      * @dataProvider storyModelsDataProvider
      */
