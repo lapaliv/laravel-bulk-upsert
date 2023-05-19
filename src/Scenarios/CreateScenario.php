@@ -88,7 +88,7 @@ class CreateScenario
             return;
         }
 
-        $insertResult = $driver->insertWithResult($eloquent->getConnection(), $builder, $eloquent->getKeyName(), $selectColumns);
+        $insertResult = $driver->insertWithResult($eloquent->getConnection(), $builder, $eloquent->getKeyName());
         unset($builder);
         $insertedRows = $insertResult->getRows();
 

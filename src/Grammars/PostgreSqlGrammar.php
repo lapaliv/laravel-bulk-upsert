@@ -88,7 +88,7 @@ class PostgreSqlGrammar implements BulkGrammar
             'update %s set %s where %s',
             $builder->getTable(),
             implode(',', $sets),
-            $this->getSqlWhereClause($builder->getWheres(), $this->bindings)
+            $this->getSqlWhereClause($builder->getWheres())
         );
     }
 

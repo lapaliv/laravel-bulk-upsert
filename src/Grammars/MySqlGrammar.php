@@ -55,7 +55,7 @@ class MySqlGrammar implements BulkGrammar
                 $sets[] = sprintf(
                     '`%s` = if(%s, %s, `%s`)',
                     $field,
-                    $this->getSqlWhereClause($when->getWheres(), $this->bindings),
+                    $this->getSqlWhereClause($when->getWheres()),
                     $this->mixedValueToSqlConverter->handle($when->getThen(), $this->bindings),
                     $this->mixedValueToSqlConverter->handle($set->getElse(), $this->bindings),
                 );
@@ -63,7 +63,7 @@ class MySqlGrammar implements BulkGrammar
                 foreach ($set->getWhens() as $when) {
                     $whens[] = sprintf(
                         'when %s then %s',
-                        $this->getSqlWhereClause($when->getWheres(), $this->bindings),
+                        $this->getSqlWhereClause($when->getWheres()),
                         $this->mixedValueToSqlConverter->handle($when->getThen(), $this->bindings)
                     );
                 }
