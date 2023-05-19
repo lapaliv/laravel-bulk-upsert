@@ -2,19 +2,22 @@
 
 namespace Lapaliv\BulkUpsert;
 
-use BadMethodCallException;
 use Closure;
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Exceptions\BulkBadMethodCall;
+use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
+use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
-use Lapaliv\BulkUpsert\Exceptions\TransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
@@ -51,14 +54,14 @@ class Bulk
     private Model $model;
     private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
     /**
-     * @var array<callable|string[]>
+     * @var array<int, callable|string[]>
      */
     private array $uniqueBy = [];
     private BulkEventDispatcher $eventDispatcher;
     private ?string $deletedAtColumn;
 
     /**
-     * @var string[]
+     * @var array<string, string>
      */
     private array $dateFields;
 
@@ -96,7 +99,7 @@ class Bulk
         if ($model instanceof Model) {
             $this->model = $model;
         } else {
-            throw new TransmittedClassIsNotAModel(
+            throw new BulkTransmittedClassIsNotAModel(
                 is_object($model) ? get_class($model) : (string) $model
             );
         }
@@ -116,9 +119,16 @@ class Bulk
             }
         }
 
-        throw new BadMethodCallException('Method ' . static::class . '::' . $name . '() is undefined');
+        throw new BulkBadMethodCall(static::class, $name);
     }
 
+    /**
+     * Sets the chunk size.
+     *
+     * @param int $size
+     *
+     * @return $this
+     */
     public function chunk(int $size = self::DEFAULT_CHUNK_SIZE): static
     {
         $this->chunkSize = $size;
@@ -127,7 +137,9 @@ class Bulk
     }
 
     /**
-     * @param string[]|string[][] $attributes
+     * Defines the unique attributes of the rows.
+     *
+     * @param callable|string|string[]|string[][] $attributes
      *
      * @return $this
      */
@@ -156,6 +168,13 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Defines the alternatives of the unique attributes.
+     *
+     * @param callable|string|string[]|string[][] $attributes
+     *
+     * @return $this
+     */
     public function orUniqueBy(string|array|callable $attributes): static
     {
         if (is_callable($attributes)) {
@@ -181,6 +200,13 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Sets enabled events.
+     *
+     * @param string[] $events
+     *
+     * @return $this
+     */
     public function setEvents(array $events): static
     {
         $this->getEventDispatcher()->restrict($events);
@@ -188,11 +214,23 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Disabled the all events.
+     *
+     * @return $this
+     */
     public function disableEvents(): static
     {
         return $this->setEvents([]);
     }
 
+    /**
+     * Sets the list of attribute names which should update.
+     *
+     * @param string[] $attributes
+     *
+     * @return $this
+     */
     public function updateOnly(array $attributes): static
     {
         $this->updateOnly = $attributes;
@@ -200,6 +238,13 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Sets the list of attribute names which shouldn't update.
+     *
+     * @param string[] $attributes
+     *
+     * @return $this
+     */
     public function updateAllExcept(array $attributes): static
     {
         $this->updateExcept = $attributes;
@@ -207,6 +252,16 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Creates the rows.
+     *
+     * @param iterable $rows
+     * @param bool $ignoreConflicts
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function create(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
@@ -219,6 +274,16 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Creates the rows if their quantity is greater than or equal to the chunk size.
+     *
+     * @param iterable $rows
+     * @param bool $ignoreConflicts
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function createOrAccumulate(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
@@ -231,6 +296,17 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Creates the rows and returns them.
+     *
+     * @param iterable $rows
+     * @param array $columns columns that should be selected from the database
+     * @param bool $ignoreConflicts
+     *
+     * @return Collection
+     *
+     * @throws BulkException
+     */
     public function createAndReturn(
         iterable $rows,
         array $columns = ['*'],
@@ -254,6 +330,15 @@ class Bulk
         return $result;
     }
 
+    /**
+     * Updates the rows.
+     *
+     * @param iterable $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function update(iterable $rows): static
     {
         $this->accumulate('update', $rows);
@@ -265,6 +350,15 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Updates the rows if their quantity is greater than or equal to the chunk size.
+     *
+     * @param iterable $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function updateOrAccumulate(iterable $rows): static
     {
         $this->accumulate('update', $rows);
@@ -276,6 +370,16 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Updates the rows and returns them.
+     *
+     * @param iterable $rows
+     * @param array $columns columns that should be selected from the database
+     *
+     * @return Collection
+     *
+     * @throws BulkException
+     */
     public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
         $this->accumulate('update', $rows);
@@ -295,6 +399,15 @@ class Bulk
         return $result;
     }
 
+    /**
+     * Upserts the rows.
+     *
+     * @param iterable $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function upsert(iterable $rows): static
     {
         $this->accumulate('upsert', $rows);
@@ -306,6 +419,15 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Upserts the rows if their quantity is greater than or equal to the chunk size.
+     *
+     * @param iterable $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
     public function upsertOrAccumulate(iterable $rows): static
     {
         $this->accumulate('upsert', $rows);
@@ -317,6 +439,16 @@ class Bulk
         return $this;
     }
 
+    /**
+     * Upserts the rows and returns them.
+     *
+     * @param iterable $rows
+     * @param string[] $columns columns that should be selected from the database
+     *
+     * @return Collection<Model>
+     *
+     * @throws BulkException
+     */
     public function upsertAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
         $this->accumulate('upsert', $rows);
@@ -338,6 +470,44 @@ class Bulk
         return $result;
     }
 
+    /**
+     * Saves the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function saveAccumulated(): static
+    {
+        foreach ($this->getReadyChunks('createOrIgnore') as $accumulation) {
+            $this->runCreateScenario($accumulation, true);
+        }
+
+        foreach ($this->getReadyChunks('create') as $accumulation) {
+            $this->runCreateScenario($accumulation, false);
+        }
+
+        foreach ($this->getReadyChunks('update') as $accumulation) {
+            $this->runUpdateScenario($accumulation);
+        }
+
+        foreach ($this->getReadyChunks('upsert') as $accumulation) {
+            $this->runUpsertScenario($accumulation);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Accumulates the rows to the storage.
+     *
+     * @param string $storageKey
+     * @param iterable $rows
+     *
+     * @return void
+     *
+     * @throws BulkException
+     */
     private function accumulate(string $storageKey, iterable $rows): void
     {
         foreach ($rows as $row) {
@@ -349,6 +519,15 @@ class Bulk
         }
     }
 
+    /**
+     * Converts the specified row to an Eloquent model.
+     *
+     * @param mixed $row
+     *
+     * @return Model
+     *
+     * @throws BulkException
+     */
     private function convertRowToModel(mixed $row): Model
     {
         if ($row instanceof Model) {
@@ -368,11 +547,19 @@ class Bulk
         }
 
         if (is_array($row)) {
-            /** @var Model $result */
-            $result = Container::getInstance()->make(
-                get_class($this->model),
-                ['attributes' => $row]
-            );
+            try {
+                /** @var Model $result */
+                $result = Container::getInstance()->make(
+                    get_class($this->model),
+                    ['attributes' => $row]
+                );
+            } catch (BindingResolutionException $exception) {
+                throw new BulkBindingResolution(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
 
             $keyName = $result->getKeyName();
 
@@ -405,6 +592,14 @@ class Bulk
         throw new BulkValueTypeIsNotSupported($row);
     }
 
+    /**
+     * Returns the index and the list of unique attributes that match the specified model.
+     *
+     * @param mixed $row
+     * @param Model $model
+     *
+     * @return array<int, int|string[]>
+     */
     private function getUniqueAttributesForModel(mixed $row, Model $model): array
     {
         foreach ($this->uniqueBy as $index => $uniqueBy) {
@@ -433,6 +628,8 @@ class Bulk
     }
 
     /**
+     * Returns ready-to-use chunks.
+     *
      * @param string $storageKey
      * @param bool $force
      *
@@ -470,55 +667,117 @@ class Bulk
         }
     }
 
+    /**
+     * Runs the creation scenario.
+     *
+     * @param BulkAccumulationEntity $accumulation
+     * @param bool $ignore
+     * @param string[] $columns columns that should be selected from the database
+     *
+     * @return void
+     *
+     * @throws BulkException
+     */
     private function runCreateScenario(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
     {
-        /** @var CreateScenario $scenario */
-        $scenario = Container::getInstance()->make(CreateScenario::class);
-        $scenario->handle(
-            $this->model,
-            $accumulation,
-            $this->getEventDispatcher(),
-            $ignore,
-            $this->getDateFields(),
-            $this->getSelectColumns($columns, $accumulation->uniqueBy),
-            $this->getDeletedAtColumn(),
-        );
+        try {
+            /** @var CreateScenario $scenario */
+            $scenario = Container::getInstance()->make(CreateScenario::class);
+            $scenario->handle(
+                $this->model,
+                $accumulation,
+                $this->getEventDispatcher(),
+                $ignore,
+                $this->getDateFields(),
+                $this->getSelectColumns($columns, $accumulation->uniqueBy),
+                $this->getDeletedAtColumn(),
+            );
 
-        unset($scenario);
+            unset($scenario);
+        } catch (BindingResolutionException $exception) {
+            throw new BulkBindingResolution(
+                $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
     }
 
+    /**
+     * Runs the update scenario.
+     *
+     * @param BulkAccumulationEntity $accumulation
+     * @param string[] $columns columns that should be selected from the database
+     *
+     * @return void
+     *
+     * @throws BulkException
+     */
     private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
     {
-        /** @var UpdateScenario $scenario */
-        $scenario = Container::getInstance()->make(UpdateScenario::class);
-        $scenario->handle(
-            $this->model,
-            $accumulation,
-            $this->getEventDispatcher(),
-            $this->getDateFields(),
-            $this->getSelectColumns($columns, $accumulation->uniqueBy),
-            $this->getDeletedAtColumn(),
-        );
+        try {
+            /** @var UpdateScenario $scenario */
+            $scenario = Container::getInstance()->make(UpdateScenario::class);
+            $scenario->handle(
+                $this->model,
+                $accumulation,
+                $this->getEventDispatcher(),
+                $this->getDateFields(),
+                $this->getSelectColumns($columns, $accumulation->uniqueBy),
+                $this->getDeletedAtColumn(),
+            );
 
-        unset($scenario);
+            unset($scenario);
+        } catch (BindingResolutionException $exception) {
+            throw new BulkBindingResolution(
+                $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
     }
 
+    /**
+     * Runs the upsert scenario.
+     *
+     * @param BulkAccumulationEntity $accumulation
+     * @param string[] $columns columns that should be selected from the database
+     *
+     * @return void
+     *
+     * @throws BulkException
+     */
     private function runUpsertScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
     {
-        /** @var UpsertScenario $scenario */
-        $scenario = Container::getInstance()->make(UpsertScenario::class);
-        $scenario->handle(
-            $this->model,
-            $accumulation,
-            $this->getEventDispatcher(),
-            $this->getDateFields(),
-            $this->getSelectColumns($columns, $accumulation->uniqueBy),
-            $this->getDeletedAtColumn(),
-        );
+        try {
+            /** @var UpsertScenario $scenario */
+            $scenario = Container::getInstance()->make(UpsertScenario::class);
+            $scenario->handle(
+                $this->model,
+                $accumulation,
+                $this->getEventDispatcher(),
+                $this->getDateFields(),
+                $this->getSelectColumns($columns, $accumulation->uniqueBy),
+                $this->getDeletedAtColumn(),
+            );
 
-        unset($scenario);
+            unset($scenario);
+        } catch (BindingResolutionException $exception) {
+            throw new BulkBindingResolution(
+                $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
     }
 
+    /**
+     * Returns an array where:
+     * - the key is the name of the date(time) field
+     * - the value is the date(time) format.
+     *
+     * @return array<string, string>
+     */
     private function getDateFields(): array
     {
         if (!isset($this->dateFields)) {
@@ -530,6 +789,14 @@ class Bulk
         return $this->dateFields;
     }
 
+    /**
+     * Returns the final list of the selecting columns from the database.
+     *
+     * @param string[] $columns columns that should be selected from the database
+     * @param string[] $uniqueBy Unique attributes
+     *
+     * @return string[]
+     */
     private function getSelectColumns(array $columns, array $uniqueBy): array
     {
         if (in_array('*', $columns, true)) {
@@ -547,6 +814,12 @@ class Bulk
         );
     }
 
+    /**
+     * Returns the name of the `deleted_at` column or `null` if the model
+     * doesn't support soft deleting.
+     *
+     * @return string|null
+     */
     private function getDeletedAtColumn(): ?string
     {
         if (!isset($this->deletedAtColumn)) {
@@ -558,6 +831,11 @@ class Bulk
         return $this->deletedAtColumn;
     }
 
+    /**
+     * Returns the event dispatcher.
+     *
+     * @return BulkEventDispatcher
+     */
     private function getEventDispatcher(): BulkEventDispatcher
     {
         if (!isset($this->eventDispatcher)) {

@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk;
 
 use Illuminate\Support\Str;
 use Lapaliv\BulkUpsert\Bulk;
-use Lapaliv\BulkUpsert\Exceptions\TransmittedClassIsNotAModel;
+use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
@@ -43,7 +43,7 @@ final class TransmittingModelIntoConstructorTest extends TestCase
         $payload = Str::random();
 
         // assert
-        $this->expectException(TransmittedClassIsNotAModel::class);
+        $this->expectException(BulkTransmittedClassIsNotAModel::class);
 
         // act
         new Bulk($payload);
@@ -56,7 +56,7 @@ final class TransmittingModelIntoConstructorTest extends TestCase
         eval('class ' . $modelName . ' {}');
 
         // assert
-        $this->expectException(TransmittedClassIsNotAModel::class);
+        $this->expectException(BulkTransmittedClassIsNotAModel::class);
 
         // act
         new Bulk('\\' . $modelName);
