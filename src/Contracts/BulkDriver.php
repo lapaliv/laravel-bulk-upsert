@@ -8,12 +8,14 @@ use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 
 interface BulkDriver
 {
-    public function insert(
+    public function insertWithResult(
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
         array $selectColumns,
     ): BulkInsertResult;
+
+    public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void;
 
     public function update(
         ConnectionInterface $connection,

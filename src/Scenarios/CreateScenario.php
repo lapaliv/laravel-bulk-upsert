@@ -68,53 +68,57 @@ class CreateScenario
         }
 
         $driver = $this->driverManager->getForModel($eloquent);
-        $insertResult = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName(), $selectColumns);
-        unset($builder);
-
-        $hasEndEvents = $eventDispatcher->hasListeners(BulkEventEnum::saved())
+        $hasTouchedRelations = !empty($eloquent->getTouchedRelations());
+        $needToSelect = $hasTouchedRelations
+            || $eventDispatcher->hasListeners(BulkEventEnum::saved())
             || $eventDispatcher->hasListeners(BulkEventEnum::created())
             || $eventDispatcher->hasListeners(BulkEventEnum::deleted());
 
-        if ($hasEndEvents) {
-            $insertedRows = $insertResult->getRows();
+        if (!$needToSelect) {
+            $driver->quietInsert($eloquent->getConnection(), $builder);
+            unset($builder, $driver, $startedAt, $hasTouchedRelations, $needToSelect);
 
-            if (is_array($insertedRows)) {
-                $models = $eloquent->newCollection();
-
-                foreach ($insertedRows as $row) {
-                    $model = new $eloquent();
-                    $model->exists = true;
-                    $model->wasRecentlyCreated = true;
-                    $model->setRawAttributes((array) $row);
-                    $models->push($model);
-                }
-            } else {
-                $models = $this->selectExistingRowsFeature->handle(
-                    $eloquent,
-                    $data->getNotSkippedModels('skipCreating'),
-                    $data->uniqueBy,
-                    $selectColumns,
-                    $deletedAtColumn
-                );
-            }
-
-            $this->prepareModelsForGiving($eloquent, $data, $models, $insertResult, $startedAt);
-            unset($models, $insertedRows);
-
-            $this->fireCreatedEvents($eloquent, $data, $eventDispatcher);
+            return;
         }
+
+        $insertResult = $driver->insertWithResult($eloquent->getConnection(), $builder, $eloquent->getKeyName(), $selectColumns);
+        unset($builder);
+        $insertedRows = $insertResult->getRows();
+
+        if (is_array($insertedRows)) {
+            $models = $eloquent->newCollection();
+
+            foreach ($insertedRows as $row) {
+                $model = new $eloquent();
+                $model->exists = true;
+                $model->wasRecentlyCreated = true;
+                $model->setRawAttributes((array) $row);
+                $models->push($model);
+            }
+        } else {
+            $models = $this->selectExistingRowsFeature->handle(
+                $eloquent,
+                $data->getNotSkippedModels('skipCreating'),
+                $data->uniqueBy,
+                $selectColumns,
+                $deletedAtColumn
+            );
+        }
+
+        $this->prepareModelsForGiving($eloquent, $data, $models, $insertResult, $startedAt);
+        unset($models, $insertedRows);
+
+        $this->fireCreatedEvents($eloquent, $data, $eventDispatcher);
 
         unset($startedAt);
 
-        if (!empty($eloquent->getTouchedRelations())) {
+        if ($hasTouchedRelations) {
             $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
         }
 
         unset($driver);
 
-        if ($hasEndEvents) {
-            $this->syncOriginal($data);
-        }
+        $this->syncOriginal($data);
     }
 
     private function dispatchSavingEvents(

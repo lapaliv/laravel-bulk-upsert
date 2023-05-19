@@ -7,25 +7,32 @@ use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
-use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverInsert;
+use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverInsertWithResult;
+use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverQuietInsert;
 use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverUpdate;
 
 class PostgreSqlBulkDriver implements BulkDriver
 {
     public function __construct(
-        private PostgreSqlDriverInsert $insert,
+        private PostgreSqlDriverInsertWithResult $insertWithResult,
+        private PostgreSqlDriverQuietInsert $quietInsert,
         private PostgreSqlDriverUpdate $update,
     ) {
         //
     }
 
-    public function insert(
+    public function insertWithResult(
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
         array $selectColumns,
     ): BulkInsertResult {
-        return $this->insert->handle($connection, $builder, $selectColumns);
+        return $this->insertWithResult->handle($connection, $builder, $selectColumns);
+    }
+
+    public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void
+    {
+        $this->quietInsert->handle($connection, $builder);
     }
 
     public function update(ConnectionInterface $connection, UpdateBulkBuilder $builder): int

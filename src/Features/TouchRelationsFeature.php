@@ -85,6 +85,7 @@ class TouchRelationsFeature
         $builder->table($firstRelation->getTable());
 
         $filteredRelations = $relations
+            ->filter()
             ->each(fn (Model $model) => $model->updateTimestamps())
             ->filter(fn (Model $model) => $model->isDirty());
 

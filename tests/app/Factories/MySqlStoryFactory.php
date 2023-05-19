@@ -2,19 +2,18 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Tests\App\Collection\StoryCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 
-class MySqlStoryFactory extends Factory
+/**
+ * @internal
+ *
+ * @method MySqlStory|StoryCollection create($attributes = [], ?Model $parent = null)
+ * @method MySqlStory|StoryCollection make($attributes = [], ?Model $parent = null)
+ * @method MySqlStory|StoryCollection createMany(iterable $records)
+ */
+final class MySqlStoryFactory extends StoryFactory
 {
     protected $model = MySqlStory::class;
-
-    public function definition(): array
-    {
-        return [
-            'uuid' => $this->faker->uuid(),
-            'title' => $this->faker->text(50),
-            'content' => $this->faker->text(200),
-        ];
-    }
 }

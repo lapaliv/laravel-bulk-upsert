@@ -8,14 +8,12 @@ namespace Lapaliv\BulkUpsert\Drivers\MySql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
-use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Lapaliv\BulkUpsert\Entities\BulkMySqlInsertResult;
 
 /**
  * @internal
  */
-class MySqlDriverInsert
+class MySqlDriverQuietInsert
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,
@@ -23,37 +21,12 @@ class MySqlDriverInsert
         //
     }
 
-    public function handle(
-        ConnectionInterface $connection,
-        InsertBuilder $builder,
-        ?string $primaryKeyName,
-    ): BulkInsertResult {
+    public function handle(ConnectionInterface $connection, InsertBuilder $builder): void
+    {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
-
-        $lastPrimaryBeforeInserting = null;
-
-        if ($primaryKeyName !== null) {
-            $lastRow = $connection->selectOne(
-                sprintf(
-                    'select max(%s) as id from %s',
-                    $primaryKeyName,
-                    $builder->getInto()
-                )
-            );
-
-            $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
-        }
 
         $connection->insert($sql, $bindings);
         unset($sql, $bindings);
-
-        $connection->commit();
-
-        return new BulkMySqlInsertResult(
-            is_numeric($lastPrimaryBeforeInserting)
-                ? (int) $lastPrimaryBeforeInserting
-                : null
-        );
     }
 
     /**

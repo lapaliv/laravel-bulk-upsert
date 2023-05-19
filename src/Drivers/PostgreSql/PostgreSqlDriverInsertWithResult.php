@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Lapaliv\BulkUpsert\Entities\BulkPostgreSqlInsertResult;
 
-class PostgreSqlDriverInsert
+class PostgreSqlDriverInsertWithResult
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,
@@ -25,8 +25,6 @@ class PostgreSqlDriverInsert
 
         $rows = $connection->select($sql, $bindings);
         unset($sql, $bindings);
-
-        $connection->commit();
 
         return new BulkPostgreSqlInsertResult($rows);
     }

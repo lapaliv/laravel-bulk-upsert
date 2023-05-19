@@ -7,7 +7,8 @@ use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
-use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsert;
+use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsertWithResult;
+use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverQuietInsert;
 use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverUpdate;
 use Throwable;
 
@@ -17,7 +18,8 @@ use Throwable;
 class MySqlBulkDriver implements BulkDriver
 {
     public function __construct(
-        private MySqlDriverInsert $insert,
+        private MySqlDriverInsertWithResult $insertWithResult,
+        private MySqlDriverQuietInsert $quietInsert,
         private MySqlDriverUpdate $update
     ) {
         //
@@ -26,13 +28,21 @@ class MySqlBulkDriver implements BulkDriver
     /**
      * @throws Throwable
      */
-    public function insert(
+    public function insertWithResult(
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
         array $selectColumns,
     ): BulkInsertResult {
-        return $this->insert->handle($connection, $builder, $primaryKeyName);
+        return $this->insertWithResult->handle($connection, $builder, $primaryKeyName);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void
+    {
+        $this->quietInsert->handle($connection, $builder);
     }
 
     /**
