@@ -15,6 +15,11 @@ class InsertBuilder
     private array $columns = [];
 
     /**
+     * @var string[]
+     */
+    private array $select = [];
+
+    /**
      * @var array<int|string, scalar[]>
      */
     private array $values = [];
@@ -70,6 +75,26 @@ class InsertBuilder
         $this->columns = $columns;
 
         return $this;
+    }
+
+    /**
+     * @param string[] $columns
+     *
+     * @return $this
+     */
+    public function select(array $columns): static
+    {
+        $this->select = $columns;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSelect(): array
+    {
+        return $this->select;
     }
 
     public function doNothingAtConflict(): bool

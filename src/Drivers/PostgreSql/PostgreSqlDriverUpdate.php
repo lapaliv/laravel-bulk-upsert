@@ -3,13 +3,9 @@
 namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
-use Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase;
-use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCallback;
-use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCondition;
-use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
-use Lapaliv\BulkUpsert\Builders\SelectBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
+use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
 
 /**
  * @internal
@@ -21,110 +17,14 @@ class PostgreSqlDriverUpdate
         //
     }
 
-    public function handle(
-        ConnectionInterface $connection,
-        UpdateBulkBuilder $builder,
-    ): int {
-        ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
-
-        return $connection->update($sql, $bindings);
-    }
-
-    private function generateSql(UpdateBulkBuilder $builder): array
+    public function handle(ConnectionInterface $connection, UpdateBulkBuilder $builder): int
     {
-        $bindings = [];
-        $sets = [];
+        $grammar = new PostgreSqlGrammar($this->mixedValueToSqlConverter);
 
-        foreach ($builder->getSets() as $field => $set) {
-            $whens = [];
+        $result = $connection->update($grammar->update($builder), $grammar->getBindings());
 
-            if ($set instanceof BuilderCase && count($set->getWhens()) === 1) {
-                $when = $set->getWhens()[0];
-                $sets[] = sprintf(
-                    '%s = case when %s then %s else %s end',
-                    $field,
-                    $this->getSqlWhereClause($when->getWheres(), $bindings),
-                    $this->mixedValueToSqlConverter->handle($when->getThen(), $bindings),
-                    $this->mixedValueToSqlConverter->handle($set->getElse(), $bindings),
-                );
-            } elseif ($set instanceof BuilderCase) {
-                foreach ($set->getWhens() as $when) {
-                    $whens[] = sprintf(
-                        'when %s then %s',
-                        $this->getSqlWhereClause($when->getWheres(), $bindings),
-                        $this->mixedValueToSqlConverter->handle($when->getThen(), $bindings)
-                    );
-                }
+        unset($grammar);
 
-                $sets[] = sprintf(
-                    '%s = case %s else %s end',
-                    $field,
-                    implode(' ', $whens),
-                    $this->mixedValueToSqlConverter->handle($set->getElse(), $bindings),
-                );
-            } else {
-                $sets[] = sprintf(
-                    '%s = %s',
-                    $field,
-                    $this->mixedValueToSqlConverter->handle($set, $bindings),
-                );
-            }
-        }
-
-        $sql = sprintf(
-            'update %s set %s where %s',
-            $builder->getTable(),
-            implode(',', $sets),
-            $this->getSqlWhereClause($builder->getWheres(), $bindings)
-        );
-
-        return compact('sql', 'bindings');
-    }
-
-    private function getSqlWhereClause(array $wheres, array &$bindings): string
-    {
-        $result = [];
-
-        foreach ($wheres as $where) {
-            if (!empty($result)) {
-                $result[] = $where->boolean;
-            }
-
-            if ($where instanceof BuilderWhereCallback) {
-                $selectBuilder = new SelectBulkBuilder();
-                call_user_func($where->callback, $selectBuilder);
-
-                $result[] = '(' . $this->getSqlWhereClause($selectBuilder->getWheres(), $bindings) . ')';
-            } elseif ($where instanceof BuilderWhereCondition) {
-                $result[] = sprintf(
-                    '%s %s %s',
-                    $where->field,
-                    $where->operator,
-                    $this->mixedValueToSqlConverter->handle($where->value, $bindings),
-                );
-            } elseif ($where instanceof BuilderWhereIn) {
-                $values = [];
-
-                foreach ($where->values as $value) {
-                    $values[] = $this->mixedValueToSqlConverter->handle($value, $bindings);
-                }
-
-                if (count($values) === 1) {
-                    $result[] = sprintf(
-                        '%s = %s',
-                        $where->field,
-                        $values[0],
-                    );
-                } else {
-                    $result[] = sprintf(
-                        '%s in(%s)',
-                        $where->field,
-                        implode(',', $values),
-                    );
-                }
-            }
-        }
-
-        return implode(' ', $result);
+        return $result;
     }
 }

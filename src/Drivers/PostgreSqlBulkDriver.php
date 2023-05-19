@@ -25,9 +25,8 @@ class PostgreSqlBulkDriver implements BulkDriver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-        array $selectColumns,
     ): BulkInsertResult {
-        return $this->insertWithResult->handle($connection, $builder, $selectColumns);
+        return $this->insertWithResult->handle($connection, $builder);
     }
 
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void

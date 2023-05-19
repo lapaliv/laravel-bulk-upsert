@@ -59,7 +59,14 @@ class CreateScenario
         }
 
         $startedAt = new DateTime();
-        $builder = $this->getInsertBuilderFeature->handle($eloquent, $data, $ignore, $dateFields, $deletedAtColumn);
+        $builder = $this->getInsertBuilderFeature->handle(
+            $eloquent,
+            $data,
+            $ignore,
+            $dateFields,
+            $selectColumns,
+            $deletedAtColumn,
+        );
 
         if ($builder === null) {
             unset($builder, $startedAt);

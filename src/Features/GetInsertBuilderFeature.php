@@ -30,6 +30,7 @@ class GetInsertBuilderFeature
         BulkAccumulationEntity $data,
         bool $ignore,
         array $dateFields,
+        array $selectColumns,
         ?string $deletedAtColumn,
     ): ?InsertBuilder {
         $result = new InsertBuilder();
@@ -63,7 +64,8 @@ class GetInsertBuilderFeature
             return null;
         }
 
-        return $result->columns($columns);
+        return $result->columns($columns)
+            ->select($selectColumns);
     }
 
     private function convertModelToArray(

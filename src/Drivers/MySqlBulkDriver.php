@@ -32,7 +32,6 @@ class MySqlBulkDriver implements BulkDriver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-        array $selectColumns,
     ): BulkInsertResult {
         return $this->insertWithResult->handle($connection, $builder, $primaryKeyName);
     }

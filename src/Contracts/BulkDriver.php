@@ -12,7 +12,6 @@ interface BulkDriver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-        array $selectColumns,
     ): BulkInsertResult;
 
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void;
