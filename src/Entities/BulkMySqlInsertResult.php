@@ -8,6 +8,7 @@ class BulkMySqlInsertResult implements BulkInsertResult
 {
     public function __construct(private ?int $maxPrimaryBeforeInserting)
     {
+        //
     }
 
     public function getRows(): ?array

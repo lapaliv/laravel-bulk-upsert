@@ -566,19 +566,19 @@ class Bulk
      */
     public function saveAccumulated(): static
     {
-        foreach ($this->getReadyChunks('createOrIgnore') as $accumulation) {
-            $this->runCreateScenario($accumulation, true);
+        foreach ($this->getReadyChunks('createOrIgnore', force: true) as $accumulation) {
+            $this->runCreateScenario($accumulation, ignore: true);
         }
 
-        foreach ($this->getReadyChunks('create') as $accumulation) {
-            $this->runCreateScenario($accumulation, false);
+        foreach ($this->getReadyChunks('create', force: true) as $accumulation) {
+            $this->runCreateScenario($accumulation, ignore: false);
         }
 
-        foreach ($this->getReadyChunks('update') as $accumulation) {
+        foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
             $this->runUpdateScenario($accumulation);
         }
 
-        foreach ($this->getReadyChunks('upsert') as $accumulation) {
+        foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
             $this->runUpsertScenario($accumulation);
         }
 
@@ -613,7 +613,7 @@ class Bulk
      *
      * @return Model
      *
-     * @throws BulkException
+     * @throws BulkBindingResolution
      */
     private function convertRowToModel(mixed $row): Model
     {
@@ -629,11 +629,7 @@ class Bulk
             $row = $row->toArray();
         }
 
-        if (is_object($row)) {
-            $row = get_class_vars(get_class($row));
-        }
-
-        if (is_array($row)) {
+        if (is_array($row) && !empty($row)) {
             try {
                 /** @var Model $result */
                 $result = Container::getInstance()->make(

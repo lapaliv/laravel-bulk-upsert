@@ -40,12 +40,4 @@ final class BulkBulkDriverManager implements BulkDriverManager
     {
         return $this->drivers[$name] ?? null;
     }
-
-    /**
-     * @return array<string, BulkDriver>
-     */
-    public function all(): array
-    {
-        return $this->drivers;
-    }
 }

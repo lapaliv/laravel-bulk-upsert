@@ -16,9 +16,4 @@ interface BulkDriverManager
     public function registerDriver(string $name, BulkDriver $driver): void;
 
     public function get(string $name): ?BulkDriver;
-
-    /**
-     * @return array<string, BulkDriver>
-     */
-    public function all(): array;
 }

@@ -28,8 +28,7 @@ class SelectExistingRowsFeature
             ->limit($collection->count());
 
         if ($deletedAtColumn !== null) {
-            /** @phpstan-ignore-next-line */
-            $builder->withTrashed();
+            call_user_func([$builder, 'withTrashed']);
         }
 
         $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueBy, $collection);

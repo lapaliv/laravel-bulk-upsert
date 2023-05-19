@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
@@ -25,6 +26,8 @@ trait BulkBuilderTrait
      * @param int $chunk
      *
      * @return int
+     *
+     * @throws BulkException
      */
     public function selectAndUpdateMany(
         array $values,

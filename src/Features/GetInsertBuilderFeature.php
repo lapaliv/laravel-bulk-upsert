@@ -3,14 +3,11 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
-use DateTime;
-use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
+use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
-use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
-use stdClass;
 
 /**
  * @internal
@@ -21,6 +18,12 @@ class GetInsertBuilderFeature
     private string $updatedAtColumn;
     private string $createdAt;
     private string $updatedAt;
+
+    public function __construct(
+        private AttributesToScalarArrayConverter $scalarArrayConverter
+    ) {
+        //
+    }
 
     public function handle(
         Model $eloquent,
@@ -69,35 +72,14 @@ class GetInsertBuilderFeature
         array $dateFields,
         ?string $deletedAtColumn,
     ): array {
-        $result = [];
+        $result = $this->scalarArrayConverter->handle(
+            $row->model,
+            $row->model->getAttributes(),
+            $dateFields,
+        );
 
-        foreach ($row->model->getAttributes() as $key => $value) {
+        foreach ($result as $key => $value) {
             $columns[$key] = $key;
-
-            if ($value !== null && isset($dateFields[$key])) {
-                $date = $value instanceof DateTime ? $value : new DateTime($value);
-                $result[$key] = $date->format($dateFields[$key]);
-
-                continue;
-            }
-
-            if (is_object($value)) {
-                if (PHP_VERSION_ID >= 80100 && enum_exists(get_class($value))) {
-                    $value = $value->value;
-                } elseif (method_exists($value, '__toString')) {
-                    $value = $value->__toString();
-                } elseif ($value instanceof stdClass) {
-                    $value = (array) $value;
-                } elseif (method_exists($value, 'toArray')) {
-                    $value = $value->toArray();
-                } elseif ($value instanceof CastsAttributes) {
-                    $value = $value->set($row->model, $key, $value, $result);
-                } else {
-                    throw new BulkAttributeTypeIsNotScalar($key);
-                }
-            }
-
-            $result[$key] = $value;
         }
 
         $this->freshTimestamps($result, $columns, $row, $deletedAtColumn);

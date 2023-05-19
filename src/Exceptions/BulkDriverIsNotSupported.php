@@ -9,6 +9,6 @@ class BulkDriverIsNotSupported extends LogicException implements BulkException
 {
     public function __construct(string $driverName)
     {
-        parent::__construct('Database driver [' . $driverName . '] is not supported');
+        parent::__construct('Database driver ' . $driverName . ' is not supported');
     }
 }

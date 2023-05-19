@@ -9,6 +9,6 @@ class BulkAttributeTypeIsNotScalar extends RuntimeException implements BulkExcep
 {
     public function __construct(string $name)
     {
-        parent::__construct('The attribute [' . $name . '] has not scalar type');
+        parent::__construct('The attribute ' . $name . ' has not scalar type');
     }
 }

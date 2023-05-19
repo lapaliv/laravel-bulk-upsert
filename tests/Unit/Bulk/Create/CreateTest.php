@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
@@ -105,6 +106,68 @@ final class CreateTest extends TestCase
                 'updated_at' => $expectedUpdatedAt->toDateTimeString(),
             ], $user->getConnectionName());
         }
+    }
+
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     *
+     * @throws BulkException
+     */
+    public function testStdRow(string $model): void
+    {
+        // arrange
+        $user = $this->userGenerator
+            ->setModel($model)
+            ->makeOne();
+        $sut = $model::query()
+            ->bulk()
+            ->uniqueBy(['email']);
+
+        // act
+        $sut->create([(object) $user->toArray()]);
+
+        // assert
+        $this->userWasCreated($user);
+    }
+
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     *
+     * @throws BulkException
+     */
+    public function testObjectRowWithMethodToArray(string $model): void
+    {
+        // arrange
+        $user = $this->userGenerator
+            ->setModel($model)
+            ->makeOne();
+        $userAsArray = $user->toArray();
+        $userAsArray['gender'] = $user->gender->value;
+        $className = 'SomeClass' . Str::random();
+        eval("
+            class {$className} {
+                public function toArray(): array {
+                    return json_decode('" . json_encode($userAsArray) . "', true);
+                }
+            }
+        ");
+        $sut = $model::query()
+            ->bulk()
+            ->uniqueBy(['email']);
+
+        // act
+        $sut->create([new $className()]);
+
+        // assert
+        $this->userWasCreated($user);
     }
 
     public function userModelsDataProvider(): array

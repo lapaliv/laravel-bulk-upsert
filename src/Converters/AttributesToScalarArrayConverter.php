@@ -19,7 +19,7 @@ class AttributesToScalarArrayConverter
 
         foreach ($attributes as $key => $value) {
             if ($value !== null && array_key_exists($key, $dateFields)) {
-                $date = new DateTime($value);
+                $date = $value instanceof DateTime ? $value : new DateTime($value);
                 $result[$key] = $date->format($dateFields[$key]);
 
                 continue;

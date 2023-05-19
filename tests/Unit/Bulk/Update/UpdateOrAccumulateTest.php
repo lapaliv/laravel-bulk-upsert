@@ -74,6 +74,67 @@ final class UpdateOrAccumulateTest extends TestCase
         );
     }
 
+    /**
+     * @param class-string<User> $model
+     * @param string $uniqBy
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider dataProvider
+     */
+    public function testSmallChunkSizeWithExtraCount(string $model, string $uniqBy): void
+    {
+        // arrange
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(5);
+        $sut = $model::query()
+            ->bulk()
+            ->uniqueBy($uniqBy)
+            ->chunk($users->count() - 1);
+
+        // act
+        $sut->updateOrAccumulate($users);
+
+        // assert
+        $users->slice(0, $users->count() - 1)->each(
+            fn (User $user) => $this->userWasUpdated($user)
+        );
+        $this->userWasNotUpdated($users->last());
+    }
+
+    /**
+     * @param class-string<User> $model
+     * @param string $uniqBy
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider dataProvider
+     */
+    public function testSaveAccumulated(string $model, string $uniqBy): void
+    {
+        // arrange
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
+            ->bulk()
+            ->uniqueBy($uniqBy)
+            ->updateOrAccumulate($users);
+
+        // act
+        $sut->saveAccumulated();
+
+        // assert
+        $users->each(
+            fn (User $user) => $this->userWasUpdated($user)
+        );
+    }
+
     public function dataProvider(): array
     {
         $target = [
