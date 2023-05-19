@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -29,6 +30,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * When one of model events sometimes returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -37,11 +39,15 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider modelDataProvider
      */
-    public function testModelEventReturnsFalseSometimes(Closure $data, string $event, array $dependencies): void
-    {
+    public function testModelEventReturnsFalseSometimes(
+        string $model,
+        Closure $data,
+        string $event,
+        array $dependencies
+    ): void {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -59,7 +65,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['id']);
 
@@ -95,6 +101,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * If one of model events always returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -103,11 +110,15 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider modelDataProvider
      */
-    public function testModelEventReturnsFalseAlways(Closure $data, string $event, array $dependencies): void
-    {
+    public function testModelEventReturnsFalseAlways(
+        string $model,
+        Closure $data,
+        string $event,
+        array $dependencies
+    ): void {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -125,7 +136,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['id']);
 
@@ -145,6 +156,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * When one of collection events returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -153,11 +165,15 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider collectionDataProvider
      */
-    public function testCollectionEventReturnsFalse(Closure $data, string $event, array $dependencies): void
-    {
+    public function testCollectionEventReturnsFalse(
+        string $model,
+        Closure $data,
+        string $event,
+        array $dependencies,
+    ): void {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -175,7 +191,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['id']);
 
@@ -194,10 +210,11 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
     public function modelDataProvider(): array
     {
-        return [
+        $target = [
             'saving' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(2)
                         ->toArray();
                 },
@@ -216,8 +233,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'updating' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(2)
                         ->toArray();
                 },
@@ -233,8 +251,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'saving && deleting' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
@@ -257,8 +276,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'updating && deleting' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
@@ -274,8 +294,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'saving && restoring' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(
                             2,
                             ['deleted_at' => Carbon::now()],
@@ -302,8 +323,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'updating && restoring' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(
                             2,
                             ['deleted_at' => Carbon::now()],
@@ -323,8 +345,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'deleting' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollection(2, ['deleted_at' => null])
                         ->each(
                             function (User $user) {
@@ -345,8 +368,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'restoring' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollection(2, ['deleted_at' => Carbon::now()])
                         ->each(
                             function (User $user) {
@@ -367,19 +391,37 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
         ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    function () use ($value, $model) {
+                        return $value[0]($model);
+                    },
+                    ...array_slice($value, 1),
+                ];
+            }
+        }
+
+        return $result;
     }
 
     public function collectionDataProvider(): array
     {
-        return [
+        $target = [
             'saving many' => [
-                function () {
-                    $firstUser = App::make(UserGenerator::class)->createOneAndDirty();
-                    $secondUser = App::make(UserGenerator::class)->createOneAndDirty(
+                function (string $model) {
+                    $userGenerator = App::make(UserGenerator::class)
+                        ->setModel($model);
+                    $firstUser = $userGenerator->createOneAndDirty();
+                    $secondUser = $userGenerator->createOneAndDirty(
                         ['deleted_at' => null],
                         ['deleted_at' => Carbon::now()],
                     );
-                    $thirdUser = App::make(UserGenerator::class)->createOneAndDirty(
+                    $thirdUser = $userGenerator->createOneAndDirty(
                         ['deleted_at' => Carbon::now()],
                         ['deleted_at' => null],
                     );
@@ -413,13 +455,15 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'updating many' => [
-                function () {
-                    $firstUser = App::make(UserGenerator::class)->createOneAndDirty();
-                    $secondUser = App::make(UserGenerator::class)->createOneAndDirty(
+                function (string $model) {
+                    $userGenerator = App::make(UserGenerator::class)
+                        ->setModel($model);
+                    $firstUser = $userGenerator->createOneAndDirty();
+                    $secondUser = $userGenerator->createOneAndDirty(
                         ['deleted_at' => null],
                         ['deleted_at' => Carbon::now()],
                     );
-                    $thirdUser = App::make(UserGenerator::class)->createOneAndDirty(
+                    $thirdUser = $userGenerator->createOneAndDirty(
                         ['deleted_at' => Carbon::now()],
                         ['deleted_at' => null],
                     );
@@ -441,8 +485,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'deleting many' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(
                             3,
                             ['deleted_at' => null],
@@ -461,8 +506,9 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
             'restoring many' => [
-                function () {
+                function (string $model) {
                     return App::make(UserGenerator::class)
+                        ->setModel($model)
                         ->createCollectionAndDirty(
                             3,
                             ['deleted_at' => Carbon::now()],
@@ -480,6 +526,30 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
                     ],
                 ],
             ],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    function () use ($value, $model) {
+                        return $value[0]($model);
+                    },
+                    ...array_slice($value, 1),
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModels(): array
+    {
+        return [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
         ];
     }
 }

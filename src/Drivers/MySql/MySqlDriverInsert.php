@@ -1,13 +1,16 @@
 <?php
 
 /** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
+
 /** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
 
 namespace Lapaliv\BulkUpsert\Drivers\MySql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
+use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
+use Lapaliv\BulkUpsert\Entities\BulkMySqlInsertResult;
 
 /**
  * @internal
@@ -20,8 +23,11 @@ class MySqlDriverInsert
         //
     }
 
-    public function handle(ConnectionInterface $connection, InsertBuilder $builder, ?string $primaryKeyName): ?int
-    {
+    public function handle(
+        ConnectionInterface $connection,
+        InsertBuilder $builder,
+        ?string $primaryKeyName,
+    ): BulkInsertResult {
         ['sql' => $sql, 'bindings' => $bindings] = $this->generateSql($builder);
 
         $lastPrimaryBeforeInserting = null;
@@ -35,7 +41,7 @@ class MySqlDriverInsert
                 )
             );
 
-            $lastPrimaryBeforeInserting = $lastRow->id;
+            $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
         $connection->insert($sql, $bindings);
@@ -43,9 +49,11 @@ class MySqlDriverInsert
 
         $connection->commit();
 
-        return is_numeric($lastPrimaryBeforeInserting)
-            ? (int) $lastPrimaryBeforeInserting
-            : null;
+        return new BulkMySqlInsertResult(
+            is_numeric($lastPrimaryBeforeInserting)
+                ? (int) $lastPrimaryBeforeInserting
+                : null
+        );
     }
 
     /**

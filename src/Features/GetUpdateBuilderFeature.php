@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
+use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
@@ -29,8 +29,8 @@ class GetUpdateBuilderFeature
         BulkAccumulationEntity $data,
         array $dateFields,
         ?string $deletedAtColumn,
-    ): ?UpdateBuilder {
-        $result = new UpdateBuilder();
+    ): ?UpdateBulkBuilder {
+        $result = new UpdateBulkBuilder();
         $result->table($eloquent->getTable());
         $limit = 0;
         $groupedAttributes = [];
@@ -146,7 +146,7 @@ class GetUpdateBuilderFeature
         return $this->attributesToScalarArrayConverter->handle($model, $result, $dateFields);
     }
 
-    private function fillSets(UpdateBuilder $builder, array $groupedAttributes): void
+    private function fillSets(UpdateBulkBuilder $builder, array $groupedAttributes): void
     {
         foreach ($groupedAttributes as $attributeName => $valueGroups) {
             foreach ($valueGroups as ['value' => $value, 'filters' => $filterGroups]) {

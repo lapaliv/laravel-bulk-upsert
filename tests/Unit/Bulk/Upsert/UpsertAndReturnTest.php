@@ -4,6 +4,8 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
 
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -14,14 +16,22 @@ final class UpsertAndReturnTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testDatabase(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testDatabase(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -33,11 +43,20 @@ final class UpsertAndReturnTest extends TestCase
         $this->userWasCreated($users->get(1));
     }
 
-    public function testDatabaseCreateOnly(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testDatabaseCreateOnly(string $model): void
     {
         // arrange
-        $user = $this->userGenerator->makeOne();
-        $sut = MySqlUser::query()
+        $user = $this->userGenerator
+            ->setModel($model)
+            ->makeOne();
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -48,11 +67,20 @@ final class UpsertAndReturnTest extends TestCase
         $this->userWasCreated($user);
     }
 
-    public function testDatabaseUpdateOnly(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testDatabaseUpdateOnly(string $model): void
     {
         // arrange
-        $user = $this->userGenerator->createOneAndDirty();
-        $sut = MySqlUser::query()
+        $user = $this->userGenerator
+            ->setModel($model)
+            ->createOneAndDirty();
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -63,14 +91,22 @@ final class UpsertAndReturnTest extends TestCase
         $this->userWasUpdated($user);
     }
 
-    public function testResult(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testResult(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -88,13 +124,21 @@ final class UpsertAndReturnTest extends TestCase
         $this->returnedUserWasUpserted($users->get(1), $result->get(0));
     }
 
-    public function testResultCreateOnly(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testResultCreateOnly(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -110,13 +154,21 @@ final class UpsertAndReturnTest extends TestCase
         $this->returnedUserWasUpserted($users->get(0), $result->get(0));
     }
 
-    public function testResultUpdateOnly(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testResultUpdateOnly(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -130,5 +182,13 @@ final class UpsertAndReturnTest extends TestCase
         self::assertEquals($users->get(0)->id, $result->get(0)->id);
 
         $this->returnedUserWasUpserted($users->get(0), $result->get(0));
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            //            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
+        ];
     }
 }

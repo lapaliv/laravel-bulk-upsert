@@ -85,6 +85,13 @@ trait BulkBuilderTrait
         } else {
             $offset = 0;
             $this->limit($chunk);
+
+            if (empty($this->getQuery()->orders)) {
+                foreach ($unique as $field) {
+                    $this->orderBy($field);
+                }
+            }
+
             $builder = clone $this;
 
             while (true) {

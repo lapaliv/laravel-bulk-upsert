@@ -3,8 +3,6 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Carbon\Carbon;
-use Illuminate\Database\Query\Expression;
-use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
@@ -14,7 +12,7 @@ use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
  */
 trait UserTestTrait
 {
-    private UserGenerator $userGenerator;
+    protected UserGenerator $userGenerator;
 
     public function setUp(): void
     {
@@ -25,7 +23,7 @@ trait UserTestTrait
         UserObserver::flush();
     }
 
-    private function userWasCreated(User $user): void
+    protected function userWasCreated(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
             'email' => $user->email,
@@ -36,7 +34,7 @@ trait UserTestTrait
             'is_admin' => $user->is_admin,
             'balance' => $user->balance,
             'birthday' => $user->birthday,
-            'phones' => $this->phonesToCast($user),
+            'phones' => $user->phones,
             'last_visited_at' => $user->last_visited_at,
             'created_at' => Carbon::now()->toDateTimeString(),
             'updated_at' => Carbon::now()->toDateTimeString(),
@@ -44,7 +42,7 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
-    private function userWasUpdated(User $user): void
+    protected function userWasUpdated(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
             'id' => $user->id,
@@ -56,7 +54,7 @@ trait UserTestTrait
             'is_admin' => $user->is_admin,
             'balance' => $user->balance,
             'birthday' => $user->birthday,
-            'phones' => $this->phonesToCast($user),
+            'phones' => $user->phones,
             'last_visited_at' => $user->last_visited_at,
             'created_at' => $user->created_at->toDateTimeString(),
             'updated_at' => Carbon::now()->toDateTimeString(),
@@ -64,7 +62,7 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
-    private function userWasNotUpdated(User $user): void
+    protected function userWasNotUpdated(User $user): void
     {
         self::assertDatabaseMissing($user->getTable(), [
             'id' => $user->id,
@@ -72,23 +70,14 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
-    private function userWasNotCreated(User $user): void
+    protected function userWasNotCreated(User $user): void
     {
         self::assertDatabaseMissing($user->getTable(), [
             'email' => $user->email,
         ], $user->getConnectionName());
     }
 
-    private function phonesToCast(User $user, array $phones = null): Expression
-    {
-        $phones ??= $user->phones;
-
-        return DB::connection($user->getConnectionName())->raw(
-            sprintf("cast('%s' as json)", json_encode($phones, JSON_THROW_ON_ERROR))
-        );
-    }
-
-    private function returnedUserWasUpserted(User $expect, User $actual): void
+    protected function returnedUserWasUpserted(User $expect, User $actual): void
     {
         self::assertEquals($expect->email, $actual->email);
         self::assertEquals($expect->name, $actual->name);

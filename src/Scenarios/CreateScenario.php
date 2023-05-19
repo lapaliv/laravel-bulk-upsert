@@ -4,11 +4,11 @@ namespace Lapaliv\BulkUpsert\Scenarios;
 
 use DateTime;
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
+use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -68,7 +68,7 @@ class CreateScenario
         }
 
         $driver = $this->driverManager->getForModel($eloquent);
-        $lastInsertedIds = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName());
+        $insertResult = $driver->insert($eloquent->getConnection(), $builder, $eloquent->getKeyName(), $selectColumns);
         unset($builder);
 
         $hasEndEvents = $eventDispatcher->hasListeners(BulkEventEnum::saved())
@@ -76,13 +76,18 @@ class CreateScenario
             || $eventDispatcher->hasListeners(BulkEventEnum::deleted());
 
         if ($hasEndEvents) {
-            if (is_array($lastInsertedIds)) {
-                $models = $eloquent::query()
-                    ->whereIn($eloquent->getKeyName(), $lastInsertedIds)
-                    ->when($deletedAtColumn !== null, function (Builder $builder) {
-                        call_user_func([$builder, 'withTrashed']);
-                    })
-                    ->get();
+            $insertedRows = $insertResult->getRows();
+
+            if (is_array($insertedRows)) {
+                $models = $eloquent->newCollection();
+
+                foreach ($insertedRows as $row) {
+                    $model = new $eloquent();
+                    $model->exists = true;
+                    $model->wasRecentlyCreated = true;
+                    $model->setRawAttributes((array) $row);
+                    $models->push($model);
+                }
             } else {
                 $models = $this->selectExistingRowsFeature->handle(
                     $eloquent,
@@ -92,13 +97,14 @@ class CreateScenario
                     $deletedAtColumn
                 );
             }
-            $this->prepareModelsForGiving($eloquent, $data, $models, $lastInsertedIds, $startedAt);
-            unset($models);
+
+            $this->prepareModelsForGiving($eloquent, $data, $models, $insertResult, $startedAt);
+            unset($models, $insertedRows);
 
             $this->fireCreatedEvents($eloquent, $data, $eventDispatcher);
         }
 
-        unset($startedAt, $lastInsertedIds);
+        unset($startedAt);
 
         if (!empty($eloquent->getTouchedRelations())) {
             $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
@@ -246,7 +252,7 @@ class CreateScenario
         Model $eloquent,
         BulkAccumulationEntity $data,
         Collection $existingRows,
-        null|int|array $lastInsertedIds,
+        BulkInsertResult $insertResult,
         DateTimeInterface $startedAt,
     ): void {
         $hasIncrementing = $eloquent->getIncrementing();
@@ -258,6 +264,7 @@ class CreateScenario
                 return $this->getUniqueKeyFeature->handle($model, $data->uniqueBy);
             }
         );
+        $maxIdBeforeInserting = $insertResult->getMaxPrimaryBeforeInserting();
 
         foreach ($data->rows as $row) {
             if ($row->skipSaving || $row->skipCreating) {
@@ -271,8 +278,12 @@ class CreateScenario
                 $existingRow = $keyedExistingRows->get($key);
                 $row->model = $existingRow;
 
-                if ($hasIncrementing) {
-                    $row->model->wasRecentlyCreated = $row->model->getKey() > $lastInsertedIds;
+                if ($row->model->wasRecentlyCreated) {
+                    continue;
+                }
+
+                if ($hasIncrementing && $maxIdBeforeInserting !== null) {
+                    $row->model->wasRecentlyCreated = $row->model->getKey() > $maxIdBeforeInserting;
                 } elseif ($createdAtColumn !== null
                     && $row->model->getAttribute($createdAtColumn) instanceof DateTimeInterface
                 ) {

@@ -7,7 +7,7 @@ use Closure;
 /**
  * @internal
  */
-interface BuilderWhereClause
+interface BulkBuilderWhereClause
 {
     public function where(
         string|Closure $field,

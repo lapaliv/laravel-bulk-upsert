@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -17,21 +18,23 @@ final class UpdateAndReturnTest extends TestCase
     use UserTestTrait;
 
     /**
+     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
      *
      * @dataProvider dataProvider
      */
-    public function testDatabase(string $uniqBy): void
+    public function testDatabase(string $model, string $uniqBy): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOne(),
             $this->userGenerator->createOneAndDirty(),
         ]);
         $users = $users->keyBy('id');
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy([$uniqBy]);
 
@@ -45,21 +48,23 @@ final class UpdateAndReturnTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
      *
      * @dataProvider dataProvider
      */
-    public function testResult(string $uniqBy): void
+    public function testResult(string $model, string $uniqBy): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOne(),
             $this->userGenerator->createOneAndDirty(),
         ]);
         $users = $users->keyBy('id');
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy([$uniqBy]);
 
@@ -77,16 +82,18 @@ final class UpdateAndReturnTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
      *
      * @dataProvider dataProvider
      */
-    public function testSelectColumns(string $uniqBy): void
+    public function testSelectColumns(string $model, string $uniqBy): void
     {
         // arrange
         $fields = ['id', 'email', 'name'];
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             Arr::only(
                 $this->userGenerator->createOne()->toArray(),
@@ -98,7 +105,7 @@ final class UpdateAndReturnTest extends TestCase
             ),
         ]);
         $users = $users->keyBy('id');
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy([$uniqBy]);
 
@@ -126,9 +133,30 @@ final class UpdateAndReturnTest extends TestCase
 
     public function dataProvider(): array
     {
-        return [
+        $target = [
             'email' => ['email'],
             'id' => ['id'],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModels(): array
+    {
+        return [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
         ];
     }
 }

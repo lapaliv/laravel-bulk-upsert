@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -29,6 +30,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * When one of model events sometimes returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -37,11 +39,11 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider modelDataProvider
      */
-    public function testModelEventReturnsFalseSometimes(Closure $data, string $event, array $dependencies): void
+    public function testModelEventReturnsFalseSometimes(string $model, Closure $data, string $event, array $dependencies): void
     {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -59,7 +61,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -95,6 +97,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * If one of model events always returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -103,11 +106,11 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider modelDataProvider
      */
-    public function testModelEventReturnsFalseAlways(Closure $data, string $event, array $dependencies): void
+    public function testModelEventReturnsFalseAlways(string $model, Closure $data, string $event, array $dependencies): void
     {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -125,7 +128,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -145,6 +148,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     /**
      * When one of collection events returns false then its dependencies have not been called.
      *
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      * @param array $dependencies
@@ -153,11 +157,11 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
      *
      * @dataProvider collectionDataProvider
      */
-    public function testCollectionEventReturnsFalse(Closure $data, string $event, array $dependencies): void
+    public function testCollectionEventReturnsFalse(string $model, Closure $data, string $event, array $dependencies): void
     {
         // arrange
         $users = $data();
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -175,7 +179,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             }
         }
 
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -194,7 +198,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
 
     public function modelDataProvider(): array
     {
-        return [
+        $target = [
             'saving' => [
                 function () {
                     return App::make(UserGenerator::class)
@@ -295,11 +299,28 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
         ];
+
+        $result = [];
+        $models = [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
+        ];
+
+        foreach ($target as $key => $value) {
+            foreach ($models as $type => $model) {
+                $result[$key . '&& ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
     }
 
     public function collectionDataProvider(): array
     {
-        return [
+        $target = [
             'saving many' => [
                 function () {
                     $firstUser = App::make(UserGenerator::class)->makeOne();
@@ -376,5 +397,22 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
                 ],
             ],
         ];
+
+        $result = [];
+        $models = [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
+        ];
+
+        foreach ($target as $key => $value) {
+            foreach ($models as $type => $model) {
+                $result[$key . '&& ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
     }
 }

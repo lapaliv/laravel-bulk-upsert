@@ -12,26 +12,38 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
  */
 final class UserGenerator
 {
+    /**
+     * @var class-string<User>
+     */
+    private string $model = MySqlUser::class;
+
+    public function setModel(string $model): static
+    {
+        $this->model = $model;
+
+        return $this;
+    }
+
     public function makeCollection(int $count, array $attributes = []): UserCollection
     {
-        return MySqlUser::factory()
+        return $this->model::factory()
             ->count($count)
             ->make($attributes);
     }
 
     public function makeOne(array $attributes = []): User
     {
-        return MySqlUser::factory()->make($attributes);
+        return $this->model::factory()->make($attributes);
     }
 
     public function createOne(array $attributes = []): User
     {
-        return MySqlUser::factory()->create($attributes);
+        return $this->model::factory()->create($attributes);
     }
 
     public function createOneAndDirty(array $creatingAttributes = [], array $dirtyAttributes = []): User
     {
-        $result = MySqlUser::factory()->create($creatingAttributes);
+        $result = $this->model::factory()->create($creatingAttributes);
 
         $result->created_at = Carbon::now()->subYears(2);
         $result->updated_at = Carbon::now()->subYear();

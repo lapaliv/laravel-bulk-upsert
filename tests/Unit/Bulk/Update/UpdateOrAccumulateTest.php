@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -14,11 +15,20 @@ final class UpdateOrAccumulateTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testBigChunkSize(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testBigChunkSize(string $model): void
     {
         // arrange
-        $users = $this->userGenerator->createCollectionAndDirty(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -32,17 +42,20 @@ final class UpdateOrAccumulateTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
      *
      * @dataProvider dataProvider
      */
-    public function testSmallChunkSize(string $uniqBy): void
+    public function testSmallChunkSize(string $model, string $uniqBy): void
     {
         // arrange
-        $users = $this->userGenerator->createCollectionAndDirty(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy($uniqBy)
             ->chunk(2);
@@ -58,9 +71,30 @@ final class UpdateOrAccumulateTest extends TestCase
 
     public function dataProvider(): array
     {
-        return [
+        $target = [
             'email' => ['email'],
             'id' => ['id'],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModelsDataProvider() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model[0],
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
         ];
     }
 }

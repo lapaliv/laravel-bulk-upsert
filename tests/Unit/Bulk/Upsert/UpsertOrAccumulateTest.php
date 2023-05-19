@@ -4,6 +4,8 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
 
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -14,14 +16,22 @@ final class UpsertOrAccumulateTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testBigChunkSize(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testBigChunkSize(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -33,14 +43,22 @@ final class UpsertOrAccumulateTest extends TestCase
         $this->userWasNotCreated($users->get(1));
     }
 
-    public function testSmallChunkSize(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testSmallChunkSize(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk($users->count());
@@ -51,5 +69,13 @@ final class UpsertOrAccumulateTest extends TestCase
         // assert
         $this->userWasUpdated($users->get(0));
         $this->userWasCreated($users->get(1));
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
+        ];
     }
 }

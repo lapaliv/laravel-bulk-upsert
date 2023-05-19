@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -22,6 +23,7 @@ use Mockery;
 final class UpdateAfterWritingEventsTest extends TestCase
 {
     /**
+     * @param class-string<User> $model
      * @param Closure $data
      * @param array $events
      *
@@ -29,16 +31,16 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @dataProvider modelDataProvider
      */
-    public function testModel(Closure $data, array $events): void
+    public function testModel(string $model, Closure $data, array $events): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
 
         $spies = [];
 
@@ -68,6 +70,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      *
@@ -75,17 +78,17 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @dataProvider collectionDataProvider
      */
-    public function testCollection(Closure $data, string $event): void
+    public function testCollection(string $model, Closure $data, string $event): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
         $spy = Mockery::spy(TestCallback::class);
-        MySqlUser::observe(UserObserver::class);
+        $model::observe(UserObserver::class);
         UserObserver::listen($event, $spy);
 
         // act
@@ -105,7 +108,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
 
     public function modelDataProvider(): array
     {
-        return [
+        $target = [
             'saved' => [
                 function () {
                     return App::make(UserGenerator::class)
@@ -186,11 +189,24 @@ final class UpdateAfterWritingEventsTest extends TestCase
                 [BulkEventEnum::RESTORED],
             ],
         ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
     }
 
     public function collectionDataProvider(): array
     {
-        return [
+        $target = [
             'saved many' => [
                 function () {
                     return App::make(UserGenerator::class)
@@ -227,6 +243,27 @@ final class UpdateAfterWritingEventsTest extends TestCase
                 },
                 BulkEventEnum::RESTORED_MANY,
             ],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModels(): array
+    {
+        return [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
         ];
     }
 }

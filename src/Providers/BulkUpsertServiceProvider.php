@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use Lapaliv\BulkUpsert\BulkBulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
+use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
 
 class BulkUpsertServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,10 @@ class BulkUpsertServiceProvider extends ServiceProvider
         $driverManager->registerDriver(
             'mysql',
             $this->app->make(MySqlBulkDriver::class)
+        );
+        $driverManager->registerDriver(
+            'pgsql',
+            $this->app->make(PostgreSqlBulkDriver::class)
         );
     }
 

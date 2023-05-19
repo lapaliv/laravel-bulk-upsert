@@ -4,10 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\Story;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -18,11 +21,20 @@ final class CreateAndReturnTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testDatabase(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testDatabase(string $model): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -40,7 +52,7 @@ final class CreateAndReturnTest extends TestCase
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
                 'birthday' => $user->birthday,
-                'phones' => $this->phonesToCast($user),
+                'phones' => $user->phones,
                 'last_visited_at' => $user->last_visited_at,
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
@@ -49,11 +61,18 @@ final class CreateAndReturnTest extends TestCase
         }
     }
 
-    public function testResult(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testResult(string $model): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -78,7 +97,14 @@ final class CreateAndReturnTest extends TestCase
         }
     }
 
-    public function testSelectColumns(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testSelectColumns(string $model): void
     {
         // arrange
         $users = [
@@ -91,7 +117,7 @@ final class CreateAndReturnTest extends TestCase
                 ['email', 'name', 'gender', 'posts_count', 'is_admin']
             ),
         ];
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -113,13 +139,20 @@ final class CreateAndReturnTest extends TestCase
         }
     }
 
-    public function testWithoutIncrementing(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider storyModelsDataProvider
+     */
+    public function testWithoutIncrementing(string $model): void
     {
         // arrange
-        $stories = MySqlStory::factory()
+        $stories = $model::factory()
             ->count(10)
             ->make();
-        $sut = MySqlStory::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['uuid']);
 
@@ -140,5 +173,21 @@ final class CreateAndReturnTest extends TestCase
                 self::assertEquals($story->content, $actualStory->content);
             }
         );
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgresql' => [MySqlUser::class],
+        ];
+    }
+
+    public function storyModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlStory::class],
+            'postgresql' => [PostgreSqlStory::class],
+        ];
     }
 }

@@ -3,7 +3,10 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -14,11 +17,18 @@ final class CreateOrAccumulateTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testBigChunkSize(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testBigChunkSize(string $model): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk(100);
@@ -34,11 +44,22 @@ final class CreateOrAccumulateTest extends TestCase
         }
     }
 
-    public function testSmallChunkSize(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     *
+     * @throws JsonException
+     */
+    public function testSmallChunkSize(string $model): void
     {
         // arrange
-        $users = $this->userGenerator->makeCollection(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->makeCollection(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk($users->count());
@@ -57,12 +78,20 @@ final class CreateOrAccumulateTest extends TestCase
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
                 'birthday' => $user->birthday,
-                'phones' => $this->phonesToCast($user),
+                'phones' => $user->phones,
                 'last_visited_at' => $user->last_visited_at,
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => $user->deleted_at?->toDateTimeString(),
             ], $user->getConnectionName());
         }
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
+        ];
     }
 }

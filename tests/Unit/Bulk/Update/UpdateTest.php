@@ -3,8 +3,9 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
-use Exception;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -17,17 +18,20 @@ final class UpdateTest extends TestCase
     use UserTestTrait;
 
     /**
+     * @param class-string<User> $model
      * @param array|callable|string $uniqBy
      *
      * @return void
      *
      * @dataProvider dataProvider
      */
-    public function testBase(array|string|callable $uniqBy): void
+    public function testBase(string $model, array|string|callable $uniqBy): void
     {
         // arrange
-        $users = $this->userGenerator->createCollectionAndDirty(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy($uniqBy);
 
@@ -41,15 +45,16 @@ final class UpdateTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param array|callable|string $uniqBy
      *
      * @return void
      *
-     * @dataProvider dataProvider
+     * @throws JsonException
      *
-     * @throws Exception
+     * @dataProvider dataProvider
      */
-    public function testWithTimestamps(array|string|callable $uniqBy): void
+    public function testWithTimestamps(string $model, array|string|callable $uniqBy): void
     {
         // arrange
         $expectedCreatedAt = Carbon::now()->subSeconds(
@@ -59,6 +64,7 @@ final class UpdateTest extends TestCase
             random_int(100, 100_000)
         );
         $users = $this->userGenerator
+            ->setModel($model)
             ->createCollectionAndDirty(2)
             ->each(
                 function (User $user) use ($expectedCreatedAt, $expectedUpdatedAt): void {
@@ -66,7 +72,7 @@ final class UpdateTest extends TestCase
                     $user->setUpdatedAt($expectedUpdatedAt);
                 }
             );
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy($uniqBy);
 
@@ -87,7 +93,7 @@ final class UpdateTest extends TestCase
 
     public function dataProvider(): array
     {
-        return [
+        $target = [
             'email' => ['email'],
             '[email]' => [['email']],
             '[[email]]' => [[['email']]],
@@ -96,6 +102,27 @@ final class UpdateTest extends TestCase
             '[id]' => [['id']],
             '[[id]]' => [['id']],
             '() => id' => [fn () => 'id'],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModels() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model,
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModels(): array
+    {
+        return [
+            'mysql' => MySqlUser::class,
+            'postgre' => PostgreSqlUser::class,
         ];
     }
 }

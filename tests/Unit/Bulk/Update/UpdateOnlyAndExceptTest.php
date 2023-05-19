@@ -3,7 +3,9 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -15,11 +17,22 @@ final class UpdateOnlyAndExceptTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testOnly(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testOnly(string $model): void
     {
         // arrange
-        $users = $this->userGenerator->createCollectionAndDirty(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['id'])
             ->updateOnly(['name']);
@@ -43,7 +56,7 @@ final class UpdateOnlyAndExceptTest extends TestCase
                     'is_admin' => $user->is_admin,
                     'balance' => $user->balance,
                     'birthday' => $user->birthday,
-                    'phones' => $this->phonesToCast($user),
+                    'phones' => $user->phones,
                     'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                     'updated_at' => Carbon::now()->toDateTimeString(),
                 ], $user->getConnectionName());
@@ -51,11 +64,22 @@ final class UpdateOnlyAndExceptTest extends TestCase
         );
     }
 
-    public function testUpdateAllExcept(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testUpdateAllExcept(string $model): void
     {
         // arrange
-        $users = $this->userGenerator->createCollectionAndDirty(2);
-        $sut = MySqlUser::query()
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['id'])
             ->updateAllExcept(['name']);
@@ -79,11 +103,19 @@ final class UpdateOnlyAndExceptTest extends TestCase
                     'is_admin' => $user->is_admin,
                     'balance' => $user->balance,
                     'birthday' => $user->birthday,
-                    'phones' => $this->phonesToCast($user),
+                    'phones' => $user->phones,
                     'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                     'updated_at' => Carbon::now()->toDateTimeString(),
                 ], $user->getConnectionName());
             }
         );
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
+        ];
     }
 }

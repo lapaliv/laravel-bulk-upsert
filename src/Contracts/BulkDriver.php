@@ -4,7 +4,7 @@ namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
-use Lapaliv\BulkUpsert\Builders\UpdateBuilder;
+use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 
 interface BulkDriver
 {
@@ -12,10 +12,11 @@ interface BulkDriver
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): null|int|array;
+        array $selectColumns,
+    ): BulkInsertResult;
 
     public function update(
         ConnectionInterface $connection,
-        UpdateBuilder $builder
+        UpdateBulkBuilder $builder
     ): int;
 }

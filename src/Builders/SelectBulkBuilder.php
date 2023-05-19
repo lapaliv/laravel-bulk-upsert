@@ -3,12 +3,12 @@
 namespace Lapaliv\BulkUpsert\Builders;
 
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
-use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
+use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
 
 /**
  * @internal
  */
-class SelectBuilder implements BuilderWhereClause
+class SelectBulkBuilder implements BulkBuilderWhereClause
 {
     use BuilderWhere;
 

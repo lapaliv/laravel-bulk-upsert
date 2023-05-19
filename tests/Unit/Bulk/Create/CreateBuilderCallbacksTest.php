@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -24,6 +25,7 @@ final class CreateBuilderCallbacksTest extends TestCase
     use UserTestTrait;
 
     /**
+     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -31,12 +33,12 @@ final class CreateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testModel(string $method, Closure $callback): void
+    public function testModel(string $model, string $method, Closure $callback): void
     {
         // arrange
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
         $sut->{$method}($spy);
@@ -55,6 +57,7 @@ final class CreateBuilderCallbacksTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -62,13 +65,13 @@ final class CreateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testCollection(string $method, Closure $callback): void
+    public function testCollection(string $model, string $method, Closure $callback): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
         $sut->{$method . 'Many'}($spy);
@@ -90,10 +93,17 @@ final class CreateBuilderCallbacksTest extends TestCase
             );
     }
 
-    public function testCallUndefinedListener(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testCallUndefinedListener(string $model): void
     {
         // arrange
-        $sut = MySqlUser::query()->bulk();
+        $sut = $model::query()->bulk();
 
         // assert
         $this->expectException(BadMethodCallException::class);
@@ -104,7 +114,7 @@ final class CreateBuilderCallbacksTest extends TestCase
 
     public function dataProvider(): array
     {
-        return [
+        $target = [
             'onCreating' => [
                 'onCreating',
                 function () {
@@ -147,6 +157,27 @@ final class CreateBuilderCallbacksTest extends TestCase
                     );
                 },
             ],
+        ];
+
+        $result = [];
+
+        foreach ($target as $key => $value) {
+            foreach ($this->userModelsDataProvider() as $type => $model) {
+                $result[$key . '&& ' . $type] = [
+                    $model[0],
+                    ...$value,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
         ];
     }
 }

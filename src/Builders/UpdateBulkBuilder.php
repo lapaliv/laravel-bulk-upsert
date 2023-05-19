@@ -6,12 +6,12 @@ use Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
 use Lapaliv\BulkUpsert\Builders\Clauses\Case\BuilderCaseWhen;
-use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
+use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
 
 /**
  * @internal
  */
-class UpdateBuilder implements BuilderWhereClause
+class UpdateBulkBuilder implements BulkBuilderWhereClause
 {
     use BuilderWhere;
 

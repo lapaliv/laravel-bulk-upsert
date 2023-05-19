@@ -4,10 +4,14 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlComment;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
@@ -15,30 +19,40 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
  */
 final class UpdateAndTouchTest extends TestCase
 {
-    public function test(): void
+    /**
+     * @param class-string<Post> $postModel
+     * @param class-string<Comment> $commentModel
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider modelsDataProvider
+     */
+    public function test(string $postModel, string $commentModel): void
     {
         // arrange
         $now = Carbon::now();
         Carbon::setTestNow(Carbon::now()->subYear());
 
         /** @var PostCollection $posts */
-        $posts = MySqlPost::factory()
+        $posts = $postModel::factory()
             ->count(2)
             ->create()
             ->each(
-                function (Post $post) {
-                    MySqlComment::factory()
+                function (Post $post) use ($commentModel): void {
+                    $commentModel::factory()
                         ->count(2)
                         ->create(['post_id' => $post->id]);
 
                     $post->text = Str::random();
                 }
             );
-        $sut = MySqlPost::query()->bulk();
+        $sut = $postModel::query()->bulk();
         Carbon::setTestNow($now);
 
-        MySqlComment::setGlobalTouchedRelations(['user']);
-        MySqlPost::setGlobalTouchedRelations(['comments']);
+        $commentModel::setGlobalTouchedRelations(['user']);
+        $postModel::setGlobalTouchedRelations(['comments']);
 
         // act
         $sut->update($posts);
@@ -58,5 +72,13 @@ final class UpdateAndTouchTest extends TestCase
                 ], $comment->user->getConnectionName());
             }
         }
+    }
+
+    public function modelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlPost::class, MySqlComment::class],
+            'postgre' => [PostgreSqlPost::class, PostgreSqlComment::class],
+        ];
     }
 }

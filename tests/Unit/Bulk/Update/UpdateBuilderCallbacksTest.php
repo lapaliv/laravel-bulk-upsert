@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Collection\BulkRows;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -24,6 +25,7 @@ final class UpdateBuilderCallbacksTest extends TestCase
     use UserTestTrait;
 
     /**
+     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -31,12 +33,12 @@ final class UpdateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testModel(string $method, Closure $callback): void
+    public function testModel(string $model, string $method, Closure $callback): void
     {
         // arrange
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = MySqlUser::query()->bulk();
+        $sut = $model::query()->bulk();
         $sut->{$method}($spy);
 
         // act
@@ -53,6 +55,7 @@ final class UpdateBuilderCallbacksTest extends TestCase
     }
 
     /**
+     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -60,13 +63,13 @@ final class UpdateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testCollection(string $method, Closure $callback): void
+    public function testCollection(string $model, string $method, Closure $callback): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = MySqlUser::query()->bulk();
+        $sut = $model::query()->bulk();
         $sut->{$method . 'Many'}($spy);
 
         // act
@@ -86,10 +89,17 @@ final class UpdateBuilderCallbacksTest extends TestCase
             );
     }
 
-    public function testCallUndefinedListener(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testCallUndefinedListener(string $model): void
     {
         // arrange
-        $sut = MySqlUser::query()->bulk();
+        $sut = $model::query()->bulk();
 
         // assert
         $this->expectException(BadMethodCallException::class);
@@ -100,71 +110,111 @@ final class UpdateBuilderCallbacksTest extends TestCase
 
     public function dataProvider(): array
     {
-        return [
+        $target = [
             'onUpdating' => [
                 'onUpdating',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(1);
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(1);
                 },
             ],
             'onSaving' => [
                 'onSaving',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(1);
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(1);
                 },
             ],
             'onUpdated' => [
                 'onUpdated',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(1);
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(1);
                 },
             ],
             'onSaved' => [
                 'onSaved',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(1);
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(1);
                 },
             ],
             'onDeleting' => [
                 'onDeleting',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(
-                        1,
-                        ['deleted_at' => null],
-                        ['deleted_at' => Carbon::now()],
-                    );
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(
+                            1,
+                            ['deleted_at' => null],
+                            ['deleted_at' => Carbon::now()],
+                        );
                 },
             ],
             'onDeleted' => [
                 'onDeleted',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(
-                        1,
-                        ['deleted_at' => null],
-                        ['deleted_at' => Carbon::now()],
-                    );
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(
+                            1,
+                            ['deleted_at' => null],
+                            ['deleted_at' => Carbon::now()],
+                        );
                 },
             ],
             'onRestoring' => [
                 'onRestoring',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(
-                        1,
-                        ['deleted_at' => Carbon::now()],
-                        ['deleted_at' => null],
-                    );
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(
+                            1,
+                            ['deleted_at' => Carbon::now()],
+                            ['deleted_at' => null],
+                        );
                 },
             ],
             'onRestored' => [
                 'onRestored',
-                function () {
-                    return App::make(UserGenerator::class)->createCollectionAndDirty(
-                        1,
-                        ['deleted_at' => Carbon::now()],
-                        ['deleted_at' => null],
-                    );
+                function (string $model) {
+                    return App::make(UserGenerator::class)
+                        ->setModel($model)
+                        ->createCollectionAndDirty(
+                            1,
+                            ['deleted_at' => Carbon::now()],
+                            ['deleted_at' => null],
+                        );
                 },
             ],
+        ];
+
+        $result = [];
+
+        foreach ($this->userModelsDataProvider() as $type => $model) {
+            foreach ($target as $key => $value) {
+                $result[$key . ' && ' . $type] = [
+                    $model[0],
+                    $value[0],
+                    function () use ($model, $value) {
+                        return $value[1]($model[0]);
+                    },
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
         ];
     }
 }

@@ -3,8 +3,10 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
 
 use Carbon\Carbon;
+use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -16,14 +18,22 @@ final class UpsertTest extends TestCase
 {
     use UserTestTrait;
 
-    public function testBase(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testBase(string $model): void
     {
         // arrange
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -35,7 +45,16 @@ final class UpsertTest extends TestCase
         $this->userWasCreated($users->get(1));
     }
 
-    public function testWithTimestamps(): void
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws JsonException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testWithTimestamps(string $model): void
     {
         // arrange
         $expectedCreatedAt = Carbon::now()->subSeconds(
@@ -44,6 +63,7 @@ final class UpsertTest extends TestCase
         $expectedUpdatedAt = Carbon::now()->subSeconds(
             random_int(100, 100_000)
         );
+        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
@@ -54,7 +74,7 @@ final class UpsertTest extends TestCase
                 $user->setUpdatedAt($expectedUpdatedAt);
             }
         );
-        $sut = MySqlUser::query()
+        $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -71,5 +91,13 @@ final class UpsertTest extends TestCase
                 ], $user->getConnectionName());
             }
         );
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        return [
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
+        ];
     }
 }

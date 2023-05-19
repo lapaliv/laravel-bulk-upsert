@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Features;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Contracts\BuilderWhereClause;
+use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 
 /**
@@ -14,14 +14,14 @@ use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 class AddWhereClauseToBuilderFeature
 {
     /**
-     * @param BuilderWhereClause|EloquentBuilder|QueryBuilder $builder
+     * @param BulkBuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param string[] $uniqueAttributes
      * @param array<int, array<string, Model|scalar>> $rows
      *
      * @return void
      */
     public function handle(
-        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
+        QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder,
         array $uniqueAttributes,
         iterable $rows
     ): void {
@@ -35,7 +35,7 @@ class AddWhereClauseToBuilderFeature
     }
 
     /**
-     * @param BuilderWhereClause|EloquentBuilder|QueryBuilder $builder
+     * @param BulkBuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param iterable $rows
      * @param string[] $uniqueAttributes
      * @param int $uniqAttributeIndex
@@ -43,7 +43,7 @@ class AddWhereClauseToBuilderFeature
      * @return void
      */
     protected function makeBuilder(
-        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
+        QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder,
         iterable $rows,
         array $uniqueAttributes,
         int $uniqAttributeIndex
@@ -54,7 +54,7 @@ class AddWhereClauseToBuilderFeature
         if (array_key_exists($uniqAttributeIndex + 1, $uniqueAttributes)) {
             foreach ($groups as $children) {
                 $builder->orWhere(
-                    function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($column, $children, $uniqueAttributes, $uniqAttributeIndex): void {
+                    function (QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder) use ($column, $children, $uniqueAttributes, $uniqAttributeIndex): void {
                         $this->addCondition($builder, $column, $children['original']);
 
                         // the latest child
@@ -68,7 +68,7 @@ class AddWhereClauseToBuilderFeature
                             );
                         } else {
                             $builder->where(
-                                function (QueryBuilder|EloquentBuilder|BuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
+                                function (QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder) use ($children, $uniqueAttributes, $uniqAttributeIndex): void {
                                     $this->makeBuilder(
                                         $builder,
                                         $children['children'],
@@ -87,7 +87,7 @@ class AddWhereClauseToBuilderFeature
     }
 
     private function addCondition(
-        QueryBuilder|EloquentBuilder|BuilderWhereClause $builder,
+        QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder,
         string $column,
         mixed $value
     ): void {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Drivers\MySql;
+namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase;
@@ -14,7 +14,7 @@ use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 /**
  * @internal
  */
-class MySqlDriverUpdate
+class PostgreSqlDriverUpdate
 {
     public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
     {
@@ -41,7 +41,7 @@ class MySqlDriverUpdate
             if ($set instanceof BuilderCase && count($set->getWhens()) === 1) {
                 $when = $set->getWhens()[0];
                 $sets[] = sprintf(
-                    '`%s` = if(%s, %s, `%s`)',
+                    '%s = case when %s then %s else %s end',
                     $field,
                     $this->getSqlWhereClause($when->getWheres(), $bindings),
                     $this->mixedValueToSqlConverter->handle($when->getThen(), $bindings),
@@ -57,14 +57,14 @@ class MySqlDriverUpdate
                 }
 
                 $sets[] = sprintf(
-                    '`%s` = case %s else `%s` end',
+                    '%s = case %s else %s end',
                     $field,
                     implode(' ', $whens),
                     $this->mixedValueToSqlConverter->handle($set->getElse(), $bindings),
                 );
             } else {
                 $sets[] = sprintf(
-                    '`%s` = %s',
+                    '%s = %s',
                     $field,
                     $this->mixedValueToSqlConverter->handle($set, $bindings),
                 );
@@ -77,10 +77,6 @@ class MySqlDriverUpdate
             implode(',', $sets),
             $this->getSqlWhereClause($builder->getWheres(), $bindings)
         );
-
-        if ($builder->getLimit() !== null) {
-            $sql .= sprintf(' limit %d', $builder->getLimit());
-        }
 
         return compact('sql', 'bindings');
     }
@@ -101,7 +97,7 @@ class MySqlDriverUpdate
                 $result[] = '(' . $this->getSqlWhereClause($selectBuilder->getWheres(), $bindings) . ')';
             } elseif ($where instanceof BuilderWhereCondition) {
                 $result[] = sprintf(
-                    '`%s` %s %s',
+                    '%s %s %s',
                     $where->field,
                     $where->operator,
                     $this->mixedValueToSqlConverter->handle($where->value, $bindings),
@@ -115,13 +111,13 @@ class MySqlDriverUpdate
 
                 if (count($values) === 1) {
                     $result[] = sprintf(
-                        '`%s` = %s',
+                        '%s = %s',
                         $where->field,
                         $values[0],
                     );
                 } else {
                     $result[] = sprintf(
-                        '`%s` in(%s)',
+                        '%s in(%s)',
                         $where->field,
                         implode(',', $values),
                     );
