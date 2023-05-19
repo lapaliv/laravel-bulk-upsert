@@ -7,6 +7,7 @@ use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Schema\Builder;
 use Lapaliv\BulkUpsert\Bulkable;
+use Throwable;
 
 /**
  * @internal
@@ -27,7 +28,11 @@ abstract class Model extends Eloquent
 
     public static function dropTable(): void
     {
-        self::getSchema()->dropIfExists(self::table());
+        try {
+            self::getSchema()->dropIfExists(self::table());
+        } catch (Throwable) {
+            //
+        }
     }
 
     protected static function getSchema(): Builder
