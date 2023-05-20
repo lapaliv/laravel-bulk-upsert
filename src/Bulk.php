@@ -240,7 +240,7 @@ class Bulk
     /**
      * Disables the specified events or the all if `$events` equals `null`.
      *
-     * @param array|null $events
+     * @param string[]|null $events
      *
      * @return $this
      */
@@ -276,7 +276,7 @@ class Bulk
     /**
      * Enables the specified events or the all if `$events` is empty.
      *
-     * @param array|null $events
+     * @param string[]|null $events
      *
      * @return $this
      */
@@ -342,7 +342,7 @@ class Bulk
     /**
      * Creates the rows.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      * @param bool $ignoreConflicts
      *
      * @return $this
@@ -364,7 +364,7 @@ class Bulk
     /**
      * Creates the rows if their quantity is greater than or equal to the chunk size.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      * @param bool $ignoreConflicts
      *
      * @return $this
@@ -386,11 +386,11 @@ class Bulk
     /**
      * Creates the rows and returns them.
      *
-     * @param iterable $rows
-     * @param array $columns columns that should be selected from the database
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param string[] $columns columns that should be selected from the database
      * @param bool $ignoreConflicts
      *
-     * @return Collection
+     * @return Collection<Model>
      *
      * @throws BulkException
      */
@@ -420,7 +420,7 @@ class Bulk
     /**
      * Updates the rows.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      *
      * @return $this
      *
@@ -440,7 +440,7 @@ class Bulk
     /**
      * Updates the rows if their quantity is greater than or equal to the chunk size.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      *
      * @return $this
      *
@@ -460,10 +460,10 @@ class Bulk
     /**
      * Updates the rows and returns them.
      *
-     * @param iterable $rows
-     * @param array $columns columns that should be selected from the database
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param string[] $columns columns that should be selected from the database
      *
-     * @return Collection
+     * @return Collection<Model>
      *
      * @throws BulkException
      */
@@ -489,7 +489,7 @@ class Bulk
     /**
      * Upserts the rows.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      *
      * @return $this
      *
@@ -509,7 +509,7 @@ class Bulk
     /**
      * Upserts the rows if their quantity is greater than or equal to the chunk size.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      *
      * @return $this
      *
@@ -529,7 +529,7 @@ class Bulk
     /**
      * Upserts the rows and returns them.
      *
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      * @param string[] $columns columns that should be selected from the database
      *
      * @return Collection<Model>
@@ -558,13 +558,13 @@ class Bulk
     }
 
     /**
-     * Saves the all accumulated rows.
+     * Creates the all accumulated rows.
      *
      * @return $this
      *
      * @throws BulkException
      */
-    public function saveAccumulated(): static
+    public function createAccumulated(): static
     {
         foreach ($this->getReadyChunks('createOrIgnore', force: true) as $accumulation) {
             $this->runCreateScenario($accumulation, ignore: true);
@@ -574,10 +574,34 @@ class Bulk
             $this->runCreateScenario($accumulation, ignore: false);
         }
 
+        return $this;
+    }
+
+    /**
+     * Updates the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function updateAccumulated(): static
+    {
         foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
             $this->runUpdateScenario($accumulation);
         }
 
+        return $this;
+    }
+
+    /**
+     * Upserts the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function upsertAccumulated(): static
+    {
         foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
             $this->runUpsertScenario($accumulation);
         }
@@ -586,10 +610,24 @@ class Bulk
     }
 
     /**
+     * Saves the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function saveAccumulated(): static
+    {
+        return $this->createAccumulated()
+            ->updateAccumulated()
+            ->upsertAccumulated();
+    }
+
+    /**
      * Accumulates the rows to the storage.
      *
      * @param string $storageKey
-     * @param iterable $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
      *
      * @return void
      *

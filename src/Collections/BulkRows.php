@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Collection;
+namespace Lapaliv\BulkUpsert\Collections;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

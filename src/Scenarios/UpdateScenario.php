@@ -3,7 +3,7 @@
 namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Collection\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;

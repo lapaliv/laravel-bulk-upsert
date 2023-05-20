@@ -7,6 +7,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
  * @method static BulkBuilder|Builder query()
+ * @method static Bulk bulk()
  */
 trait Bulkable
 {
