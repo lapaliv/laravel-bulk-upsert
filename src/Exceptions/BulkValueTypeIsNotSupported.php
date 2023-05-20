@@ -2,7 +2,10 @@
 
 namespace Lapaliv\BulkUpsert\Exceptions;
 
-class BulkValueTypeIsNotSupported extends BulkException
+use Lapaliv\BulkUpsert\Contracts\BulkException;
+use RuntimeException;
+
+class BulkValueTypeIsNotSupported extends RuntimeException implements BulkException
 {
     public function __construct(private mixed $value)
     {
@@ -12,5 +15,12 @@ class BulkValueTypeIsNotSupported extends BulkException
     public function getValue(): mixed
     {
         return $this->value;
+    }
+
+    public function context(): array
+    {
+        return [
+            'value' => $this->getValue(),
+        ];
     }
 }

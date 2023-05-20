@@ -2,43 +2,43 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
-use Closure;
+use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager;
+use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Schema\Builder;
-use Illuminate\Events\QueuedClosure;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Lapaliv\BulkUpsert\Bulkable;
+use Throwable;
 
-abstract class Model extends \Illuminate\Database\Eloquent\Model implements BulkModel
+/**
+ * @internal
+ */
+abstract class Model extends Eloquent
 {
-    final public function __construct(array $attributes = [])
+    use Bulkable;
+
+    public static function table(): string
     {
-        parent::__construct($attributes);
+        return Container::getInstance()->make(static::class)->getTable();
     }
 
-    /**
-     * Register a model event with the dispatcher.
-     *
-     * @param string $event
-     * @param QueuedClosure|Closure|string|array $callback
-     * @return void
-     */
     public static function registerModelEvent($event, $callback): void
     {
         parent::registerModelEvent($event, $callback);
     }
 
-    public static function table(): string
+    public static function dropTable(): void
     {
-        return (new static())->getTable();
+        try {
+            self::getSchema()->dropIfExists(self::table());
+        } catch (Throwable) {
+            //
+        }
     }
 
     protected static function getSchema(): Builder
     {
-        return Manager::schema((new static())->getConnectionName());
-    }
-
-    public function fireModelEvent($event, $halt = true)
-    {
-        return parent::fireModelEvent($event, $halt);
+        return Manager::schema(
+            Container::getInstance()->make(static::class)->getConnectionName()
+        );
     }
 }

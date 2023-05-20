@@ -7,6 +7,9 @@ use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCallback;
 use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCondition;
 use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
 
+/**
+ * @internal
+ */
 trait BuilderWhere
 {
     /**
@@ -44,6 +47,7 @@ trait BuilderWhere
      * @param string $field
      * @param scalar[] $values
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereIn(string $field, array $values, string $boolean = 'and'): static
@@ -60,13 +64,5 @@ trait BuilderWhere
     public function getWheres(): array
     {
         return $this->wheres;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getFields(): array
-    {
-        return array_values($this->fields);
     }
 }

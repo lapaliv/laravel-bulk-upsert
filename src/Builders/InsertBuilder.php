@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Builders;
 
+/**
+ * @internal
+ */
 class InsertBuilder
 {
     private ?string $table = null;
@@ -12,11 +15,15 @@ class InsertBuilder
     private array $columns = [];
 
     /**
+     * @var string[]
+     */
+    private array $select = [];
+
+    /**
      * @var array<int|string, scalar[]>
      */
     private array $values = [];
     private bool $onConflictDoNothing = false;
-    private ?UpdateBuilder $onConflictUpdateBuilder = null;
 
     public function getInto(): ?string
     {
@@ -40,6 +47,7 @@ class InsertBuilder
 
     /**
      * @param array<int|string, scalar[]> $row
+     *
      * @return $this
      */
     public function addValue(array $row): static
@@ -59,6 +67,7 @@ class InsertBuilder
 
     /**
      * @param string[] $columns
+     *
      * @return $this
      */
     public function columns(array $columns): static
@@ -68,6 +77,26 @@ class InsertBuilder
         return $this;
     }
 
+    /**
+     * @param string[] $columns
+     *
+     * @return $this
+     */
+    public function select(array $columns): static
+    {
+        $this->select = $columns;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSelect(): array
+    {
+        return $this->select;
+    }
+
     public function doNothingAtConflict(): bool
     {
         return $this->onConflictDoNothing;
@@ -75,40 +104,7 @@ class InsertBuilder
 
     public function onConflictDoNothing(bool $value): static
     {
-        if ($value) {
-            $this->onConflictUpdateBuilder = null;
-        }
-
         $this->onConflictDoNothing = $value;
-
-        return $this;
-    }
-
-    public function doUpdateAtConflict(): bool
-    {
-        return $this->onConflictUpdateBuilder !== null;
-    }
-
-    public function getConflictUpdateBuilder(): ?UpdateBuilder
-    {
-        return $this->onConflictUpdateBuilder;
-    }
-
-    public function onConflictUpdate(UpdateBuilder $builder): static
-    {
-        $this->onConflictDoNothing = false;
-        $this->onConflictUpdateBuilder = $builder;
-
-        return $this;
-    }
-
-    public function reset(): static
-    {
-        $this->table = null;
-        $this->columns = [];
-        $this->values = [];
-        $this->onConflictDoNothing = false;
-        $this->onConflictUpdateBuilder = null;
 
         return $this;
     }

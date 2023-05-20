@@ -3,8 +3,11 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
+use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @internal
+ */
 class SelectExistingRowsFeature
 {
     public function __construct(
@@ -14,26 +17,28 @@ class SelectExistingRowsFeature
     }
 
     public function handle(
-        BulkModel $eloquent,
+        Model $eloquent,
         Collection $collection,
+        array $uniqueBy,
         array $selectColumns,
-        array $uniqueAttributes,
         ?string $deletedAtColumn = null,
     ): Collection {
-        if ($collection->isEmpty()) {
-            return $eloquent->newCollection();
-        }
-
         $builder = $eloquent->newQuery()
             ->select($selectColumns)
             ->limit($collection->count());
 
         if ($deletedAtColumn !== null) {
-            $builder->withTrashed();
+            call_user_func([$builder, 'withTrashed']);
         }
 
-        $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueAttributes, $collection);
+        $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueBy, $collection);
 
-        return $builder->get();
+        $result = $builder->get();
+
+        if ($result instanceof Collection) {
+            return $result;
+        }
+
+        return new Collection($result->all());
     }
 }
