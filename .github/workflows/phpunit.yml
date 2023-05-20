@@ -46,7 +46,7 @@ jobs:
           done
 
       - name: PHPUnit
-        run: ./vendor/bin/phpunit --repeat 10
+        run: ./vendor/bin/phpunit
 
   phpstan:
     runs-on: ubuntu-latest
