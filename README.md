@@ -16,7 +16,8 @@ you will need some time to write quite large SQL query to select them in another
 
 Because of the above I have written this library which solves these problems. Using this library you can
 save a collection of your models and use eloquent events such as `creating`, `created`, `updating`,
-`updated`, `saving`, `saved` at the same time. And you don't need to prepare the number of fields before.
+`updated`, `saving`, `saved`, `deleting`, `deleted`, `restoring`, `restored` at the same time. 
+And you don't need to prepare the number of fields before.
 
 In simple terms, this library runs something like this:
 
@@ -29,17 +30,30 @@ foreach($models as $model){
 but with 2-3 queries to the database per chunk.
 
 ## Features
-
-- Inserting a collection with firing eloquent events such as `creating`, `created`, `saving`, `saved`;
-- Updating a collection with firing eloquent events such as `updating`, `updated`, `saving`, `saved`;
-- Upserting a collection with firing eloquent events such as `creating`, `created`, `updating`, `updated`, `saving`
-  , `saved`;
+- Creating / Updating / Upserting a collection with firing eloquent events:
+  - `creating` / `created`, 
+  - `updating` / `updated`, 
+  - `saving` / `saved`,
+  - `deleting` / `deleted`,
+  - `restoring` / `restoried`;
+  
+  and some new events:
+  - `creatingMany` / `createdMany`, 
+  - `updatingMany` / `updatedMany`, 
+  - `savingMany` / `savedMany`, 
+  - `deletingMany` / `deletedMany`,
+  - `restoringMany` / `restoredMany`;
 - Automatically align transmitted fields before save them to the database event if you don't use eloquent events.
 - Select inserted rows from the database
 
+### Documentation for version 1.x
+The documentation for version 1.x you can see [here](https://github.com/lapaliv/laravel-bulk-upsert/blob/feature/v1/README.md)
+
 ## Requires
 
-- MySQL: __5.7+__
+- Database:
+  - MySQL: __5.7+__
+  - Postgres __9.6+__
 - PHP: __8.0+__
 - Laravel: __8.0+__
 
@@ -51,138 +65,597 @@ You can install the package via composer:
 composer require lapaliv/laravel-bulk-upsert
 ```
 
+## Get started
+
+Use the trait `Lapaliv\BulkUpsert\Bulkable` in your model(s):
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Bulkable;
+
+class User extends Model {
+    use Bulkable;
+}
+```
+
 ## Usage
 
-```php
-use Lapaliv\BulkUpsert\Contracts\BulkModel;
-use Illuminate\Database\Eloquent\Model;
+### Make the instance
 
-class User extends Model implements BulkModel {
-    // Change `private` to `public` of the `registerModelEvent`
-    public static function registerModelEvent($event, $callback): void
-    {
-        parent::registerModelEvent($event, $callback);
-    }
+There are four ways how you can make an instance
+
+```php
+use App\Models\User;
+
+$bulk = User::query()->bulk();
+```
+```php
+use App\Models\User;
+
+$bulk = User::bulk();
+```
+```php
+use App\Models\User;
+use Lapaliv\BulkUpsert\Bulk;
+
+$bulk = new Bulk(User::class);
+```
+```php
+use App\Models\User;
+use Lapaliv\BulkUpsert\Bulk;
+
+$bulk = new Bulk(new User());
+```
+
+### Creating / Inserting
+
+Preparing the data
+
+```php
+$data = [
+    ['email' => 'john@example.com', 'name' => 'John'],
+    ['email' => 'david@example.com', 'name' => 'David'],
+];
+```
+
+You can just create these users.
+```php
+$bulk->uniqueBy('email')->create($data);
+```
+
+You can create and get back these users.
+```php
+$users = $bulk->uniqueBy('email')->createAndReturn($data);
+
+// $users is Illuminate\Database\Eloquent\Collection<App\Models\User>
+```
+
+You can accumulate rows until there are enough of them to be written.
+```php
+$chunkSize = 100;
+$bulk->uniqueBy('email')
+    ->chunk($chunkSize);
+
+foreach($data as $item) {
+    // The method `createOrAccumulate` will create rows
+    // only when it accumulates the `$chunkSize` rows. 
+    $bulk->createOrAccumulate($item);
 }
 
-// ...
+// The createAccumulated method will create all accumulated rows,
+// even if their quantity is less than `$chunkSize`.
+$bulk->createAccumulated();
+```
 
-$users = [
-    ['name' => 'John', 'email' => 'john@example.com'],
-    ['name' => 'Garry', 'email' => 'garry@example.com'],
+### Updating
+
+Preparing the data
+
+```php
+$data = [
+    ['id' => 1, 'email' => 'steve@example.com', 'name' => 'Steve'],
+    ['id' => 2, 'email' => 'jack@example.com', 'name' => 'Jack'],
+];
+```
+
+You can just update these users.
+```php
+$bulk->update($data);
+```
+
+You can update these users and get back a collection of the models.
+```php
+$users = $bulk->updateAndReturn($data);
+
+// $users is Illuminate\Database\Eloquent\Collection<App\Models\User>
+```
+
+You can accumulate rows until there are enough of them to be written.
+```php
+$chunkSize = 100;
+$bulk->chunk($chunkSize);
+
+foreach($data as $item) {
+    // The method `updateOrAccumulate` will update rows
+    // only when it accumulates the `$chunkSize` rows. 
+    $bulk->updateOrAccumulate($item);
+}
+
+// The updateAccumulated method will update all accumulated rows,
+// even if their quantity is less than `$chunkSize`.
+$bulk->updateAccumulated();
+```
+
+#### Extra way
+
+There is an extra way how you can update your data in the database:
+
+```php
+User::query()
+    ->whereIn('id', [1,2,3,4])
+    ->selectAndUpdateMany(
+        values: ['role' => null],
+    );
+```
+
+This way loads the data from database and updates found rows by the query.
+
+### Upserting (Updating & Inserting)
+
+Preparing the data
+
+```php
+$data = [
+    ['email' => 'jacob@example.com', 'name' => 'Jacob'],
+    ['id' => 1, 'email' => 'oscar@example.com', 'name' => 'Oscar'],
+];
+```
+
+You can just upsert these users.
+```php
+$bulk->uniqueBy(['email'])
+    ->upsert($data);
+```
+
+You can upsert these users and get back a collection of the models.
+```php
+$users = $bulk->uniqueBy(['email'])
+    ->upsertAndReturn($data);
+
+// $users is Illuminate\Database\Eloquent\Collection<App\Models\User>
+```
+
+You also can accumulate rows until there are enough of them to be written.
+```php
+$chunkSize = 100;
+$bulk->uniqueBy(['email'])
+    ->chunk($chunkSize);
+
+foreach($data as $item) {
+    // The method `upsertOrAccumulate` will upsert rows
+    // only when it accumulates the `$chunkSize` rows. 
+    $bulk->upsertOrAccumulate($item);
+}
+
+// The upsertAccumulated method will upsert all accumulated rows,
+// even if their quantity is less than `$chunkSize`.
+$bulk->upsertAccumulated();
+```
+
+### Listeners
+
+#### The order of events
+The order of calling callbacks is:
+- `onSaving`
+- `onCreating` or `onUpdating`
+- `onDeleting`
+- `onRestoring`
+- `onSavingMany`
+- `onCreatingMany` or `onUpdatingMany`
+- `onDeletingMany`
+- `onRestoringMany`
+- `onCreated` or `onUpdated`
+- `onDeleted`
+- `onRestored`
+- `onCreatedMany` or `onUpdatedMany`
+- `onDeletedMany`
+- `onRestoredMany`
+- `onSavedMany`
+
+#### How listen to events
+
+There are three ways how you can listen events from the library:
+
+#### How listen to events: Bulk Callbacks
+
+```php
+use App\Models\User;
+use Lapaliv\BulkUpsert\Collections\BulkRows;
+
+$bulk
+    // The callback runs before creating.
+    // If your callback returns `false` then the model won't be created
+    // and deleted (if `deleted_at` was filled in)
+    ->onCreating(fn(User $user) => /* ... */)
+    
+    // The callback runs after creating.
+    ->onCreated(fn(User $user) => /* ... */)
+    
+    // The callback runs before updating.
+    // If your callback returns `false` then the model won't be updated,
+    // deleted (if `deleted_at` was filled in) and restored.
+    ->onUpdating(fn(User $user) => /* ... */)
+    
+    // The callback runs after updating.
+    ->onUpdated(fn(User $user) => /* ... */)
+    
+    // The callback runs before deleting.
+    // If your callback returns `false` then the model won't be deleted,
+    // but it doesn't affect the upserting.
+    ->onDeleting(fn(User $user) => /* ... */)
+    
+    // The callback runs after deleting.
+    ->onDeleted(fn(User $user) => /* ... */)
+    
+    // The callback runs before upserting.
+    ->onSaving(fn(User $user) => /* ... */)
+    
+    // The callback runs after upserting.
+    ->onSaved(fn(User $user) => /* ... */)
+
+    // Runs before creating.
+    // If the callback returns `false` then these models won't be created.
+    ->onCreatingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after creating.
+    ->onCreatedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs before updating.
+    // If the callback returns `false` then these models won't be updated.
+    ->onUpdatingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after updating.
+    ->onUpdatedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs before deleting.
+    // If the callback returns `false` then these models won't be deleted,
+    // but it doesn't affect the upserting.
+    ->onDeletingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after deleting.
+    ->onDeletedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs before restoring.
+    // If the callback returns `false` then these models won't be restored,
+    // but it doesn't affect the upserting.
+    ->onRestoringMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after restoring.
+    ->onRestoredMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs before upserting.
+    // If the callback returns `false` then these models won't be upserting,
+    ->onSavingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after upserting.
+    ->onSavedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+```
+
+#### How listen to events: Model Callbacks
+
+You also can use model callbacks. They are almost the same. Just remove the prefix `on`.
+For example:
+
+```php
+use App\Models\User;
+use Lapaliv\BulkUpsert\Collections\BulkRows;
+
+User::saving(fn(User $user) => /* .. */);
+User::savingMany(
+    fn(User $user, BulkRows $bulkRows) => /* .. */
+);
+```
+
+#### How listen to events: Observer
+
+You also can use observers. For example:
+
+```php
+namespace App\Observers;
+
+use App\Models\User;
+use Lapaliv\BulkUpsert\Collections\BulkRows;
+
+class UserObserver {
+    public function creating(User $user) {
+        // ..
+    }
+    
+    public function creatingMany(User $user, BulkRows $bulkRows) {
+        // ..
+    }
+}
+```
+
+#### Example
+
+You can observe the process. The library supports the base eloquent's events and
+some extra which are give you the access to the collection of models.
+Listeners with collections accept extra parameter with type `BulkRows`.
+This is a collection of class `Lapaliv\BulkUpsert\Entities\BulkRow` which
+contains your original data (the property `original`), the model (the property `model`)
+and the unique attributes which were used for saving (the property `unique`). It can
+help you to continue your saving if, for example, you had some relations in your data.
+
+Let's look at the example:
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Comment extends Model {
+    // ...
+    protected $fillable = ['user_id', 'text', 'uuid'];
+    // ...
+}
+
+class User extends Model {
+    // ...
+    protected $fillable = ['email', 'name'];
+    // ...
+}
+```
+
+```php
+namespace App\Observers;
+
+use Illuminate\Database\Eloquent\Collection;
+use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Entities\BulkRow;
+
+class UserObserver {
+    public function savedMany(Collection $users, BulkRows $bulkRows): void {
+        $rawComments = [];
+        
+        $bulkRows->each(
+            function(BulkRow $bulkRow) use(&$rawComments): void {
+                $bulkRow->original['user_id'] = $bulkRow->model->id;
+                $rawComments[] = $bulkRow->original['user_id'];
+            }
+        )
+        
+        Comment::query()
+            ->bulk()
+            ->uniqueBy(['uuid'])
+            ->upsert($rawComments);
+    }
+}
+```
+
+```php
+$data = [
+    [
+        'id' => 1,
+        'email' => 'tom@example.com',
+        'name' => 'Tom',
+        'comments' => [
+            ['text' => 'First comment', 'uuid' => 'c0753127-45af-43ac-9664-60b5b2dbf0e5'],
+            ['text' => 'Second comment', 'uuid' => 'e95d7e15-1e9f-44c5-9978-7641a3792669'],
+        ],
+    ]
 ];
 
-// Inserting
-use Lapaliv\BulkUpsert\BulkInsert;
-app()->make(BulkInsert::class)->insert(User::class, ['email'], $users);
-
-// Updating
-use Lapaliv\BulkUpsert\BulkUpdate;
-app()->make(BulkUpdate::class)->update(User::class, $users, ['email']);
-
-// Upserting
-use Lapaliv\BulkUpsert\BulkUpsert;
-app()->make(BulkUpsert::class)->upsert(User::class, $users, ['email']);
+User::query()
+    ->uniqueBy(['email'])
+    ->upsert($data);
 ```
 
-## Benchmarks
+In this example you have a chain. After upserting the user, the library will run
+`UserObserver::savedMany()` where the code will prepare comments and will upsert them.
 
-| Operation      | Number of rows | Min    | Avg    | Median | p90    | p95    | p99    | Max    |
-|----------------|----------------|--------|--------|--------|--------|--------|--------|--------|
-| Insert         | 1              | 0.0011 | 0.0025 | 0.0014 | 0.0011 | 0.0011 | 0.0011 | 0.0186 |
-|                | 2              | 0.0014 | 0.0028 | 0.0018 | 0.0015 | 0.0015 | 0.0015 | 0.0187 |
-|                | 3              | 0.0018 | 0.0033 | 0.0020 | 0.0018 | 0.0018 | 0.0018 | 0.0198 |
-|                | 5              | 0.0022 | 0.0042 | 0.0026 | 0.0023 | 0.0023 | 0.0023 | 0.0202 |
-|                | 10             | 0.0036 | 0.0062 | 0.0040 | 0.0037 | 0.0037 | 0.0037 | 0.0217 |
-|                | 20             | 0.0061 | 0.0098 | 0.0070 | 0.0065 | 0.0065 | 0.0065 | 0.0247 |
-|                | 50             | 0.0134 | 0.0193 | 0.0156 | 0.0154 | 0.0155 | 0.0156 | 0.0333 |
-|                | 100            | 0.0259 | 0.0359 | 0.0298 | 0.0460 | 0.0466 | 0.0468 | 0.0477 |
-|                | 200            | 0.0521 | 0.0717 | 0.0722 | 0.0989 | 0.0989 | 0.0989 | 0.0989 |
-|                | 500            | 0.1577 | 0.1886 | 0.1927 | 0.2185 | 0.2185 | 0.2185 | 0.2185 |
-|                | 1000           | 0.3438 | 0.3887 | 0.3894 | 0.4379 | 0.4379 | 0.4379 | 0.4379 |
-| Update         | 1              | 0.0024 | 0.0050 | 0.0029 | 0.0024 | 0.0024 | 0.0024 | 0.0264 |
-|                | 2              | 0.0034 | 0.0060 | 0.0040 | 0.0035 | 0.0035 | 0.0035 | 0.0235 |
-|                | 3              | 0.0043 | 0.0082 | 0.0051 | 0.0044 | 0.0044 | 0.0044 | 0.0237 |
-|                | 5              | 0.0061 | 0.0105 | 0.0071 | 0.0064 | 0.0064 | 0.0064 | 0.0271 |
-|                | 10             | 0.0106 | 0.0166 | 0.0125 | 0.0110 | 0.0110 | 0.0110 | 0.0346 |
-|                | 20             | 0.0194 | 0.0284 | 0.0274 | 0.0207 | 0.0208 | 0.0209 | 0.0461 |
-|                | 50             | 0.0421 | 0.0481 | 0.0464 | 0.0459 | 0.0461 | 0.0464 | 0.0999 |
-|                | 100            | 0.0837 | 0.1012 | 0.1052 | 0.1123 | 0.1126 | 0.1140 | 0.1389 |
-|                | 200            | 0.1760 | 0.2173 | 0.2195 | 0.2399 | 0.2399 | 0.2399 | 0.2399 |
-|                | 500            | 0.5048 | 0.5357 | 0.5228 | 0.5965 | 0.5965 | 0.5965 | 0.5965 |
-|                | 1000           | 0.9240 | 1.0041 | 1.0113 | 1.0810 | 1.0810 | 1.0810 | 1.0810 |
-| Upsert (50/50) | 1              | 0.0021 | 0.0026 | 0.0023 | 0.0021 | 0.0021 | 0.0021 | 0.0236 |
-|                | 2              | 0.0040 | 0.0044 | 0.0043 | 0.0040 | 0.0040 | 0.0040 | 0.0068 |
-|                | 3              | 0.0042 | 0.0046 | 0.0045 | 0.0043 | 0.0043 | 0.0043 | 0.0071 |
-|                | 5              | 0.0056 | 0.0060 | 0.0059 | 0.0057 | 0.0057 | 0.0057 | 0.0081 |
-|                | 10             | 0.0090 | 0.0096 | 0.0095 | 0.0093 | 0.0093 | 0.0093 | 0.0112 |
-|                | 20             | 0.0154 | 0.0165 | 0.0163 | 0.0159 | 0.0159 | 0.0160 | 0.0192 |
-|                | 50             | 0.0344 | 0.0368 | 0.0362 | 0.0359 | 0.0361 | 0.0361 | 0.0725 |
-|                | 100            | 0.0651 | 0.0696 | 0.0690 | 0.0714 | 0.0724 | 0.0773 | 0.1259 |
-|                | 200            | 0.1298 | 0.1342 | 0.1332 | 0.1625 | 0.1625 | 0.1625 | 0.1625 |
-|                | 500            | 0.3283 | 0.3376 | 0.3364 | 0.3770 | 0.3770 | 0.3770 | 0.3770 |
-|                | 1000           | 0.6683 | 0.6965 | 0.6933 | 0.7602 | 0.7602 | 0.7602 | 0.7602 |
-
-## Examples
-
-### BulkInsert
+## API
 
 ```php
-use Lapaliv\BulkUpsert\BulkInsert;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
-use App\Models\User;
 
-$users = new Collection([ /* ... */ ]);
+class Bulk {
 
-app()->make(BulkInsert::class)
-    ->chunk(100)
-    ->onSaved(
-        function(Collection $collection): void {
-            // You will get here all your inserted models
-        }
-    )
-    ->insert(User::class, ['email'], $users);
+    public function __construct(Model|string $model);
     
-    // or
-    // ->insertOrIgnore(User::class, ['email'], $users)
+    /**
+     * Sets the chunk size.
+     */
+    public function chunk(int $size = 100): static;
+    
+    /**
+     * Defines the unique attributes of the rows.
+     * @param callable|string|string[]|string[][] $attributes
+     */
+    public function uniqueBy(string|array|callable $attributes): static;
+    
+    /**
+     * Defines the alternatives of the unique attributes.
+     * @param callable|string|string[]|string[][] $attributes
+     */
+    public function orUniqueBy(string|array|callable $attributes): static;
+    
+    /**
+     * Sets enabled events.
+     * @param string[] $events
+     */
+    public function setEvents(array $events): static;
+    
+    /**
+     * Disables the next events: `saved`, `created`, `updated`, `deleted`, `restored`.
+     */
+    public function disableModelEndEvents(): static;
+    
+    /**
+     * Disables the specified events or the all if `$events` equals `null`.
+     * @param string[]|null $events
+     */
+    public function disableEvents(array $events = null): static;
+    
+    /**
+     * Disables the specified event.
+     */
+    public function disableEvent(string $event): static;
+    
+    /**
+     * Enables the specified events or the all if `$events` is empty.
+     * @param string[]|null $events
+     */
+    public function enableEvents(array $events = null): static;
+    
+    /**
+     * Enables the specified event.
+     */
+    public function enableEvent(string $event): static;
+    
+    /**
+     * Sets the list of attribute names which should update.
+     * @param string[] $attributes
+     */
+    public function updateOnly(array $attributes): static;
+    
+    /**
+     * Sets the list of attribute names which shouldn't update.
+     * @param string[] $attributes
+     */
+    public function updateAllExcept(array $attributes): static;
+    
+    /**
+     * Creates the rows.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function create(iterable $rows, bool $ignoreConflicts = false): static;
+    
+    /**
+     * Creates the rows if their quantity is greater than or equal to the chunk size.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function createOrAccumulate(iterable $rows, bool $ignoreConflicts = false): static;
+    
+    /**
+     * Creates the rows and returns them.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @param string[] $columns columns that should be selected from the database
+     * @return Collection<Model>
+     * @throws BulkException
+     */
+    public function createAndReturn(iterable $rows, array $columns = ['*'], bool $ignoreConflicts = false): Collection;
+    
+    /**
+     * Updates the rows.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function update(iterable $rows): static;
+    
+    /**
+     * Updates the rows if their quantity is greater than or equal to the chunk size.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function updateOrAccumulate(iterable $rows): static;
+    
+    /**
+     * Updates the rows and returns them.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @param string[] $columns columns that should be selected from the database
+     * @return Collection<Model>
+     * @throws BulkException
+     */
+    public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection;
+    
+    /**
+     * Upserts the rows.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function upsert(iterable $rows): static;
+    
+    /**
+     * Upserts the rows if their quantity is greater than or equal to the chunk size.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     */
+    public function upsertOrAccumulate(iterable $rows): static;
+    
+    /**
+     * Upserts the rows and returns them.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @param string[] $columns columns that should be selected from the database
+     * @return Collection<Model>
+     * @throws BulkException
+     */
+    public function upsertAndReturn(iterable $rows, array $columns = ['*']): Collection;
+    
+    /**
+     * Creates the all accumulated rows.
+     * @throws BulkException
+     */
+    public function createAccumulated(): static;
+    
+    /**
+     * Updates the all accumulated rows.
+     * @throws BulkException
+     */
+    public function updateAccumulated(): static;
+    
+    /**
+     * Upserts the all accumulated rows.
+     * @throws BulkException
+     */
+    public function upsertAccumulated(): static;
+    
+    /**
+     * Saves the all accumulated rows.
+     * @throws BulkException
+     */
+    public function saveAccumulated(): static;   
+}
 ```
-
-### BulkUpdate
 
 ```php
-use Lapaliv\BulkUpsert\BulkUpdate;
-use Illuminate\Database\Eloquent\Collection;
-use App\Models\User;
+namespace Lapaliv\BulkUpsert\Entities;
 
-$users = new Collection([ /* ... */ ]);
-
-app()->make(BulkUpdate::class)
-    ->chunk(100)
-    ->onSaved(
-        function(Collection $collection): void {
-            // You will get here all your updated models
-        }
-    )
-    ->update(User::class, $users);
+class BulkRow {
+    /**
+     * The upserting/upserted model.
+     * @var Model 
+     */
+    public Model $model;
+    
+    /**
+     * The original item from `iterable rows`. 
+     * @var array|object|stdClass|Model 
+     */
+    public mixed $original;
+    
+    /**
+     * Unique fields which were used for upserting.
+     * @var string[] 
+     */
+    public array $unique;
+}
 ```
 
-### BulkUpsert
+### TODO
+* Bulk deleting
+* Bulk restoring
+* Supporting `DB::raw()`
 
-```php
-use Lapaliv\BulkUpsert\BulkUpsert;
-use Illuminate\Database\Eloquent\Collection;
-use App\Models\User;
+### Tests
 
-$users = new Collection([ /* ... */ ]);
-
-app()->make(BulkUpsert::class)
-    ->chunk(100)
-    ->onSaved(
-        function(Collection $collection): void {
-            // You will get all your inserted and updated models here
-        }
-    )
-    ->update(User::class, $users);
+```shell
+cp .env.example .env
+docker-composer up -d
+./vendor/bin/phpuni
 ```
-
-You can see more details [on the wiki page](https://github.com/lapaliv/laravel-bulk-upsert/wiki)
