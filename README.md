@@ -423,7 +423,7 @@ class UserObserver {
         $bulkRows->each(
             function(BulkRow $bulkRow) use(&$rawComments): void {
                 $bulkRow->original['user_id'] = $bulkRow->model->id;
-                $rawComments[] = $bulkRow->original['user_id'];
+                $rawComments[] = $bulkRow->original;
             }
         )
         
