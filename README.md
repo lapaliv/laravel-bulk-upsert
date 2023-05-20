@@ -654,8 +654,11 @@ class BulkRow {
 
 ### Tests
 
+You can check the [actions](https://github.com/lapaliv/laravel-bulk-upsert/actions?query=branch%3Amaster) or run it on your laptop: 
+
 ```shell
+git clone https://github.com/lapaliv/laravel-bulk-upsert.git
 cp .env.example .env
 docker-composer up -d
-./vendor/bin/phpuni
+./vendor/bin/phpunit
 ```
