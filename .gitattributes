@@ -5,12 +5,16 @@
 
 /.github export-ignore
 /tests export-ignore
+/dev export-ignore
 /docker export-ignore
 /.editorconfig export-ignore
 /.gitattributes export-ignore
 /.gitignore export-ignore
-/.env.example
-/composer.lock
+/.env.example export-ignore
+/composer.lock export-ignore
 /CHANGELOG.md export-ignore
 /phpunit.xml export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/phpstan.neon export-ignore
 /docker-compose.yml export-ignore
+/Makefile export-ignore

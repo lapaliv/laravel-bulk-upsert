@@ -4,14 +4,16 @@ namespace Lapaliv\BulkUpsert\Providers;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\ServiceProvider;
-use Lapaliv\BulkUpsert\BulkDriverManager;
-use Lapaliv\BulkUpsert\BulkInsert;
-use Lapaliv\BulkUpsert\BulkUpsert;
-use Lapaliv\BulkUpsert\Contracts\BulkInsertContract;
-use Lapaliv\BulkUpsert\Contracts\BulkUpdateContract;
-use Lapaliv\BulkUpsert\Contracts\BulkUpsertContract;
-use Lapaliv\BulkUpsert\Contracts\DriverManager;
-use Lapaliv\BulkUpsert\Drivers\MySqlDriver;
+use Lapaliv\BulkUpsert\BulkBulkDriverManager;
+use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
+use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
+use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
+use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
+use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
+use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
+use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
+use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
+use Lapaliv\BulkUpsert\Features\KeyByFeature;
 
 class BulkUpsertServiceProvider extends ServiceProvider
 {
@@ -19,22 +21,41 @@ class BulkUpsertServiceProvider extends ServiceProvider
      * Register any application services.
      *
      * @return void
+     *
      * @throws BindingResolutionException
      */
     public function register(): void
     {
-        $this->app->singleton(DriverManager::class, fn () => new BulkDriverManager());
+        $getValueHashFeature = new GetValueHashFeature();
+        $getUniqueKeyFeature = new GetUniqueKeyFeature($getValueHashFeature);
 
-        /** @var BulkDriverManager $driverManager */
-        $driverManager = $this->app->make(DriverManager::class);
-        $driverManager->registerDriver(
-            'mysql',
-            $this->app->make(MySqlDriver::class)
+        $this->app->singleton(BulkDriverManager::class, fn () => new BulkBulkDriverManager());
+        $this->app->singleton(GetDateFieldsFeature::class, fn () => new GetDateFieldsFeature());
+        $this->app->singleton(GetDeletedAtColumnFeature::class, fn () => new GetDeletedAtColumnFeature());
+        $this->app->singleton(GetValueHashFeature::class, fn () => $getValueHashFeature);
+        $this->app->singleton(
+            AddWhereClauseToBuilderFeature::class,
+            fn () => new AddWhereClauseToBuilderFeature($getValueHashFeature)
+        );
+        $this->app->singleton(
+            GetUniqueKeyFeature::class,
+            fn () => $getUniqueKeyFeature
+        );
+        $this->app->singleton(
+            KeyByFeature::class,
+            fn () => new KeyByFeature($getUniqueKeyFeature)
         );
 
-        $this->app->bind(BulkInsertContract::class, BulkInsert::class);
-        $this->app->bind(BulkUpdateContract::class, BulkUpdateContract::class);
-        $this->app->bind(BulkUpsertContract::class, BulkUpsert::class);
+        /** @var BulkBulkDriverManager $driverManager */
+        $driverManager = $this->app->make(BulkDriverManager::class);
+        $driverManager->registerDriver(
+            'mysql',
+            $this->app->make(MySqlBulkDriver::class)
+        );
+        $driverManager->registerDriver(
+            'pgsql',
+            $this->app->make(PostgreSqlBulkDriver::class)
+        );
     }
 
     /**

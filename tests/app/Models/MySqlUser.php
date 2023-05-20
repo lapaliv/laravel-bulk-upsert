@@ -2,68 +2,29 @@
 
 namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
-use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Schema\Blueprint;
-use Lapaliv\BulkUpsert\Tests\App\Collections\MySqlUserCollection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
+use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
 use Lapaliv\BulkUpsert\Tests\App\Factories\MySqlUserFactory;
 
 /**
- * @property int $id
- * @property string $name
- * @property string|null $phone
- * @property string|null $country
- * @property string $email
- * @property CarbonInterface $created_at
- * @property CarbonInterface $updated_at
- * @property CarbonInterface|null $deleted_at
+ * @internal
+ *
+ * @property-read CommentCollection $comments
  *
  * @method static MySqlUserFactory factory($count = null, $state = [])
  */
-class MySqlUser extends Model
+final class MySqlUser extends User
 {
-    use SoftDeletes;
-    use HasFactory;
-
     protected $connection = 'mysql';
-    protected $table = 'users';
 
-    protected $fillable = [
-        'name',
-        'phone',
-        'email',
-        'deleted_at',
-    ];
-
-    public static function createTable(): void
+    public function comments(): HasMany|CommentBuilder
     {
-        $table = (new static())->getTable();
-
-        self::getSchema()->dropIfExists($table);
-        self::getSchema()->create($table, function (Blueprint $table): void {
-            $table->id();
-
-            $table->string('name');
-            $table->string('phone')
-                ->nullable();
-            $table->string('country')
-                ->nullable();
-            $table->string('email')
-                ->unique();
-
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        return $this->hasMany(MySqlComment::class, 'user_id');
     }
 
-    public static function newFactory(): MySqlUserFactory
+    protected static function newFactory(): MySqlUserFactory
     {
         return new MySqlUserFactory();
-    }
-
-    public function newCollection(array $models = []): MySqlUserCollection
-    {
-        return new MySqlUserCollection($models);
     }
 }

@@ -4,6 +4,9 @@ namespace Lapaliv\BulkUpsert\Builders\Clauses;
 
 use Lapaliv\BulkUpsert\Builders\Clauses\Case\BuilderCaseWhen;
 
+/**
+ * @internal
+ */
 class BuilderCase
 {
     /** @var BuilderCaseWhen[] */

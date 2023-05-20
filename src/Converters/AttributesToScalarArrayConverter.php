@@ -1,28 +1,28 @@
 <?php
 
-/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
-
 namespace Lapaliv\BulkUpsert\Converters;
 
-use Carbon\Carbon;
-use JsonException;
+use DateTime;
+use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
+use stdClass;
 
+/**
+ * @internal
+ */
 class AttributesToScalarArrayConverter
 {
-    /**
-     * @param string[] $dateFields
-     * @param scalar[] $attributes
-     * @return mixed[]
-     * @throws JsonException
-     */
-    public function handle(array $dateFields, array $attributes): array
+    public function handle(Model $model, array $attributes, array $dateFields): array
     {
         $result = [];
 
         foreach ($attributes as $key => $value) {
             if ($value !== null && array_key_exists($key, $dateFields)) {
-                $value = Carbon::parse($value)->format($dateFields[$key]);
+                $date = $value instanceof DateTime ? $value : new DateTime($value);
+                $result[$key] = $date->format($dateFields[$key]);
+
+                continue;
             }
 
             if (is_object($value)) {
@@ -30,11 +30,15 @@ class AttributesToScalarArrayConverter
                     $value = $value->value;
                 } elseif (method_exists($value, '__toString')) {
                     $value = $value->__toString();
+                } elseif ($value instanceof stdClass) {
+                    $value = (array) $value;
+                } elseif (method_exists($value, 'toArray')) {
+                    $value = $value->toArray();
+                } elseif ($value instanceof CastsAttributes) {
+                    $value = $value->set($model, $key, $value, $result);
                 } else {
                     throw new BulkAttributeTypeIsNotScalar($key);
                 }
-            } elseif (is_array($value)) {
-                $value = json_encode($value, JSON_THROW_ON_ERROR);
             }
 
             $result[$key] = $value;

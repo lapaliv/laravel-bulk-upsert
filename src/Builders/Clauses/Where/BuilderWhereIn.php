@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Builders\Clauses\Where;
 
+/**
+ * @internal
+ */
 class BuilderWhereIn
 {
     /**
