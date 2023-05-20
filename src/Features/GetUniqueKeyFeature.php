@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GetUniqueKeyFeature
 {
+    public function __construct(private GetValueHashFeature $getValueHashFeature)
+    {
+        //
+    }
+
     /**
      * @param array<string, scalar>|Model $row
      * @param string[] $attributes
@@ -29,6 +34,6 @@ class GetUniqueKeyFeature
             $key .= ':';
         }
 
-        return hash('crc32c', $key);
+        return $this->getValueHashFeature->handle($key);
     }
 }

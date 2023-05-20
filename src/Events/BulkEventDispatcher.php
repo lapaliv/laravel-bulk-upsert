@@ -6,6 +6,7 @@ use DateTime;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
+use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
 
 /**
  * @internal
@@ -15,9 +16,11 @@ class BulkEventDispatcher
     private array $listeners = [];
     private ?array $enabledEvents = null;
 
+    private GetValueHashFeature $getValueHashFeature;
+
     public function __construct(private Model $model)
     {
-        //
+        $this->getValueHashFeature = Container::getInstance()->make(GetValueHashFeature::class);
     }
 
     public function listen(string $event, mixed $listener, bool $once = false): ?string
@@ -28,7 +31,7 @@ class BulkEventDispatcher
             return null;
         }
 
-        $key = hash('crc32c', (new DateTime())->format('Y-m-d H:i:s.u'));
+        $key = $this->getValueHashFeature->handle((new DateTime())->format('Y-m-d H:i:s.u'));
         $this->listeners[$event] ??= [];
         $this->listeners[$event][$key] = [
             'once' => $once,

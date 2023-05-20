@@ -13,6 +13,12 @@ use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
  */
 class AddWhereClauseToBuilderFeature
 {
+    public function __construct(
+        private GetValueHashFeature $getValueHashFeature
+    ) {
+        //
+    }
+
     /**
      * @param BulkBuilderWhereClause|EloquentBuilder|QueryBuilder $builder
      * @param string[] $uniqueAttributes
@@ -119,7 +125,7 @@ class AddWhereClauseToBuilderFeature
         foreach ($rows as $row) {
             $value = $this->getValue($row, $column);
 
-            $valueHash = hash('crc32c', $value . ':' . gettype($value));
+            $valueHash = $this->getValueHashFeature->handle($value);
 
             $result[$valueHash] ??= ['original' => $value, 'children' => []];
             $result[$valueHash]['children'][] = $row;
@@ -159,7 +165,7 @@ class AddWhereClauseToBuilderFeature
                 $groups[$uniqueAttribute] ??= [];
 
                 $value = $this->getValue($row, $uniqueAttribute);
-                $valueHash = hash('crc32c', $value . ':' . gettype($value));
+                $valueHash = $this->getValueHashFeature->handle($value);
                 $groups[$uniqueAttribute][$valueHash] ??= $valueHash;
             }
         }

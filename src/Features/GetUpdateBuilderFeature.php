@@ -20,6 +20,7 @@ class GetUpdateBuilderFeature
     public function __construct(
         private AttributesToScalarArrayConverter $attributesToScalarArrayConverter,
         private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
+        private GetValueHashFeature $getValueHashFeature,
     ) {
         //
     }
@@ -86,7 +87,7 @@ class GetUpdateBuilderFeature
         ?string $deletedAtColumn,
     ): void {
         $uniqueAttributes = $this->getUniqueAttributeValues($data->uniqueBy, $row->model, $dateFields);
-        $uniqueAttributesHash = hash('crc32c', implode(',', $uniqueAttributes));
+        $uniqueAttributesHash = $this->getValueHashFeature->handle(implode(',', $uniqueAttributes));
         $attributes = $this->attributesToScalarArrayConverter->handle(
             $row->model,
             $row->model->getDirty(),
@@ -128,7 +129,7 @@ class GetUpdateBuilderFeature
         }
 
         foreach ($attributes as $key => $value) {
-            $valueHash = hash('crc32c', $value . ':' . gettype($value));
+            $valueHash = $this->getValueHashFeature->handle($value);
             $groups[$key] ??= [];
             $groups[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
             $groups[$key][$valueHash]['filters'][$uniqueAttributesHash] ??= $uniqueAttributes;
