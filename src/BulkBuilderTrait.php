@@ -30,7 +30,7 @@ trait BulkBuilderTrait
     /**
      * Selects a chunk of rows, fill in the values and update these rows.
      *
-     * @param array<int, array<string, mixed>> $values
+     * @param array<string, mixed> $values
      * @param string|string[]|null $unique
      * @param int $chunk
      *
