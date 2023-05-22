@@ -8,6 +8,7 @@ use Lapaliv\BulkUpsert\BulkBulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
+use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
@@ -56,6 +57,8 @@ class BulkUpsertServiceProvider extends ServiceProvider
             'pgsql',
             $this->app->make(PostgreSqlBulkDriver::class)
         );
+
+        BulkEventDispatcher::setIlluminateEventDispatcher($this->app->make('events'));
     }
 
     /**
