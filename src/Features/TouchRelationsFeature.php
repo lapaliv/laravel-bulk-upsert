@@ -68,8 +68,8 @@ class TouchRelationsFeature
                 $relation = $model->getRelation($relationName);
 
                 if ($relation instanceof Collection) {
-                    $relations->push(...$relation);
-                } else {
+                    $relations->push(...$relation->filter());
+                } elseif ($relation !== null) {
                     $relations->push($relation);
                 }
             }
