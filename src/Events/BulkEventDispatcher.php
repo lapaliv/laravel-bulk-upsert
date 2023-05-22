@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Events;
 
 use DateTime;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
@@ -13,6 +14,8 @@ use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
  */
 class BulkEventDispatcher
 {
+    private static ?Dispatcher $illuminateEventDispatcher = null;
+
     private array $listeners = [];
     private ?array $enabledEvents = null;
 
@@ -62,18 +65,17 @@ class BulkEventDispatcher
         }
 
         $isHalt = $this->isHaltEvent($event);
-        $dispatcher = $this->model::getEventDispatcher();
         $nativeEvent = $this->getEloquentNativeEventName($event);
 
         if (in_array($event, BulkEventEnum::model())) {
-            $response = $dispatcher->dispatch($nativeEvent, $payload[0], $isHalt);
+            $response = $this->getEventDispatcher()->dispatch($nativeEvent, $payload[0], $isHalt);
 
             // @phpstan-ignore-next-line
             if ($isHalt && $response === false) {
                 return false;
             }
-        } elseif (method_exists($dispatcher, 'getListeners')) {
-            foreach ($dispatcher->getListeners($nativeEvent) as $listener) {
+        } elseif (method_exists($this->getEventDispatcher(), 'getListeners')) {
+            foreach ($this->getEventDispatcher()->getListeners($nativeEvent) as $listener) {
                 $response = $listener($nativeEvent, $payload);
 
                 if ($isHalt && $response === false) {
@@ -117,7 +119,7 @@ class BulkEventDispatcher
 
             $nativeEvent = $this->getEloquentNativeEventName($event);
 
-            if ($this->model::getEventDispatcher()->hasListeners($nativeEvent)) {
+            if ($this->getEventDispatcher()->hasListeners($nativeEvent)) {
                 return true;
             }
 
@@ -149,9 +151,19 @@ class BulkEventDispatcher
         return $this->enabledEvents;
     }
 
+    public static function setIlluminateEventDispatcher(Dispatcher $dispatcher): void
+    {
+        self::$illuminateEventDispatcher = $dispatcher;
+    }
+
     private function isHaltEvent(string $event): bool
     {
         return in_array($event, BulkEventEnum::halt(), true);
+    }
+
+    private function getEventDispatcher(): Dispatcher
+    {
+        return self::$illuminateEventDispatcher ?? $this->model::getEventDispatcher();
     }
 
     private static function convertListenerToClosure(mixed $listener): mixed
