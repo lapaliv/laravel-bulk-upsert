@@ -26,6 +26,9 @@ use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use stdClass;
 
 /**
+ * @template TCollection of Collection
+ * @template TModel of Model
+ *
  * @method $this onCreating(callable|null $callback)
  * @method $this onCreated(callable|null $callback)
  * @method $this onCreatingMany(callable|null $callback)
@@ -51,6 +54,9 @@ class Bulk
 {
     private const DEFAULT_CHUNK_SIZE = 100;
 
+    /**
+     * @var Model|TModel
+     */
     private Model $model;
     private int $chunkSize = self::DEFAULT_CHUNK_SIZE;
     /**
@@ -90,10 +96,23 @@ class Bulk
      */
     private array $updateExcept = [];
 
+    /**
+     * @param class-string<TModel>|TModel $model
+     *
+     * @throws BulkException
+     */
     public function __construct(Model|string $model)
     {
         if (is_string($model) && class_exists($model)) {
-            $model = Container::getInstance()->make($model);
+            try {
+                $model = Container::getInstance()->make($model);
+            } catch (BindingResolutionException $exception) {
+                throw new BulkBindingResolution(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
         }
 
         if ($model instanceof Model) {
@@ -390,7 +409,7 @@ class Bulk
      * @param string[] $columns columns that should be selected from the database
      * @param bool $ignoreConflicts
      *
-     * @return Collection<Model>
+     * @return Collection<Model>|TCollection<TModel>
      *
      * @throws BulkException
      */
@@ -420,7 +439,7 @@ class Bulk
     /**
      * Updates the rows.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      *
      * @return $this
      *
@@ -440,7 +459,7 @@ class Bulk
     /**
      * Updates the rows if their quantity is greater than or equal to the chunk size.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      *
      * @return $this
      *
@@ -460,10 +479,10 @@ class Bulk
     /**
      * Updates the rows and returns them.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      * @param string[] $columns columns that should be selected from the database
      *
-     * @return Collection<Model>
+     * @return Collection<Model>|TCollection<TModel>
      *
      * @throws BulkException
      */
@@ -489,7 +508,7 @@ class Bulk
     /**
      * Upserts the rows.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      *
      * @return $this
      *
@@ -509,7 +528,7 @@ class Bulk
     /**
      * Upserts the rows if their quantity is greater than or equal to the chunk size.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      *
      * @return $this
      *
@@ -529,10 +548,10 @@ class Bulk
     /**
      * Upserts the rows and returns them.
      *
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      * @param string[] $columns columns that should be selected from the database
      *
-     * @return Collection<Model>
+     * @return Collection<Model>|TCollection<TModel>
      *
      * @throws BulkException
      */
@@ -627,7 +646,7 @@ class Bulk
      * Accumulates the rows to the storage.
      *
      * @param string $storageKey
-     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass> $rows
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      *
      * @return void
      *
@@ -649,7 +668,7 @@ class Bulk
      *
      * @param mixed $row
      *
-     * @return Model
+     * @return Model|TModel
      *
      * @throws BulkBindingResolution
      */
@@ -669,7 +688,7 @@ class Bulk
 
         if (is_array($row) && !empty($row)) {
             try {
-                /** @var Model $result */
+                /** @var Model|TModel $result */
                 $result = Container::getInstance()->make(
                     get_class($this->model),
                     ['attributes' => $row]
@@ -717,7 +736,7 @@ class Bulk
      * Returns the index and the list of unique attributes that match the specified model.
      *
      * @param mixed $row
-     * @param Model $model
+     * @param Model|TModel $model
      *
      * @return array<int, int|string[]>
      */

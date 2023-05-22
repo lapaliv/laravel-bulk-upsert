@@ -11,8 +11,17 @@ use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
 
+/**
+ * @template TCollection of Collection
+ * @template TModel of Model
+ */
 trait BulkBuilderTrait
 {
+    /**
+     * @return Bulk<TCollection, TModel>
+     *
+     * @throws BulkException
+     */
     public function bulk(): Bulk
     {
         return new Bulk($this->getModel());
@@ -21,8 +30,8 @@ trait BulkBuilderTrait
     /**
      * Selects a chunk of rows, fill in the values and update these rows.
      *
-     * @param array $values
-     * @param array|string|null $unique
+     * @param array<int, array<string, mixed>> $values
+     * @param string|string[]|null $unique
      * @param int $chunk
      *
      * @return int

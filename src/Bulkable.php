@@ -3,9 +3,12 @@
 namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
+ * @template TCollection of Collection
+ *
  * @method static BulkBuilder|Builder query()
  * @method static Bulk bulk()
  */
@@ -16,7 +19,7 @@ trait Bulkable
      *
      * @param \Illuminate\Database\Query\Builder $query
      *
-     * @return Builder
+     * @return BulkBuilder<TCollection, $this>
      */
     public function newEloquentBuilder($query)
     {
