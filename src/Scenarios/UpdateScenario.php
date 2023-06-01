@@ -103,6 +103,10 @@ class UpdateScenario
                 continue;
             }
 
+            if (!$row->model->isDirty()) {
+                $row->skipUpdating = true;
+            }
+
             $models->push($row->model);
             $bulkRows->push(
                 new BulkRow($row->model, $row->row, $data->uniqueBy)
