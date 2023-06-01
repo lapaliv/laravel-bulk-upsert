@@ -215,6 +215,44 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
         }
     }
 
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testDoNotFireUpdatingIfTheModelIsNotDirty(string $model): void
+    {
+        // arrange
+        $users = $this->userGenerator->createCollection(2);
+        $model::observe(UserObserver::class);
+        $savingSpy = Mockery::spy(TestCallback::class);
+        $savingManySpy = Mockery::spy(TestCallback::class);
+        $updatingSpy = Mockery::spy(TestCallback::class);
+        $updatingManySpy = Mockery::spy(TestCallback::class);
+
+        UserObserver::listen(BulkEventEnum::SAVING, $savingSpy);
+        UserObserver::listen(BulkEventEnum::SAVING_MANY, $savingManySpy);
+        UserObserver::listen(BulkEventEnum::UPDATING, $updatingSpy);
+        UserObserver::listen(BulkEventEnum::UPDATING_MANY, $updatingManySpy);
+
+        $sut = $model::query()
+            ->bulk()
+            ->uniqueBy(['id']);
+
+        // act
+        $sut->update($users);
+
+        // assert
+        $this->spyShouldHaveReceived($savingSpy);
+        $this->spyShouldHaveReceived($savingManySpy);
+        $this->spyShouldNotHaveReceived($updatingSpy);
+        $this->spyShouldNotHaveReceived($updatingManySpy);
+    }
+
     public function modelDataProvider(): array
     {
         $target = [
@@ -401,7 +439,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $result = [];
 
-        foreach ($this->userModels() as $type => $model) {
+        foreach ($this->userModelsDataProvider() as $type => [$model]) {
             foreach ($target as $key => $value) {
                 $result[$key . ' && ' . $type] = [
                     $model,
@@ -537,7 +575,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $result = [];
 
-        foreach ($this->userModels() as $type => $model) {
+        foreach ($this->userModelsDataProvider() as $type => [$model]) {
             foreach ($target as $key => $value) {
                 $result[$key . ' && ' . $type] = [
                     $model,
@@ -552,11 +590,11 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
         return $result;
     }
 
-    public function userModels(): array
+    public function userModelsDataProvider(): array
     {
         return [
-            'mysql' => MySqlUser::class,
-            'postgre' => PostgreSqlUser::class,
+            'mysql' => [MySqlUser::class],
+            'postgre' => [PostgreSqlUser::class],
         ];
     }
 }
