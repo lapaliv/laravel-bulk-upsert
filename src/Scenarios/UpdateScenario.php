@@ -69,8 +69,8 @@ class UpdateScenario
             || $eventDispatcher->hasListeners(BulkEventEnum::restored());
 
         if ($hasEndListeners) {
-            $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
             $this->syncChanges($data);
+            $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
         }
 
         if (!empty($eloquent->getTouchedRelations())) {
