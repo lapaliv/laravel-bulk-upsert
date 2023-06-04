@@ -310,6 +310,9 @@ class CreateScenario
                 ) {
                     $row->model->wasRecentlyCreated = $startedAt < $existingRow->getAttribute($createdAtColumn);
                 }
+            } else {
+                $row->skipSaving = true;
+                $row->skipCreating = true;
             }
         }
     }
