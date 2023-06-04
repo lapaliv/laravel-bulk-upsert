@@ -22,12 +22,13 @@ class SelectExistingRowsFeature
         array $uniqueBy,
         array $selectColumns,
         ?string $deletedAtColumn = null,
+        bool $withTrashed = false,
     ): Collection {
         $builder = $eloquent->newQuery()
             ->select($selectColumns)
             ->limit($collection->count());
 
-        if ($deletedAtColumn !== null) {
+        if ($withTrashed && $deletedAtColumn !== null) {
             call_user_func([$builder, 'withTrashed']);
         }
 

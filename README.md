@@ -529,6 +529,13 @@ class Bulk {
     public function updateAllExcept(array $attributes): static;
     
     /**
+     * Enables soft deleted rows into select.
+     * 
+     * @return $this
+     */
+    public function withTrashed(): static;
+    
+    /**
      * Creates the rows.
      * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
      * @throws BulkException

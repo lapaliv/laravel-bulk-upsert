@@ -34,12 +34,13 @@ class UpdateScenario
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        bool $withTrashed,
     ): void {
         if (empty($data->rows)) {
             return;
         }
 
-        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn);
+        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn, $withTrashed);
 
         if ($eventDispatcher->hasListeners(BulkEventEnum::saving())
             || $eventDispatcher->hasListeners(BulkEventEnum::updating())

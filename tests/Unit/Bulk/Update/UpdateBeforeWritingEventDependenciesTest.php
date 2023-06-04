@@ -70,6 +70,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = $model::query()
             ->bulk()
+            ->withTrashed()
             ->uniqueBy(['id']);
 
         // act
@@ -143,6 +144,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = $model::query()
             ->bulk()
+            ->withTrashed()
             ->uniqueBy(['id']);
 
         // act
@@ -200,6 +202,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
 
         $sut = $model::query()
             ->bulk()
+            ->withTrashed()
             ->uniqueBy(['id']);
 
         // act

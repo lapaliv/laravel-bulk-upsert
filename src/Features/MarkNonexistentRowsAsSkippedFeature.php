@@ -24,6 +24,7 @@ class MarkNonexistentRowsAsSkippedFeature
         BulkAccumulationEntity $data,
         array $selectColumns,
         ?string $deletedAtColumn,
+        bool $withTrashed,
     ): void {
         $nonexistent = new BulkAccumulationEntity($data->uniqueBy);
 
@@ -43,6 +44,7 @@ class MarkNonexistentRowsAsSkippedFeature
                     $data->uniqueBy,
                     $selectColumns,
                     $deletedAtColumn,
+                    $withTrashed,
                 )
             );
         }
