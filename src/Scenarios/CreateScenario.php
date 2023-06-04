@@ -23,6 +23,8 @@ use Lapaliv\BulkUpsert\Features\TouchRelationsFeature;
  */
 class CreateScenario
 {
+    private bool $hasDeletingRows = false;
+
     public function __construct(
         private GetInsertBuilderFeature $getInsertBuilderFeature,
         private BulkDriverManager $driverManager,
@@ -112,7 +114,8 @@ class CreateScenario
                 $data->getNotSkippedModels('skipCreating'),
                 $data->uniqueBy,
                 $selectColumns,
-                $deletedAtColumn
+                $deletedAtColumn,
+                withTrashed: $this->hasDeletingRows,
             );
         }
 
@@ -220,6 +223,8 @@ class CreateScenario
         BulkEventDispatcher $eventDispatcher,
         string $deletedAtColumn
     ): void {
+        $this->hasDeletingRows = false;
+
         if (!$eventDispatcher->hasListeners(BulkEventEnum::delete())) {
             return;
         }
@@ -237,6 +242,7 @@ class CreateScenario
             }
 
             $accumulatedRow->isDeleting = true;
+            $this->hasDeletingRows = true;
 
             if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $accumulatedRow->model) === false) {
                 $accumulatedRow->skipDeleting = true;
@@ -304,6 +310,9 @@ class CreateScenario
                 ) {
                     $row->model->wasRecentlyCreated = $startedAt < $existingRow->getAttribute($createdAtColumn);
                 }
+            } else {
+                $row->skipSaving = true;
+                $row->skipCreating = true;
             }
         }
     }

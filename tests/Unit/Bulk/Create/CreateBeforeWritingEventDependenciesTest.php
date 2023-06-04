@@ -29,7 +29,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     use UserTestTrait;
 
     /**
-     * When one of model events sometimes returns false then its dependencies have not been called.
+     * When one of model's events return false then its dependencies have not been called.
      *
      * @param class-string<User> $model
      * @param Closure $data

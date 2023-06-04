@@ -95,6 +95,7 @@ class Bulk
      * @var string[]
      */
     private array $updateExcept = [];
+    private bool $withTrashed = false;
 
     /**
      * @param class-string<TModel>|TModel $model
@@ -643,6 +644,18 @@ class Bulk
     }
 
     /**
+     * Adds soft deleted rows to queries.
+     *
+     * @return $this
+     */
+    public function withTrashed(): static
+    {
+        $this->withTrashed = true;
+
+        return $this;
+    }
+
+    /**
      * Accumulates the rows to the storage.
      *
      * @param string $storageKey
@@ -865,6 +878,7 @@ class Bulk
                 $this->getDateFields(),
                 $this->getSelectColumns($columns, $accumulation->uniqueBy),
                 $this->getDeletedAtColumn(),
+                $this->withTrashed,
             );
 
             unset($scenario);
@@ -899,6 +913,7 @@ class Bulk
                 $this->getDateFields(),
                 $this->getSelectColumns($columns, $accumulation->uniqueBy),
                 $this->getDeletedAtColumn(),
+                $this->withTrashed,
             );
 
             unset($scenario);

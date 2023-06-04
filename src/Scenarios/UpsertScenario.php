@@ -27,12 +27,13 @@ class UpsertScenario
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        bool $withTrashed,
     ): void {
         if (empty($data->rows)) {
             return;
         }
 
-        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn);
+        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn, $withTrashed);
 
         $this->create($eloquent, $data, $eventDispatcher, $dateFields, $selectColumns, $deletedAtColumn);
 
@@ -43,6 +44,7 @@ class UpsertScenario
             $dateFields,
             $selectColumns,
             $deletedAtColumn,
+            $withTrashed
         );
     }
 
