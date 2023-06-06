@@ -33,7 +33,7 @@ trait UserTestTrait
             'posts_count' => $user->posts_count,
             'is_admin' => $user->is_admin,
             'balance' => $user->balance,
-            'birthday' => $user->birthday,
+            'birthday' => $user->birthday?->toDateString(),
             'phones' => $user->phones,
             'last_visited_at' => $user->last_visited_at,
             'created_at' => Carbon::now()->toDateTimeString(),

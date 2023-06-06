@@ -6,9 +6,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
+use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
+use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -168,6 +170,55 @@ final class CreateTest extends TestCase
 
         // assert
         $this->userWasCreated($user);
+    }
+
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testCreatingWithoutUniqueAttributesWithEvents(string $model): void
+    {
+        // arrange
+        $users = $this->userGenerator->makeCollection(2);
+        $model::observe(UserObserver::class);
+        $sut = $model::query()->bulk();
+
+        // assert
+        $this->expectException(BulkIdentifierDidNotFind::class);
+
+        // act
+        $sut->create($users);
+    }
+
+    /**
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testCreatingWithoutUniqueAttributesWithoutEvents(string $model): void
+    {
+        // arrange
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->makeCollection(2);
+        $sut = $model::query()->bulk();
+
+        // act
+        $sut->create($users);
+
+        // assert
+        $users->each(
+            fn (User $user) => $this->userWasCreated($user)
+        );
     }
 
     public function userModelsDataProvider(): array

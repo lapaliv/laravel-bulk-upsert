@@ -372,7 +372,14 @@ class Bulk
     public function create(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
-        $this->accumulate($storageKey, $rows);
+        $this->accumulate(
+            $storageKey,
+            $rows,
+            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
+            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::created())
+            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
+            || !empty($this->model->getTouchedRelations())
+        );
 
         foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
             $this->runCreateScenario($accumulation, $ignoreConflicts);
@@ -394,7 +401,13 @@ class Bulk
     public function createOrAccumulate(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
-        $this->accumulate($storageKey, $rows);
+        $this->accumulate(
+            $storageKey,
+            $rows,
+            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
+            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::created())
+            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
+        );
 
         foreach ($this->getReadyChunks($storageKey) as $accumulation) {
             $this->runCreateScenario($accumulation, $ignoreConflicts);
@@ -660,19 +673,26 @@ class Bulk
      *
      * @param string $storageKey
      * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
+     * @param bool $uniqueAttributesAreRequired
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws BulkBindingResolution
      */
-    private function accumulate(string $storageKey, iterable $rows): void
+    private function accumulate(string $storageKey, iterable $rows, bool $uniqueAttributesAreRequired = true): void
     {
         foreach ($rows as $row) {
             $model = $this->convertRowToModel($row);
-            [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
 
-            $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity($uniqueAttributes);
-            $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
+            if ($uniqueAttributesAreRequired) {
+                [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
+
+                $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity($uniqueAttributes);
+                $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
+            } else {
+                $this->storage[$storageKey]['no_unique_attributes'] ??= new BulkAccumulationEntity([]);
+                $this->storage[$storageKey]['no_unique_attributes']->rows[] = new BulkAccumulationItemEntity($row, $model);
+            }
         }
     }
 
