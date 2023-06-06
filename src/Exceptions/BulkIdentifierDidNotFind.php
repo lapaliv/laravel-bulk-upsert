@@ -9,7 +9,11 @@ class BulkIdentifierDidNotFind extends RuntimeException implements BulkException
 {
     public function __construct(private mixed $row, private array $uniqueAttributes)
     {
-        parent::__construct('Unique attributes did not find for the row');
+        parent::__construct(
+            'Unique attributes did not find for the row. ' .
+            'Please pass them via the `uniqueBy` method or ' .
+            'turn off -ed events if you try to use `create`/`createOrAccumulate` methods'
+        );
     }
 
     public function getRow(): mixed
