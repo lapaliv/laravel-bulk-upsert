@@ -378,6 +378,7 @@ class Bulk
             $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
             || $this->getEventDispatcher()->hasListeners(BulkEventEnum::created())
             || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
+            || !empty($this->model->getTouchedRelations())
         );
 
         foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
@@ -683,16 +684,12 @@ class Bulk
         foreach ($rows as $row) {
             $model = $this->convertRowToModel($row);
 
-            try {
+            if ($uniqueAttributesAreRequired) {
                 [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
 
                 $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity($uniqueAttributes);
                 $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
-            } catch (BulkIdentifierDidNotFind $exception) {
-                if ($uniqueAttributesAreRequired) {
-                    throw $exception;
-                }
-
+            } else {
                 $this->storage[$storageKey]['no_unique_attributes'] ??= new BulkAccumulationEntity([]);
                 $this->storage[$storageKey]['no_unique_attributes']->rows[] = new BulkAccumulationItemEntity($row, $model);
             }

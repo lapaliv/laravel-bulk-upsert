@@ -55,7 +55,6 @@ class GetInsertBuilderFeature
                 continue;
             }
 
-            $columns = [];
             $array = $this->convertModelToArray($row, $columns, $dateFields, $deletedAtColumn);
             $result->addValue($array);
         }
@@ -100,15 +99,11 @@ class GetInsertBuilderFeature
         }
 
         if ($row->model->usesTimestamps()) {
-            if (!isset($columns[$this->createdAtColumn])) {
-                $columns[$this->createdAtColumn] = $this->createdAtColumn;
-                $result[$this->createdAtColumn] = $this->createdAt;
-            }
+            $columns[$this->createdAtColumn] ??= $this->createdAtColumn;
+            $columns[$this->updatedAtColumn] ??= $this->updatedAtColumn;
 
-            if (!isset($columns[$this->updatedAtColumn])) {
-                $columns[$this->updatedAtColumn] = $this->updatedAtColumn;
-                $result[$this->updatedAtColumn] = $this->updatedAt;
-            }
+            $result[$this->updatedAtColumn] ??= $this->updatedAt;
+            $result[$this->createdAtColumn] ??= $this->createdAt;
         }
     }
 }
