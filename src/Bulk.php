@@ -460,14 +460,7 @@ class Bulk
      */
     public function update(iterable $rows): static
     {
-        $this->accumulate(
-            'update',
-            $rows,
-            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::updated())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::restored())
-        );
+        $this->accumulate('update', $rows);
 
         foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
             $this->runUpdateScenario($accumulation);
@@ -487,14 +480,7 @@ class Bulk
      */
     public function updateOrAccumulate(iterable $rows): static
     {
-        $this->accumulate(
-            'update',
-            $rows,
-            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::updated())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::restored())
-        );
+        $this->accumulate('update', $rows);
 
         foreach ($this->getReadyChunks('update') as $accumulation) {
             $this->runUpdateScenario($accumulation);
@@ -543,13 +529,7 @@ class Bulk
      */
     public function upsert(iterable $rows): static
     {
-        $this->accumulate(
-            'upsert',
-            $rows,
-            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::created())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
-        );
+        $this->accumulate('upsert', $rows);
 
         foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
             $this->runUpsertScenario($accumulation);
@@ -569,13 +549,7 @@ class Bulk
      */
     public function upsertOrAccumulate(iterable $rows): static
     {
-        $this->accumulate(
-            'upsert',
-            $rows,
-            $this->getEventDispatcher()->hasListeners(BulkEventEnum::saved())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::created())
-            || $this->getEventDispatcher()->hasListeners(BulkEventEnum::deleted())
-        );
+        $this->accumulate('upsert', $rows);
 
         foreach ($this->getReadyChunks('upsert') as $accumulation) {
             $this->runUpsertScenario($accumulation);
