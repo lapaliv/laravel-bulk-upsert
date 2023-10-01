@@ -21,6 +21,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
 use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
+use Lapaliv\BulkUpsert\Scenarios\DeleteScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use stdClass;
@@ -84,6 +85,8 @@ class Bulk
         'create' => [],
         'update' => [],
         'upsert' => [],
+        'delete' => [],
+        'forceDelete' => [],
     ];
 
     /**
@@ -591,6 +594,88 @@ class Bulk
     }
 
     /**
+     * Deletes the rows.
+     *
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
+     *
+     * @return $this
+     *
+     * @throws BulkBindingResolution
+     * @throws BulkException
+     */
+    public function delete(iterable $rows): static
+    {
+        $this->accumulate('delete', $rows);
+
+        foreach ($this->getReadyChunks('delete', force: true) as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: false);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Deletes the rows if their quantity is greater than or equal to the chunk size.
+     *
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function deleteOrAccumulate(iterable $rows): static
+    {
+        $this->accumulate('delete', $rows);
+
+        foreach ($this->getReadyChunks('delete') as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: false);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Force deletes the rows.
+     *
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
+     *
+     * @return $this
+     *
+     * @throws BulkBindingResolution
+     * @throws BulkException
+     */
+    public function forceDelete(iterable $rows): static
+    {
+        $this->accumulate('forceDelete', $rows);
+
+        foreach ($this->getReadyChunks('forceDelete', force: true) as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: true);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Force deletes the rows if their quantity is greater than or equal to the chunk size.
+     *
+     * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function forceDeleteOrAccumulate(iterable $rows): static
+    {
+        $this->accumulate('forceDelete', $rows);
+
+        foreach ($this->getReadyChunks('forceDelete') as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: true);
+        }
+
+        return $this;
+    }
+
+    /**
      * Creates the all accumulated rows.
      *
      * @return $this
@@ -643,6 +728,38 @@ class Bulk
     }
 
     /**
+     * Deletes the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function deleteAccumulated(): static
+    {
+        foreach ($this->getReadyChunks('delete', force: true) as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: false);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Deletes the all accumulated rows.
+     *
+     * @return $this
+     *
+     * @throws BulkException
+     */
+    public function forceDeleteAccumulated(): static
+    {
+        foreach ($this->getReadyChunks('forceDelete', force: true) as $accumulation) {
+            $this->runDeleteScenario($accumulation, force: true);
+        }
+
+        return $this;
+    }
+
+    /**
      * Saves the all accumulated rows.
      *
      * @return $this
@@ -653,7 +770,9 @@ class Bulk
     {
         return $this->createAccumulated()
             ->updateAccumulated()
-            ->upsertAccumulated();
+            ->upsertAccumulated()
+            ->deleteAccumulated()
+            ->forceDeleteAccumulated();
     }
 
     /**
@@ -864,6 +983,40 @@ class Bulk
                 $this->getDateFields(),
                 $this->getSelectColumns($columns, $accumulation->uniqueBy),
                 $this->getDeletedAtColumn(),
+            );
+
+            unset($scenario);
+        } catch (BindingResolutionException $exception) {
+            throw new BulkBindingResolution(
+                $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
+    }
+
+    /**
+     * Runs the delete scenario.
+     *
+     * @param BulkAccumulationEntity $accumulation
+     * @param bool $force
+     *
+     * @return void
+     *
+     * @throws BulkBindingResolution
+     */
+    private function runDeleteScenario(BulkAccumulationEntity $accumulation, bool $force): void
+    {
+        try {
+            /** @var DeleteScenario $scenario */
+            $scenario = Container::getInstance()->make(DeleteScenario::class);
+            $scenario->handle(
+                $this->model,
+                $accumulation,
+                $this->getEventDispatcher(),
+                $this->getDateFields(),
+                $this->getDeletedAtColumn(),
+                $force,
             );
 
             unset($scenario);

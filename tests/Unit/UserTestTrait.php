@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit;
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 
 /**
  * @internal
@@ -20,7 +20,7 @@ trait UserTestTrait
 
         $this->userGenerator = new UserGenerator();
         Carbon::setTestNow(Carbon::now());
-        UserObserver::flush();
+        Observer::flush();
     }
 
     protected function userWasCreated(User $user): void
@@ -39,6 +39,55 @@ trait UserTestTrait
             'created_at' => Carbon::now()->toDateTimeString(),
             'updated_at' => Carbon::now()->toDateTimeString(),
             'deleted_at' => $user->deleted_at?->toDateTimeString(),
+        ], $user->getConnectionName());
+    }
+
+    protected function userExists(User $user): void
+    {
+        self::assertDatabaseHas($user->getTable(), [
+            'email' => $user->email,
+            'name' => $user->name,
+            'gender' => $user->gender->value,
+            'avatar' => $user->avatar,
+            'posts_count' => $user->posts_count,
+            'is_admin' => $user->is_admin,
+            'balance' => $user->balance,
+            'birthday' => $user->birthday?->toDateString(),
+            'phones' => $user->phones,
+            'last_visited_at' => $user->last_visited_at,
+            'created_at' => $user->created_at->toDateTimeString(),
+            'updated_at' => $user->updated_at->toDateTimeString(),
+            'deleted_at' => $user->deleted_at?->toDateTimeString(),
+        ], $user->getConnectionName());
+    }
+
+    protected function userDoesNotExist(User $user): void
+    {
+        self::assertDatabaseMissing($user->getTable(), [
+            'email' => $user->email,
+        ], $user->getConnectionName());
+    }
+
+    protected function userWasSoftDeleted(User $user): void
+    {
+        self::assertDatabaseHas($user->getTable(), [
+            'email' => $user->email,
+            'name' => $user->name,
+            'gender' => $user->gender->value,
+            'avatar' => $user->avatar,
+            'posts_count' => $user->posts_count,
+            'is_admin' => $user->is_admin,
+            'balance' => $user->balance,
+            'birthday' => $user->birthday?->toDateString(),
+            'phones' => $user->phones,
+            'last_visited_at' => $user->last_visited_at,
+            'created_at' => $user->created_at->toDateTimeString(),
+            'updated_at' => $user->updated_at->toDateTimeString(),
+        ], $user->getConnectionName());
+
+        self::assertDatabaseMissing($user->getTable(), [
+            'email' => $user->email,
+            'deleted_at' => null,
         ], $user->getConnectionName());
     }
 

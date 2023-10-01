@@ -7,7 +7,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -40,8 +40,8 @@ class UpdateEventsTest extends TestCase
             ->disableEvents();
 
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($spy);
+        $model::observe(Observer::class);
+        Observer::listenAny($spy);
 
         // act
         $sut->update($users);
@@ -73,11 +73,11 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($callingSpy);
+        $model::observe(Observer::class);
+        Observer::listenAny($callingSpy);
 
         foreach ($disabledEvents as $event) {
-            UserObserver::listen($event, $notCallingSpy);
+            Observer::listen($event, $notCallingSpy);
         }
 
         // act
@@ -113,9 +113,9 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($callingSpy);
-        UserObserver::listen($disabledEvent, $notCallingSpy);
+        $model::observe(Observer::class);
+        Observer::listenAny($callingSpy);
+        Observer::listen($disabledEvent, $notCallingSpy);
 
         // act
         $sut->update($users);
@@ -150,9 +150,9 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($callingSpy);
-        UserObserver::listen($disabledEvent, $notCallingSpy);
+        $model::observe(Observer::class);
+        Observer::listenAny($callingSpy);
+        Observer::listen($disabledEvent, $notCallingSpy);
 
         // act
         $sut->update($users);
@@ -184,8 +184,8 @@ class UpdateEventsTest extends TestCase
             ->enableEvents();
 
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($spy);
+        $model::observe(Observer::class);
+        Observer::listenAny($spy);
         $countOfCallingPerModel = count(BulkEventEnum::update()) + count(BulkEventEnum::save());
 
         // act
@@ -224,8 +224,8 @@ class UpdateEventsTest extends TestCase
 
         $callingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listen($enabledEvent, $callingSpy);
+        $model::observe(Observer::class);
+        Observer::listen($enabledEvent, $callingSpy);
 
         // act
         $sut->update($users);
@@ -258,9 +258,9 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($notCallingSpy, [$enabledEvent]);
-        UserObserver::listen($enabledEvent, $callingSpy);
+        $model::observe(Observer::class);
+        Observer::listenAny($notCallingSpy, [$enabledEvent]);
+        Observer::listen($enabledEvent, $callingSpy);
 
         // act
         $sut->update($users);
@@ -294,9 +294,9 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(UserObserver::class);
-        UserObserver::listenAny($notCallingSpy, [$enabledEvent]);
-        UserObserver::listen($enabledEvent, $callingSpy);
+        $model::observe(Observer::class);
+        Observer::listenAny($notCallingSpy, [$enabledEvent]);
+        Observer::listen($enabledEvent, $callingSpy);
 
         // act
         $sut->update($users);

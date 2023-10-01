@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -50,7 +50,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     ): void {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -59,12 +59,12 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnValues([false, true]);
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 
@@ -124,7 +124,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     ): void {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -133,12 +133,12 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnFalse();
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 
@@ -182,7 +182,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     ): void {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -191,12 +191,12 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->once()
             ->andReturnFalse();
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 
@@ -231,16 +231,16 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     {
         // arrange
         $users = $this->userGenerator->createCollection(2);
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         $savingSpy = Mockery::spy(TestCallback::class);
         $savingManySpy = Mockery::spy(TestCallback::class);
         $updatingSpy = Mockery::spy(TestCallback::class);
         $updatingManySpy = Mockery::spy(TestCallback::class);
 
-        UserObserver::listen(BulkEventEnum::SAVING, $savingSpy);
-        UserObserver::listen(BulkEventEnum::SAVING_MANY, $savingManySpy);
-        UserObserver::listen(BulkEventEnum::UPDATING, $updatingSpy);
-        UserObserver::listen(BulkEventEnum::UPDATING_MANY, $updatingManySpy);
+        Observer::listen(BulkEventEnum::SAVING, $savingSpy);
+        Observer::listen(BulkEventEnum::SAVING_MANY, $savingManySpy);
+        Observer::listen(BulkEventEnum::UPDATING, $updatingSpy);
+        Observer::listen(BulkEventEnum::UPDATING_MANY, $updatingManySpy);
 
         $sut = $model::query()
             ->bulk()
