@@ -55,7 +55,7 @@ The documentation for version 1.x you can see [here](https://github.com/lapaliv/
 
 - Database:
   - MySQL: __5.7+__
-  - Postgres __9.6+__
+  - PostgreSQL __9.6+__
 - PHP: __8.0+__
 - Laravel: __8.0+__
 
@@ -415,7 +415,7 @@ use Lapaliv\BulkUpsert\Collections\BulkRows;
 
 User::saving(fn(User $user) => /* .. */);
 User::savingMany(
-    fn(User $user, BulkRows $bulkRows) => /* .. */
+    fn(Collection $users, BulkRows $bulkRows) => /* .. */
 );
 ```
 
@@ -434,7 +434,7 @@ class UserObserver {
         // ..
     }
     
-    public function creatingMany(User $user, BulkRows $bulkRows) {
+    public function creatingMany(Collection $users, BulkRows $bulkRows) {
         // ..
     }
 }
@@ -765,8 +765,10 @@ class BulkRow {
 
 ### TODO
 * Bulk restoring
+* Bulk touching
+* Bulk updating without updating timestamps
 * Supporting `DB::raw()` as a value
-* Support `SQLite`
+* Supporting `SQLite`
 * Support a custom database driver
 
 ### Tests
