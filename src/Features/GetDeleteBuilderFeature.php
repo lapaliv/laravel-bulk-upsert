@@ -8,6 +8,9 @@ use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 
+/**
+ * @internal
+ */
 class GetDeleteBuilderFeature
 {
     public function __construct(

@@ -16,6 +16,9 @@ use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\GetDeleteBuilderFeature;
 use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
 
+/**
+ * @internal
+ */
 class DeleteScenario
 {
     public function __construct(

@@ -5,6 +5,9 @@ namespace Lapaliv\BulkUpsert\Builders;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
 use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
 
+/**
+ * @internal
+ */
 class DeleteBulkBuilder implements BulkBuilderWhereClause
 {
     use BuilderWhere;
