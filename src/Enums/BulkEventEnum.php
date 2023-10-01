@@ -23,6 +23,10 @@ class BulkEventEnum
     public const DELETED = 'deleted';
     public const DELETING_MANY = 'deletingMany';
     public const DELETED_MANY = 'deletedMany';
+    public const FORCE_DELETING = 'forceDeleting';
+    public const FORCE_DELETED = 'forceDeleted';
+    public const FORCE_DELETING_MANY = 'forceDeletingMany';
+    public const FORCE_DELETED_MANY = 'forceDeletedMany';
     public const RESTORING = 'restoring';
     public const RESTORED = 'restored';
     public const RESTORING_MANY = 'restoringMany';
@@ -50,6 +54,10 @@ class BulkEventEnum
             self::DELETED,
             self::DELETING_MANY,
             self::DELETED_MANY,
+            self::FORCE_DELETING,
+            self::FORCE_DELETED,
+            self::FORCE_DELETING_MANY,
+            self::FORCE_DELETED_MANY,
             self::RESTORING,
             self::RESTORED,
             self::RESTORING_MANY,
@@ -71,6 +79,8 @@ class BulkEventEnum
             self::SAVING_MANY,
             self::DELETING,
             self::DELETING_MANY,
+            self::FORCE_DELETING,
+            self::FORCE_DELETING_MANY,
             self::RESTORING,
             self::RESTORING_MANY,
         ];
@@ -90,6 +100,8 @@ class BulkEventEnum
             self::SAVED,
             self::DELETING,
             self::DELETED,
+            self::FORCE_DELETING,
+            self::FORCE_DELETED,
             self::RESTORING,
             self::RESTORED,
         ];
@@ -102,6 +114,7 @@ class BulkEventEnum
             self::UPDATED,
             self::SAVED,
             self::DELETED,
+            self::FORCE_DELETED,
             self::RESTORED,
         ];
     }
@@ -120,6 +133,8 @@ class BulkEventEnum
             self::SAVED_MANY,
             self::DELETING_MANY,
             self::DELETED_MANY,
+            self::FORCE_DELETING_MANY,
+            self::FORCE_DELETED_MANY,
             self::RESTORING_MANY,
             self::RESTORED_MANY,
         ];
@@ -188,16 +203,25 @@ class BulkEventEnum
     /**
      * @return string[]
      */
-    public static function delete(): array
+    public static function delete(bool $force = false): array
     {
-        return array_merge(self::deleting(), self::deleted());
+        return array_merge(self::deleting($force), self::deleted($force));
     }
 
     /**
      * @return string[]
      */
-    public static function deleting(): array
+    public static function deleting(bool $force = false): array
     {
+        if ($force) {
+            return [
+                self::DELETING,
+                self::DELETING_MANY,
+                self::FORCE_DELETING,
+                self::FORCE_DELETING_MANY,
+            ];
+        }
+
         return [
             self::DELETING,
             self::DELETING_MANY,
@@ -207,8 +231,17 @@ class BulkEventEnum
     /**
      * @return string[]
      */
-    public static function deleted(): array
+    public static function deleted(bool $force = false): array
     {
+        if ($force) {
+            return [
+                self::DELETED,
+                self::DELETED_MANY,
+                self::FORCE_DELETED,
+                self::FORCE_DELETED_MANY,
+            ];
+        }
+
         return [
             self::DELETED,
             self::DELETED_MANY,

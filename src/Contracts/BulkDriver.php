@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Contracts;
 
 use Illuminate\Database\ConnectionInterface;
+use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 
@@ -16,8 +17,7 @@ interface BulkDriver
 
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void;
 
-    public function update(
-        ConnectionInterface $connection,
-        UpdateBulkBuilder $builder
-    ): int;
+    public function update(ConnectionInterface $connection, UpdateBulkBuilder $builder): int;
+
+    public function forceDelete(ConnectionInterface $connection, DeleteBulkBuilder $builder): int;
 }

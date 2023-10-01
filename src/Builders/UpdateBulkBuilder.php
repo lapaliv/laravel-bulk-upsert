@@ -70,6 +70,13 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
         return $this;
     }
 
+    public function addSimpleSet(string $field, int|float|string|null|bool $value): static
+    {
+        $this->sets[$field] = $value;
+
+        return $this;
+    }
+
     public function getLimit(): ?int
     {
         return $this->limit;

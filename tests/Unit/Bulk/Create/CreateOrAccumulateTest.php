@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
@@ -150,7 +150,7 @@ final class CreateOrAccumulateTest extends TestCase
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         $sut = $model::query()->bulk();
 
         // assert

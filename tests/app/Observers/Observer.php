@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 /**
  * @internal
  */
-final class UserObserver
+final class Observer
 {
     public static array $listeners = [];
 
@@ -167,6 +167,42 @@ final class UserObserver
     }
 
     public function deletedMany()
+    {
+        if (array_key_exists(__FUNCTION__, self::$listeners)) {
+            return self::$listeners[__FUNCTION__](...func_get_args());
+        }
+
+        return null;
+    }
+
+    public function forceDeleting()
+    {
+        if (array_key_exists(__FUNCTION__, self::$listeners)) {
+            return self::$listeners[__FUNCTION__](...func_get_args());
+        }
+
+        return null;
+    }
+
+    public function forceDeletingMany()
+    {
+        if (array_key_exists(__FUNCTION__, self::$listeners)) {
+            return self::$listeners[__FUNCTION__](...func_get_args());
+        }
+
+        return null;
+    }
+
+    public function forceDeleted()
+    {
+        if (array_key_exists(__FUNCTION__, self::$listeners)) {
+            return self::$listeners[__FUNCTION__](...func_get_args());
+        }
+
+        return null;
+    }
+
+    public function forceDeletedMany()
     {
         if (array_key_exists(__FUNCTION__, self::$listeners)) {
             return self::$listeners[__FUNCTION__](...func_get_args());

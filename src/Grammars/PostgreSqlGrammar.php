@@ -6,6 +6,7 @@ use Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase;
 use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCallback;
 use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereCondition;
 use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
+use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\SelectBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
@@ -88,6 +89,15 @@ class PostgreSqlGrammar implements BulkGrammar
             'update %s set %s where %s',
             $builder->getTable(),
             implode(',', $sets),
+            $this->getSqlWhereClause($builder->getWheres())
+        );
+    }
+
+    public function delete(DeleteBulkBuilder $builder): string
+    {
+        return sprintf(
+            'delete from %s where %s',
+            $builder->getFrom(),
             $this->getSqlWhereClause($builder->getWheres())
         );
     }

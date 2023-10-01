@@ -15,8 +15,8 @@ Laravel doesn't return them. Of course, it won't be a big deal if you have only 
 you will need some time to write quite large SQL query to select them in another case.
 
 Because of the above I have written this library which solves these problems. Using this library you can
-save a collection of your models and use eloquent events such as `creating`, `created`, `updating`,
-`updated`, `saving`, `saved`, `deleting`, `deleted`, `restoring`, `restored` at the same time. 
+save a collection of your models and use eloquent events such as `creating/created`, `updating/updated`, 
+`saving/saved`, `deleting/deleted`, `restoring/restored`, `forceDeleting/forceDeleted` at the same time. 
 And you don't need to prepare the number of fields before.
 
 In simple terms, this library runs something like this:
@@ -27,7 +27,7 @@ foreach($models as $model){
 }
 ```
 
-but with 2-3 queries to the database per chunk.
+but with a few queries to the database per chunk.
 
 ## Features
 - Creating / Updating / Upserting a collection with firing eloquent events:
@@ -36,6 +36,7 @@ but with 2-3 queries to the database per chunk.
   - `saving` / `saved`,
   - `deleting` / `deleted`,
   - `restoring` / `restoried`;
+  - `forceDeleting` / `forceDeleted`;
   
   and some new events:
   - `creatingMany` / `createdMany`, 
@@ -43,6 +44,7 @@ but with 2-3 queries to the database per chunk.
   - `savingMany` / `savedMany`, 
   - `deletingMany` / `deletedMany`,
   - `restoringMany` / `restoredMany`;
+  - `forceDeletingMany` / `forceDeletedMany`;
 - Automatically align transmitted fields before save them to the database event if you don't use eloquent events.
 - Select inserted rows from the database
 
@@ -244,6 +246,47 @@ foreach($data as $item) {
 $bulk->upsertAccumulated();
 ```
 
+### Force/Soft Deleting (since `v2.1.0`)
+
+Preparing the data
+
+```php
+$data = [
+    ['email' => 'jacob@example.com', 'name' => 'Jacob'],
+    ['id' => 1, 'email' => 'oscar@example.com', 'name' => 'Oscar'],
+];
+$bulk->create($data);
+```
+
+You can just delete these users.
+If your model uses the trait `Illuminate\Database\Eloquent\SoftDeletes`, then your model
+will delete softly else force.
+```php
+$bulk->uniqueBy(['email'])
+    ->delete($data);
+```
+
+Or you can force delete them.
+```php
+$bulk->uniqueBy(['email'])
+    ->forceDelete($data);
+```
+
+You also can accumulate rows until there are enough of them to be deleted.
+```php
+$chunkSize = 100;
+$bulk->uniqueBy(['email'])
+    ->chunk($chunkSize);
+
+foreach($data as $item) {
+    $bulk->deleteOrAccumulate($item);
+    // or $bulk->forceDeleteOrAccumulate($item);
+}
+
+$bulk->deleteAccumulated();
+// or $bulk->forceDeleteAccumulated();
+```
+
 ### Listeners
 
 #### The order of events
@@ -251,16 +294,20 @@ The order of calling callbacks is:
 - `onSaving`
 - `onCreating` or `onUpdating`
 - `onDeleting`
+- `onForceDeleting`
 - `onRestoring`
 - `onSavingMany`
 - `onCreatingMany` or `onUpdatingMany`
 - `onDeletingMany`
+- `onForceDeletingMany`
 - `onRestoringMany`
 - `onCreated` or `onUpdated`
 - `onDeleted`
+- `onForceDeleted`
 - `onRestored`
 - `onCreatedMany` or `onUpdatedMany`
 - `onDeletedMany`
+- `onForceDeletedMany`
 - `onRestoredMany`
 - `onSavedMany`
 
@@ -296,8 +343,15 @@ $bulk
     // but it doesn't affect the upserting.
     ->onDeleting(fn(User $user) => /* ... */)
     
+    // The callback runs before force deleting.
+    // If your callback returns `false` then the model won't be deleted,
+    ->onForceDeleting(fn(User $user) => /* ... */)
+    
     // The callback runs after deleting.
     ->onDeleted(fn(User $user) => /* ... */)
+    
+    // The callback runs after force deleting.
+    ->onForceDeleted(fn(User $user) => /* ... */)
     
     // The callback runs before upserting.
     ->onSaving(fn(User $user) => /* ... */)
@@ -324,8 +378,15 @@ $bulk
     // but it doesn't affect the upserting.
     ->onDeletingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
 
+    // Runs before force deleting.
+    // If the callback returns `false` then these models won't be deleted.
+    ->onForceDeletingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
     // Runs after deleting.
     ->onDeletedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+
+    // Runs after force deleting.
+    ->onForceDeletedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
 
     // Runs before restoring.
     // If the callback returns `false` then these models won't be restored,
@@ -559,6 +620,12 @@ class Bulk {
     public function createAndReturn(iterable $rows, array $columns = ['*'], bool $ignoreConflicts = false): Collection;
     
     /**
+     * Creates the all accumulated rows.
+     * @throws BulkException
+     */
+    public function createAccumulated(): static;
+    
+    /**
      * Updates the rows.
      * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
      * @throws BulkException
@@ -580,6 +647,12 @@ class Bulk {
      * @throws BulkException
      */
     public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection;
+    
+    /**
+     * Updates the all accumulated rows.
+     * @throws BulkException
+     */
+    public function updateAccumulated(): static;
     
     /**
      * Upserts the rows.
@@ -605,22 +678,58 @@ class Bulk {
     public function upsertAndReturn(iterable $rows, array $columns = ['*']): Collection;
     
     /**
-     * Creates the all accumulated rows.
-     * @throws BulkException
-     */
-    public function createAccumulated(): static;
-    
-    /**
-     * Updates the all accumulated rows.
-     * @throws BulkException
-     */
-    public function updateAccumulated(): static;
-    
-    /**
      * Upserts the all accumulated rows.
      * @throws BulkException
      */
     public function upsertAccumulated(): static;
+    
+    /**
+     * Deletes the rows.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function delete(iterable $rows): static;
+    
+    /**
+     * Deletes the rows if their quantity is greater than or equal to the chunk size.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function deleteOrAccumulate(iterable $rows): static;
+    
+    /**
+     * Force deletes the rows.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function forceDelete(iterable $rows): static;
+    
+    /**
+     * Force deletes the rows if their quantity is greater than or equal to the chunk size.
+     * @param iterable<int|string, Model|stdClass|array<string, mixed>|object> $rows
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function forceDeleteOrAccumulate(iterable $rows): static;
+    
+    /**
+     * Deletes the all accumulated rows.
+     *
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function deleteAccumulated(): static;
+    
+    /**
+     * Deletes the all accumulated rows.
+     *
+     * @throws BulkException
+     * @since 2.1.0
+     */
+    public function forceDeleteAccumulated(): static;
     
     /**
      * Saves the all accumulated rows.
@@ -655,11 +764,12 @@ class BulkRow {
 ```
 
 ### TODO
-* Bulk deleting
 * Bulk restoring
 * Bulk touching
 * Bulk updating without updating timestamps
-* Supporting `DB::raw()`
+* Supporting `DB::raw()` as a value
+* Supporting `SQLite`
+* Support a custom database driver
 
 ### Tests
 

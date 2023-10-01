@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -46,7 +46,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -55,12 +55,12 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnValues([false, true]);
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 
@@ -115,7 +115,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -124,12 +124,12 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnFalse();
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 
@@ -168,7 +168,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
     {
         // arrange
         $users = $data();
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
         /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
         $spies = [
             $event => Mockery::mock(TestCallback::class),
@@ -177,12 +177,12 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
             ->expects('__invoke')
             ->once()
             ->andReturnFalse();
-        UserObserver::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
                 $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                UserObserver::listen($dependency, $spies[$dependency]);
+                Observer::listen($dependency, $spies[$dependency]);
             }
         }
 

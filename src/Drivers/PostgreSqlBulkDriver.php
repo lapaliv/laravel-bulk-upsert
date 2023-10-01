@@ -3,10 +3,12 @@
 namespace Lapaliv\BulkUpsert\Drivers;
 
 use Illuminate\Database\ConnectionInterface;
+use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
+use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverDelete;
 use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverInsertWithResult;
 use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverQuietInsert;
 use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverUpdate;
@@ -17,6 +19,7 @@ class PostgreSqlBulkDriver implements BulkDriver
         private PostgreSqlDriverInsertWithResult $insertWithResult,
         private PostgreSqlDriverQuietInsert $quietInsert,
         private PostgreSqlDriverUpdate $update,
+        private PostgreSqlDriverDelete $delete,
     ) {
         //
     }
@@ -37,5 +40,10 @@ class PostgreSqlBulkDriver implements BulkDriver
     public function update(ConnectionInterface $connection, UpdateBulkBuilder $builder): int
     {
         return $this->update->handle($connection, $builder);
+    }
+
+    public function forceDelete(ConnectionInterface $connection, DeleteBulkBuilder $builder): int
+    {
+        return $this->delete->handle($connection, $builder);
     }
 }

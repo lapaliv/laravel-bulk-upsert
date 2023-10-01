@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\UserObserver;
+use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Mockery;
@@ -43,13 +43,13 @@ final class UpdateAfterWritingEventsTest extends TestCase
         $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
-        $model::observe(UserObserver::class);
+        $model::observe(Observer::class);
 
         $spies = [];
 
         foreach ($events as $event) {
             $spies[$event] = Mockery::spy(TestCallback::class, $event);
-            UserObserver::listen($event, $spies[$event]);
+            Observer::listen($event, $spies[$event]);
         }
 
         // act
@@ -93,8 +93,8 @@ final class UpdateAfterWritingEventsTest extends TestCase
             ->bulk()
             ->uniqueBy(['email']);
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(UserObserver::class);
-        UserObserver::listen($event, $spy);
+        $model::observe(Observer::class);
+        Observer::listen($event, $spy);
 
         // act
         $sut->update($users);

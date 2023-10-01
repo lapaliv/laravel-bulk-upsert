@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Builders\PostBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
+use Lapaliv\BulkUpsert\Tests\App\Factories\PostFactory;
 use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
 
 /**
@@ -22,6 +23,7 @@ use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
  * @property-read Comment $comment
  *
  * @method static PostBuilder query()
+ * @method static PostFactory factory($count = null, $state = [])
  */
 abstract class Post extends Model
 {
