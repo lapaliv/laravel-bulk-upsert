@@ -861,7 +861,7 @@ class Bulk
 
             if ($result->usesTimestamps()) {
                 $createdAt = $result->getCreatedAtColumn();
-                $updatedAt = $result->getCreatedAtColumn();
+                $updatedAt = $result->getUpdatedAtColumn();
 
                 if (array_key_exists($createdAt, $row)) {
                     $result->{$createdAt} = $row[$createdAt];
