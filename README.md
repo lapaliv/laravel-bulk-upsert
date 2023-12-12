@@ -56,6 +56,7 @@ The documentation for version 1.x you can see [here](https://github.com/lapaliv/
 - Database:
   - MySQL: __5.7+__
   - PostgreSQL __9.6+__
+  - SQLite __3.32+__
 - PHP: __8.0+__
 - Laravel: __8.0+__
 
@@ -768,8 +769,8 @@ class BulkRow {
 * Bulk touching
 * Bulk updating without updating timestamps
 * Supporting `DB::raw()` as a value
-* Supporting `SQLite`
 * Support a custom database driver
+* Update rows and return the number of updated ones
 
 ### Tests
 
