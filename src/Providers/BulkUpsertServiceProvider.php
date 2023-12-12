@@ -8,6 +8,7 @@ use Lapaliv\BulkUpsert\BulkBulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
+use Lapaliv\BulkUpsert\Drivers\SqLiteBulkDriver;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
 use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
@@ -56,6 +57,10 @@ class BulkUpsertServiceProvider extends ServiceProvider
         $driverManager->registerDriver(
             'pgsql',
             $this->app->make(PostgreSqlBulkDriver::class)
+        );
+        $driverManager->registerDriver(
+            'sqlite',
+            $this->app->make(SqLiteBulkDriver::class)
         );
 
         BulkEventDispatcher::setIlluminateEventDispatcher($this->app->make('events'));
