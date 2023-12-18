@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Grammars\MySqlGrammar;
 /**
  * @internal
  */
-class MySqlDriverUpdate
+class MySqlDriverUpdateFeature
 {
     public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
     {

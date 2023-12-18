@@ -16,7 +16,7 @@ use Lapaliv\BulkUpsert\Grammars\MySqlGrammar;
 /**
  * @internal
  */
-class MySqlDriverInsertWithResult
+class MySqlDriverInsertWithResultFeature
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,

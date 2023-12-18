@@ -1,20 +1,16 @@
 <?php
 
-/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
-
-/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
-
-namespace Lapaliv\BulkUpsert\Drivers\MySql;
+namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Lapaliv\BulkUpsert\Grammars\MySqlGrammar;
+use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
 
 /**
  * @internal
  */
-class MySqlDriverQuietInsert
+class PostgreSqlDriverQuietInsertFeature
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,
@@ -24,7 +20,7 @@ class MySqlDriverQuietInsert
 
     public function handle(ConnectionInterface $connection, InsertBuilder $builder): void
     {
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new PostgreSqlGrammar($this->mixedValueToSqlConverter);
 
         $connection->insert($grammar->insert($builder), $grammar->getBindings());
 

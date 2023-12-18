@@ -4,6 +4,9 @@ namespace Lapaliv\BulkUpsert\Entities;
 
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 
+/**
+ * @internal
+ */
 class BulkPostgreSqlInsertResult implements BulkInsertResult
 {
     public function __construct(private array $rows)
