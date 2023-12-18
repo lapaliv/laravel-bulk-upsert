@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -187,8 +188,9 @@ final class UpsertAndReturnTest extends TestCase
     public function userModelsDataProvider(): array
     {
         return [
-            //            'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'mysql' => [MySqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

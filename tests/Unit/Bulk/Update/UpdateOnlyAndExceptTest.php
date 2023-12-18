@@ -7,6 +7,7 @@ use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -56,7 +57,7 @@ final class UpdateOnlyAndExceptTest extends TestCase
                     'posts_count' => $user->posts_count,
                     'is_admin' => $user->is_admin,
                     'balance' => $user->balance,
-                    'birthday' => $user->birthday,
+                    'birthday' => $user->birthday?->toDateString(),
                     'phones' => $user->phones,
                     'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                     'updated_at' => Carbon::now()->toDateTimeString(),
@@ -104,7 +105,7 @@ final class UpdateOnlyAndExceptTest extends TestCase
                     'posts_count' => $user->posts_count,
                     'is_admin' => $user->is_admin,
                     'balance' => $user->balance,
-                    'birthday' => $user->birthday,
+                    'birthday' => $user->birthday?->toDateString(),
                     'phones' => $user->phones,
                     'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                     'updated_at' => Carbon::now()->toDateTimeString(),
@@ -117,7 +118,8 @@ final class UpdateOnlyAndExceptTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

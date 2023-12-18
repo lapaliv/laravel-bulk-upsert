@@ -10,6 +10,9 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -54,9 +57,9 @@ class DatabaseTest extends TestCase
                 'posts_count' => $user->posts_count,
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
-                'birthday' => $user->birthday,
+                'birthday' => $user->birthday?->toDateString(),
                 'phones' => $user->phones,
-                'last_visited_at' => $user->last_visited_at,
+                'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => Carbon::now()->toDateTimeString(),
@@ -97,9 +100,9 @@ class DatabaseTest extends TestCase
                 'posts_count' => $user->posts_count,
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
-                'birthday' => $user->birthday,
+                'birthday' => $user->birthday?->toDateString(),
                 'phones' => $user->phones,
-                'last_visited_at' => $user->last_visited_at,
+                'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => Carbon::now()->toDateTimeString(),
@@ -140,7 +143,8 @@ class DatabaseTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgresql' => [MySqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqliteUser::class],
         ];
     }
 
@@ -155,12 +159,20 @@ class DatabaseTest extends TestCase
                 MySqlPost::class,
                 'forceDelete',
             ],
-            'postgresql, delete' => [
+            'pgsql, delete' => [
                 PostgreSqlPost::class,
                 'delete',
             ],
-            'postgresql, forceDelete' => [
+            'pgsql, forceDelete' => [
                 PostgreSqlPost::class,
+                'forceDelete',
+            ],
+            'sqlite, delete' => [
+                SqlitePost::class,
+                'delete',
+            ],
+            'sqlite, forceDelete' => [
+                SqlitePost::class,
                 'forceDelete',
             ],
         ];

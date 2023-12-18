@@ -9,6 +9,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -54,9 +55,9 @@ final class CreateTest extends TestCase
                 'posts_count' => $user->posts_count,
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
-                'birthday' => $user->birthday,
+                'birthday' => $user->birthday?->toDateString(),
                 'phones' => $user->phones,
-                'last_visited_at' => $user->last_visited_at,
+                'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => $user->deleted_at?->toDateTimeString(),
@@ -225,7 +226,8 @@ final class CreateTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

@@ -12,6 +12,7 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -310,7 +311,8 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
         $result = [];
         $models = [
             'mysql' => MySqlUser::class,
-            'postgre' => PostgreSqlUser::class,
+            'pgsql' => PostgreSqlUser::class,
+            'sqlite' => SqLiteUser::class,
         ];
 
         foreach ($target as $key => $value) {
@@ -408,7 +410,8 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
         $result = [];
         $models = [
             'mysql' => MySqlUser::class,
-            'postgre' => PostgreSqlUser::class,
+            'pgsql' => PostgreSqlUser::class,
+            'sqlite' => SqLiteUser::class,
         ];
 
         foreach ($target as $key => $value) {

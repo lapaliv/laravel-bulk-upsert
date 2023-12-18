@@ -30,7 +30,10 @@ abstract class Model extends Eloquent
     {
         try {
             self::getSchema()->dropIfExists(self::table());
-        } catch (Throwable) {
+        } catch (Throwable $throwable) {
+            dump(static::class);
+
+            throw $throwable;
             //
         }
     }

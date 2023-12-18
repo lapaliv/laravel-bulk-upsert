@@ -13,6 +13,8 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlComment;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteComment;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
@@ -80,7 +82,8 @@ final class UpdateAndTouchTest extends TestCase
     {
         return [
             'mysql' => [MySqlPost::class, MySqlComment::class],
-            'postgre' => [PostgreSqlPost::class, PostgreSqlComment::class],
+            'pgsql' => [PostgreSqlPost::class, PostgreSqlComment::class],
+            'sqlite' => [SqLitePost::class, SqLiteComment::class],
         ];
     }
 }

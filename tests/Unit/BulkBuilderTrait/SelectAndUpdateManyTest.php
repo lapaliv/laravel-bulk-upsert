@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\BulkBuilderTrait;
 use JsonException;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -41,7 +42,7 @@ class SelectAndUpdateManyTest extends TestCase
             'balance' => $fakeUser->balance,
             'birthday' => $fakeUser->birthday,
             'phones' => $fakeUser->phones,
-            'last_visited_at' => $fakeUser->last_visited_at,
+            'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
         $sut = $model::query()
             ->whereIn('email', $users->pluck('email'));
@@ -96,7 +97,7 @@ class SelectAndUpdateManyTest extends TestCase
             'balance' => $fakeUser->balance,
             'birthday' => $fakeUser->birthday,
             'phones' => $fakeUser->phones,
-            'last_visited_at' => $fakeUser->last_visited_at,
+            'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
         $model::observe(Observer::class);
         $sut = $model::query()
@@ -152,7 +153,7 @@ class SelectAndUpdateManyTest extends TestCase
             'balance' => $fakeUser->balance,
             'birthday' => $fakeUser->birthday,
             'phones' => $fakeUser->phones,
-            'last_visited_at' => $fakeUser->last_visited_at,
+            'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
         $model::observe(Observer::class);
         $sut = $model::query()
@@ -188,7 +189,8 @@ class SelectAndUpdateManyTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'sql' => [PostgreSqlUser::class],
+            'sql' => [SqLiteUser::class],
         ];
     }
 }
