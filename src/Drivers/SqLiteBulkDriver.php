@@ -8,18 +8,18 @@ use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
-use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverDeleteFeature;
-use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverInsertWithResultFeature;
-use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverQuietInsertFeature;
-use Lapaliv\BulkUpsert\Drivers\PostgreSql\PostgreSqlDriverUpdateFeature;
+use Lapaliv\BulkUpsert\Drivers\SqLite\SqLiteDriverForceDeleteFeature;
+use Lapaliv\BulkUpsert\Drivers\SqLite\SqLiteDriverInsertWithResultFeature;
+use Lapaliv\BulkUpsert\Drivers\SqLite\SqLiteDriverQuietInsertFeature;
+use Lapaliv\BulkUpsert\Drivers\SqLite\SqLiteDriverUpdateFeature;
 
-class PostgreSqlBulkDriver implements BulkDriver
+class SqLiteBulkDriver implements BulkDriver
 {
     public function __construct(
-        private PostgreSqlDriverInsertWithResultFeature $insertWithResultFeature,
-        private PostgreSqlDriverQuietInsertFeature $quietInsertFeature,
-        private PostgreSqlDriverUpdateFeature $updateFeature,
-        private PostgreSqlDriverDeleteFeature $deleteFeature,
+        private SqLiteDriverInsertWithResultFeature $insertWithResultFeature,
+        private SqLiteDriverQuietInsertFeature $quietInsertFeature,
+        private SqLiteDriverUpdateFeature $updateFeature,
+        private SqLiteDriverForceDeleteFeature $forceDeleteFeature,
     ) {
         //
     }
@@ -29,7 +29,7 @@ class PostgreSqlBulkDriver implements BulkDriver
         InsertBuilder $builder,
         ?string $primaryKeyName,
     ): BulkInsertResult {
-        return $this->insertWithResultFeature->handle($connection, $builder);
+        return $this->insertWithResultFeature->handle($connection, $builder, $primaryKeyName);
     }
 
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void
@@ -44,6 +44,6 @@ class PostgreSqlBulkDriver implements BulkDriver
 
     public function forceDelete(ConnectionInterface $connection, DeleteBulkBuilder $builder): int
     {
-        return $this->deleteFeature->handle($connection, $builder);
+        return $this->forceDeleteFeature->handle($connection, $builder);
     }
 }

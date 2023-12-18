@@ -12,6 +12,7 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -597,7 +598,8 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

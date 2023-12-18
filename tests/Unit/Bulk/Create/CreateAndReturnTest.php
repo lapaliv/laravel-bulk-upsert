@@ -10,6 +10,9 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlStory;
+use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteStory;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\Story;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -35,7 +38,9 @@ final class CreateAndReturnTest extends TestCase
     public function testDatabase(string $model): void
     {
         // arrange
-        $users = $this->userGenerator->makeCollection(2);
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->makeCollection(2);
         $sut = $model::query()
             ->bulk()
             ->uniqueBy(['email']);
@@ -53,9 +58,9 @@ final class CreateAndReturnTest extends TestCase
                 'posts_count' => $user->posts_count,
                 'is_admin' => $user->is_admin,
                 'balance' => $user->balance,
-                'birthday' => $user->birthday,
+                'birthday' => $user->birthday?->toDateString(),
                 'phones' => $user->phones,
-                'last_visited_at' => $user->last_visited_at,
+                'last_visited_at' => $user->last_visited_at?->toDateTimeString(),
                 'created_at' => Carbon::now()->toDateTimeString(),
                 'updated_at' => Carbon::now()->toDateTimeString(),
                 'deleted_at' => $user->deleted_at?->toDateTimeString(),
@@ -187,7 +192,8 @@ final class CreateAndReturnTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgresql' => [MySqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 
@@ -195,7 +201,8 @@ final class CreateAndReturnTest extends TestCase
     {
         return [
             'mysql' => [MySqlStory::class],
-            'postgresql' => [PostgreSqlStory::class],
+            'pgsql' => [PostgreSqlStory::class],
+            'sqlite' => [SqLiteStory::class],
         ];
     }
 }

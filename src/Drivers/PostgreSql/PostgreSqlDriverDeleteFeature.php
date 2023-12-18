@@ -1,27 +1,25 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Drivers\MySql;
+namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Lapaliv\BulkUpsert\Grammars\MySqlGrammar;
+use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
 
 /**
  * @internal
  */
-class MySqlDriverDelete
+class PostgreSqlDriverDeleteFeature
 {
     public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
     {
         //
     }
 
-    public function handle(
-        ConnectionInterface $connection,
-        DeleteBulkBuilder $builder,
-    ): int {
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+    public function handle(ConnectionInterface $connection, DeleteBulkBuilder $builder): int
+    {
+        $grammar = new PostgreSqlGrammar($this->mixedValueToSqlConverter);
 
         $result = $connection->delete($grammar->delete($builder), $grammar->getBindings());
 

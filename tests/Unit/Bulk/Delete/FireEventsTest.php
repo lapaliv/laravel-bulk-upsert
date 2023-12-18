@@ -13,6 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -319,14 +320,14 @@ class FireEventsTest extends TestCase
                 BulkEventEnum::DELETED_MANY,
                 BulkEventEnum::FORCE_DELETED_MANY,
             ],
-            'postgresql + -ing events' => [
+            'pgsql + -ing events' => [
                 PostgreSqlUser::class,
                 BulkEventEnum::FORCE_DELETING,
                 BulkEventEnum::DELETING,
                 BulkEventEnum::DELETING_MANY,
                 BulkEventEnum::FORCE_DELETING_MANY,
             ],
-            'postgresql + -ed events' => [
+            'pgsql + -ed events' => [
                 PostgreSqlUser::class,
                 BulkEventEnum::FORCE_DELETED,
                 BulkEventEnum::DELETED,
@@ -353,15 +354,29 @@ class FireEventsTest extends TestCase
                 BulkEventEnum::DELETED_MANY,
                 BulkEventEnum::FORCE_DELETED_MANY,
             ],
-            'postgresql + -ing events' => [
+            'pgsql + -ing events' => [
                 PostgreSqlPost::class,
                 BulkEventEnum::FORCE_DELETING,
                 BulkEventEnum::DELETING,
                 BulkEventEnum::DELETING_MANY,
                 BulkEventEnum::FORCE_DELETING_MANY,
             ],
-            'postgresql + -ed events' => [
+            'pgsql + -ed events' => [
                 PostgreSqlPost::class,
+                BulkEventEnum::FORCE_DELETED,
+                BulkEventEnum::DELETED,
+                BulkEventEnum::DELETED_MANY,
+                BulkEventEnum::FORCE_DELETED_MANY,
+            ],
+            'sqlite + -ing events' => [
+                SqLitePost::class,
+                BulkEventEnum::FORCE_DELETING,
+                BulkEventEnum::DELETING,
+                BulkEventEnum::DELETING_MANY,
+                BulkEventEnum::FORCE_DELETING_MANY,
+            ],
+            'sqlite + -ed events' => [
+                SqLitePost::class,
                 BulkEventEnum::FORCE_DELETED,
                 BulkEventEnum::DELETED,
                 BulkEventEnum::DELETED_MANY,

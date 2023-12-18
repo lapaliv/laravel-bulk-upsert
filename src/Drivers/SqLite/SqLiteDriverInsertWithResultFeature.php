@@ -1,22 +1,14 @@
 <?php
 
-/** @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection */
-
-/** @noinspection PhpArrayShapeAttributeCanBeAddedInspection */
-
-namespace Lapaliv\BulkUpsert\Drivers\MySql;
+namespace Lapaliv\BulkUpsert\Drivers\SqLite;
 
 use Illuminate\Database\ConnectionInterface;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
-use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
-use Lapaliv\BulkUpsert\Entities\BulkMySqlInsertResult;
-use Lapaliv\BulkUpsert\Grammars\MySqlGrammar;
+use Lapaliv\BulkUpsert\Entities\BulkSqLiteInsertResult;
+use Lapaliv\BulkUpsert\Grammars\SqLiteGrammar;
 
-/**
- * @internal
- */
-class MySqlDriverInsertWithResult
+class SqLiteDriverInsertWithResultFeature
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,
@@ -28,7 +20,7 @@ class MySqlDriverInsertWithResult
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): BulkInsertResult {
+    ): BulkSqLiteInsertResult {
         $lastPrimaryBeforeInserting = null;
 
         if ($primaryKeyName !== null) {
@@ -43,13 +35,14 @@ class MySqlDriverInsertWithResult
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
-
-        $connection->insert($grammar->insert($builder), $grammar->getBindings());
+        $grammar = new SqLiteGrammar($this->mixedValueToSqlConverter);
+        $sql = $grammar->insert($builder);
+        $bindings = $grammar->getBindings();
+        $connection->insert($sql, $bindings);
 
         unset($grammar);
 
-        return new BulkMySqlInsertResult(
+        return new BulkSqLiteInsertResult(
             is_numeric($lastPrimaryBeforeInserting)
                 ? (int) $lastPrimaryBeforeInserting
                 : null

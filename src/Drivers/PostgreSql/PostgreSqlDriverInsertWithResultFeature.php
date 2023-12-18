@@ -9,7 +9,10 @@ use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Lapaliv\BulkUpsert\Entities\BulkPostgreSqlInsertResult;
 use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
 
-class PostgreSqlDriverInsertWithResult
+/**
+ * @internal
+ */
+class PostgreSqlDriverInsertWithResultFeature
 {
     public function __construct(
         private MixedValueToSqlConverter $mixedValueToSqlConverter,

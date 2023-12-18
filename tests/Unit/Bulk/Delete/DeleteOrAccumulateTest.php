@@ -9,6 +9,8 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -189,7 +191,8 @@ class DeleteOrAccumulateTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgresql' => [PostgreSqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 
@@ -204,12 +207,20 @@ class DeleteOrAccumulateTest extends TestCase
                 MySqlPost::class,
                 'forceDeleteOrAccumulate',
             ],
-            'postgresql, deleteOrAccumulate' => [
+            'pgsql, deleteOrAccumulate' => [
                 PostgreSqlPost::class,
                 'deleteOrAccumulate',
             ],
-            'postgresql, forceDeleteOrAccumulate' => [
+            'pgsql, forceDeleteOrAccumulate' => [
                 PostgreSqlPost::class,
+                'forceDeleteOrAccumulate',
+            ],
+            'sqlite, deleteOrAccumulate' => [
+                SqLitePost::class,
+                'deleteOrAccumulate',
+            ],
+            'sqlite, forceDeleteOrAccumulate' => [
+                SqLitePost::class,
                 'forceDeleteOrAccumulate',
             ],
         ];

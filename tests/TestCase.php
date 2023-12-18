@@ -6,18 +6,12 @@ use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlStory;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
 use PDO;
+use RuntimeException;
+use stdClass;
 
 /**
  * @internal
@@ -37,27 +31,39 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $dotenv = Dotenv::createMutable(dirname(__DIR__));
         $dotenv->load();
 
+        $sqlitePath = self::getSqLitePath();
+
+        if (file_exists($sqlitePath)) {
+            unlink($sqlitePath);
+        }
+
+        if (!is_dir(dirname($sqlitePath))) {
+            mkdir(dirname($sqlitePath), 0777, true);
+        }
+
+        if (!touch($sqlitePath)) {
+            throw new RuntimeException('SQLite database was not created');
+        }
+
         self::configureManager();
 
-        MySqlComment::dropTable();
-        MySqlPost::dropTable();
-        MySqlUser::dropTable();
-        MySqlStory::dropTable();
+        // deleting tables
+        $modelPrefixes = ['MySql', 'PostgreSql', 'SqLite'];
 
-        PostgreSqlComment::dropTable();
-        PostgreSqlPost::dropTable();
-        PostgreSqlUser::dropTable();
-        PostgreSqlStory::dropTable();
+        foreach ($modelPrefixes as $modelPrefix) {
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'dropTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'dropTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'dropTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'dropTable']);
+        }
 
-        MySqlUser::createTable();
-        MySqlPost::createTable();
-        MySqlComment::createTable();
-        MySqlStory::createTable();
-
-        PostgreSqlUser::createTable();
-        PostgreSqlPost::createTable();
-        PostgreSqlComment::createTable();
-        PostgreSqlStory::createTable();
+        // creating tables
+        foreach ($modelPrefixes as $modelPrefix) {
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'createTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'createTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'createTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'createTable']);
+        }
     }
 
     protected function setUp(): void
@@ -71,20 +77,14 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
-    public function assertDatabaseMissing($table, array $data, $connection = null)
+    public function assertDatabaseMissing($table, array $data, $connection = null): void
     {
         $filters = [];
         $jsons = [];
 
         foreach ($data as $key => $value) {
             if (is_array($value)) {
-                if ($connection === 'mysql') {
-                    $filters[$key] = DB::connection($connection)->raw(
-                        sprintf("cast('%s' as json)", json_encode($value, JSON_THROW_ON_ERROR))
-                    );
-                } else {
-                    $jsons[$key] = json_encode($value);
-                }
+                $jsons[$key] = json_encode($value);
             } else {
                 $filters[$key] = $value;
             }
@@ -97,23 +97,28 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         }
 
         foreach ($jsons as $key => $json) {
-            $hasRows = DB::connection($connection)
+            $hasRows = false;
+            DB::connection($connection)
                 ->table($table)
                 ->where($filters)
-                ->where(
-                    DB::connection($connection)->raw($key . '::text'),
-                    DB::connection($connection)->raw(
-                        sprintf("cast('%s' as json)::text", $json)
-                    )
-                )
-                ->exists();
+                ->orderBy('id')
+                ->select('id', $key)
+                ->each(
+                    function (stdClass $row) use ($json, $key, &$hasRows): bool {
+                        if ($row->{$key} === $json) {
+                            $hasRows = true;
+                        }
+
+                        return !$hasRows;
+                    }
+                );
 
             if ($hasRows) {
                 $this->fail(
                     sprintf(
                         'Failed asserting that a row in the table [%s] matches the attributes %s',
                         $table,
-                        json_encode(array_merge($filters, [$key => $json]), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                        json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
                     )
                 );
             }
@@ -130,20 +135,14 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $spy->shouldNotHaveReceived('__invoke');
     }
 
-    protected function assertDatabaseHas($table, array $data, $connection = null)
+    protected function assertDatabaseHas($table, array $data, $connection = null): void
     {
         $filters = [];
         $jsons = [];
 
         foreach ($data as $key => $value) {
             if (is_array($value)) {
-                if ($connection === 'mysql') {
-                    $filters[$key] = DB::connection($connection)->raw(
-                        sprintf("cast('%s' as json)", json_encode($value, JSON_THROW_ON_ERROR))
-                    );
-                } else {
-                    $jsons[$key] = json_encode($value);
-                }
+                $jsons[$key] = json_encode($value);
             } else {
                 $filters[$key] = $value;
             }
@@ -156,23 +155,31 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         }
 
         foreach ($jsons as $key => $json) {
-            $hasRows = DB::connection($connection)
+            $hasRows = false;
+
+            DB::connection($connection)
                 ->table($table)
                 ->where($filters)
-                ->where(
-                    DB::connection($connection)->raw($key . '::text'),
-                    DB::connection($connection)->raw(
-                        sprintf("cast('%s' as json)::text", $json)
-                    )
-                )
-                ->exists();
+                ->orderBy('id')
+                ->select('id', $key)
+                ->each(
+                    function (stdClass $model) use (&$hasRows, $key, $json): bool {
+                        if ($model->{$key} === $json) {
+                            $hasRows = true;
+
+                            return false;
+                        }
+
+                        return true;
+                    }
+                );
 
             if (!$hasRows) {
                 $this->fail(
                     sprintf(
                         'Failed asserting that a row in the table [%s] matches the attributes %s',
                         $table,
-                        json_encode(array_merge($filters, [$key => $json]), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                        json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
                     )
                 );
             }
@@ -217,9 +224,21 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
             'sslmode' => 'prefer',
         ], 'pgsql');
 
+        $manager->addConnection([
+            'driver' => 'sqlite',
+            'database' => self::getSqLitePath(),
+            'prefix' => '',
+            //            'foreign_key_constraints' => true,
+        ], 'sqlite');
+
         self::$manager = $manager;
 
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
+    }
+
+    private static function getSqLitePath(): string
+    {
+        return __DIR__ . '/database/database.sqlite';
     }
 }

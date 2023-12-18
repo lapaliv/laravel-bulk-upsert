@@ -6,6 +6,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -144,7 +145,8 @@ final class UpsertOrAccumulateTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'postgre' => [PostgreSqlUser::class],
+            'pgsql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

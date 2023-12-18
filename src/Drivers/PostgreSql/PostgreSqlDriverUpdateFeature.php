@@ -10,7 +10,7 @@ use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
 /**
  * @internal
  */
-class PostgreSqlDriverUpdate
+class PostgreSqlDriverUpdateFeature
 {
     public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
     {

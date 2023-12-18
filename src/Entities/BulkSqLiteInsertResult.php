@@ -7,20 +7,20 @@ use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 /**
  * @internal
  */
-class BulkPostgreSqlInsertResult implements BulkInsertResult
+class BulkSqLiteInsertResult implements BulkInsertResult
 {
-    public function __construct(private array $rows)
+    public function __construct(private ?int $maxPrimaryBeforeInserting)
     {
         //
     }
 
     public function getRows(): ?array
     {
-        return $this->rows;
+        return null;
     }
 
     public function getMaxPrimaryBeforeInserting(): null|int|string
     {
-        return null;
+        return $this->maxPrimaryBeforeInserting;
     }
 }
