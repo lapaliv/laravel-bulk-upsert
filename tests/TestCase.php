@@ -10,6 +10,7 @@ use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
 use PDO;
+use RuntimeException;
 use stdClass;
 
 /**
@@ -41,7 +42,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         }
 
         if (!touch($sqlitePath)) {
-            dd('touch fail');
+            throw new RuntimeException('SQLite database was not created');
         }
 
         self::configureManager();
@@ -76,16 +77,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
-//    protected function tearDown(): void
-//    {
-//        if (file_exists(self::getSqLitePath())) {
-//            unlink(self::getSqLitePath());
-//        }
-//
-//        parent::tearDown();
-//    }
-
-    public function assertDatabaseMissing($table, array $data, $connection = null)
+    public function assertDatabaseMissing($table, array $data, $connection = null): void
     {
         $filters = [];
         $jsons = [];
@@ -143,7 +135,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $spy->shouldNotHaveReceived('__invoke');
     }
 
-    protected function assertDatabaseHas($table, array $data, $connection = null)
+    protected function assertDatabaseHas($table, array $data, $connection = null): void
     {
         $filters = [];
         $jsons = [];

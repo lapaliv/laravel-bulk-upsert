@@ -63,7 +63,7 @@ class SelectAndUpdateManyTest extends TestCase
                         'posts_count' => $values['posts_count'],
                         'is_admin' => $values['is_admin'],
                         'balance' => $values['balance'],
-                        'birthday' => $values['birthday'],
+                        'birthday' => $values['birthday']?->toDateString(),
                         'phones' => $values['phones'],
                         'last_visited_at' => $values['last_visited_at'],
                     ],
@@ -119,7 +119,7 @@ class SelectAndUpdateManyTest extends TestCase
                         'posts_count' => $values['posts_count'],
                         'is_admin' => $values['is_admin'],
                         'balance' => $values['balance'],
-                        'birthday' => $values['birthday'],
+                        'birthday' => $values['birthday']?->toDateString(),
                         'phones' => $values['phones'],
                         'last_visited_at' => $values['last_visited_at'],
                     ],
@@ -175,7 +175,7 @@ class SelectAndUpdateManyTest extends TestCase
                         'posts_count' => $values['posts_count'],
                         'is_admin' => $values['is_admin'],
                         'balance' => $values['balance'],
-                        'birthday' => $values['birthday'],
+                        'birthday' => $values['birthday']?->toDateString(),
                         'phones' => $values['phones'],
                         'last_visited_at' => $values['last_visited_at'],
                     ],
@@ -189,8 +189,8 @@ class SelectAndUpdateManyTest extends TestCase
     {
         return [
             'mysql' => [MySqlUser::class],
-            'sql' => [PostgreSqlUser::class],
-            'sql' => [SqLiteUser::class],
+            'psql' => [PostgreSqlUser::class],
+            'sqlite' => [SqLiteUser::class],
         ];
     }
 }
