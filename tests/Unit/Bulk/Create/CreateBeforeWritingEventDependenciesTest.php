@@ -297,12 +297,9 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
                 },
                 BulkEventEnum::DELETING,
                 [
-                    'model' => [
-                        BulkEventEnum::DELETED,
-                    ],
+                    'model' => [],
                     'collection' => [
                         BulkEventEnum::DELETING_MANY,
-                        BulkEventEnum::DELETED_MANY,
                     ],
                 ],
             ],
@@ -397,12 +394,8 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCase
                 },
                 BulkEventEnum::DELETING_MANY,
                 [
-                    'model' => [
-                        BulkEventEnum::DELETED,
-                    ],
-                    'collection' => [
-                        BulkEventEnum::DELETED_MANY,
-                    ],
+                    'model' => [],
+                    'collection' => [],
                 ],
             ],
         ];

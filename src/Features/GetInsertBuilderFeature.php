@@ -3,7 +3,6 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
@@ -25,14 +24,27 @@ class GetInsertBuilderFeature
         //
     }
 
+    /**
+     * Create an instance of the InsertBuilder and fill in the values using the provided models.
+     *
+     * @param BulkAccumulationEntity $data
+     * @param bool $ignore
+     * @param array $dateFields
+     * @param array $selectColumns
+     *
+     * @return InsertBuilder|null
+     */
     public function handle(
-        Model $eloquent,
         BulkAccumulationEntity $data,
         bool $ignore,
         array $dateFields,
         array $selectColumns,
-        ?string $deletedAtColumn,
     ): ?InsertBuilder {
+        if (!$data->hasRows()) {
+            return null;
+        }
+
+        $eloquent = $data->getFirstModel();
         $result = new InsertBuilder();
         $result->into($eloquent->getTable())->onConflictDoNothing($ignore);
         $columns = [];
@@ -50,12 +62,8 @@ class GetInsertBuilderFeature
             );
         }
 
-        foreach ($data->rows as $row) {
-            if ($row->skipCreating) {
-                continue;
-            }
-
-            $array = $this->convertModelToArray($row, $columns, $dateFields, $deletedAtColumn);
+        foreach ($data->getRows() as $row) {
+            $array = $this->convertModelToArray($row, $columns, $dateFields);
             $result->addValue($array);
         }
 
@@ -63,19 +71,32 @@ class GetInsertBuilderFeature
             return null;
         }
 
-        return $result->columns($columns)
-            ->select($selectColumns);
+        $result->columns($columns);
+
+        if (!empty($selectColumns)) {
+            $result->select($selectColumns);
+        }
+
+        return $result;
     }
 
+    /**
+     * Convert all the attributes of the model to an array.
+     *
+     * @param BulkAccumulationItemEntity $row
+     * @param array $columns
+     * @param array $dateFields
+     *
+     * @return array
+     */
     private function convertModelToArray(
         BulkAccumulationItemEntity $row,
         array &$columns,
         array $dateFields,
-        ?string $deletedAtColumn,
     ): array {
         $result = $this->scalarArrayConverter->handle(
-            $row->model,
-            $row->model->getAttributes(),
+            $row->getModel(),
+            $row->getModel()->getAttributes(),
             $dateFields,
         );
 
@@ -83,22 +104,26 @@ class GetInsertBuilderFeature
             $columns[$key] = $key;
         }
 
-        $this->freshTimestamps($result, $columns, $row, $deletedAtColumn);
+        $this->freshTimestamps($result, $columns, $row);
 
         return $result;
     }
 
+    /**
+     * Fill in timestamp columns for each model.
+     *
+     * @param array $result
+     * @param array $columns
+     * @param BulkAccumulationItemEntity $row
+     *
+     * @return void
+     */
     private function freshTimestamps(
         array &$result,
         array &$columns,
         BulkAccumulationItemEntity $row,
-        ?string $deletedAtColumn,
     ): void {
-        if ($row->isDeleting && $row->skipDeleting) {
-            $result[$deletedAtColumn] = null;
-        }
-
-        if ($row->model->usesTimestamps()) {
+        if ($row->getModel()->usesTimestamps()) {
             $columns[$this->createdAtColumn] ??= $this->createdAtColumn;
             $columns[$this->updatedAtColumn] ??= $this->updatedAtColumn;
 

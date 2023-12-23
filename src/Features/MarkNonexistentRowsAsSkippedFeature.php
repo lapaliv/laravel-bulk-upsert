@@ -2,8 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 
 /**
@@ -26,7 +26,7 @@ class MarkNonexistentRowsAsSkippedFeature
         ?string $deletedAtColumn,
         bool $withTrashed,
     ): void {
-        $nonexistent = new BulkAccumulationEntity($data->uniqueBy);
+        $nonexistent = new BulkAccumulationEntity(uniqueBy: $data->uniqueBy);
 
         foreach ($data->rows as $accumulationRow) {
             if (!$accumulationRow->model->exists) {

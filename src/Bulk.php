@@ -806,10 +806,10 @@ class Bulk
             if ($uniqueAttributesAreRequired) {
                 [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
 
-                $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity($uniqueAttributes);
+                $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity(uniqueBy: $uniqueAttributes);
                 $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
             } else {
-                $this->storage[$storageKey]['no_unique_attributes'] ??= new BulkAccumulationEntity([]);
+                $this->storage[$storageKey]['no_unique_attributes'] ??= new BulkAccumulationEntity();
                 $this->storage[$storageKey]['no_unique_attributes']->rows[] = new BulkAccumulationItemEntity($row, $model);
             }
         }
@@ -941,15 +941,15 @@ class Bulk
                 foreach ($chunks as $chunk) {
                     if (count($chunk) === $this->chunkSize) {
                         yield new BulkAccumulationEntity(
-                            $accumulation->uniqueBy,
                             $chunk,
+                            $accumulation->uniqueBy,
                             $this->updateOnly,
                             $this->updateExcept,
                         );
                     } else {
                         $this->storage[$storageKey][$key] = new BulkAccumulationEntity(
-                            $accumulation->uniqueBy,
                             $chunk,
+                            $accumulation->uniqueBy,
                             $this->updateOnly,
                             $this->updateExcept,
                         );
@@ -974,9 +974,19 @@ class Bulk
     {
         try {
             /** @var CreateScenario $scenario */
+            //            $scenario = Container::getInstance()->make(CreateScenario::class);
+            //            $scenario->handle(
+            //                $this->model,
+            //                $accumulation,
+            //                $this->getEventDispatcher(),
+            //                $ignore,
+            //                $this->getDateFields(),
+            //                $this->getSelectColumns($columns, $accumulation->uniqueBy),
+            //                $this->getDeletedAtColumn(),
+            //            );
+            /** @var CreateScenario $scenario */
             $scenario = Container::getInstance()->make(CreateScenario::class);
             $scenario->handle(
-                $this->model,
                 $accumulation,
                 $this->getEventDispatcher(),
                 $ignore,

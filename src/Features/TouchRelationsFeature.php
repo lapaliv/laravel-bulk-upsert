@@ -2,14 +2,10 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
-use Lapaliv\BulkUpsert\Contracts\BulkDriver;
+use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
-use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 
 /**
  * @internal
@@ -17,59 +13,66 @@ use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 class TouchRelationsFeature
 {
     public function __construct(
-        private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature
+        private AddWhereClauseToBuilderFeature $addWhereClauseToBuilderFeature,
     ) {
         //
     }
 
-    public function handle(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-        ConnectionInterface $connection,
-        BulkDriver $driver,
-    ): void {
-        $models = $eloquent->newCollection();
-
-        foreach ($data->rows as $row) {
-            if ($row->skipUpdating || $row->skipCreating) {
-                continue;
-            }
-
-            $models->push($row->model);
-        }
-
-        $this->touchRelations($eloquent, $models, $eventDispatcher, $connection, $driver);
-    }
-
-    private function touchRelations(
-        Model $eloquent,
-        Collection $collection,
-        BulkEventDispatcher $eventDispatcher,
-        ConnectionInterface $connection,
-        BulkDriver $driver,
-    ): void {
-        foreach ($eloquent->getTouchedRelations() as $relationName) {
-            $collection->loadMissing($relationName);
-            $this->touch($collection, $eventDispatcher, $connection, $driver, $relationName);
+    public function handle(BulkAccumulationEntity $data): void
+    {
+        if ($data->hasRows()) {
+            $this->touch($data->getFirstModel(), $data->getModels());
         }
     }
 
-    private function touch(
-        Collection $collection,
-        BulkEventDispatcher $eventDispatcher,
-        ConnectionInterface $connection,
-        BulkDriver $driver,
-        string $relationName,
-    ): void {
-        $relations = new Collection();
-        $collection->each(
+    private function touch(Model $eloquent, Collection $models, bool $force = false): void
+    {
+        if ($models->isEmpty()) {
+            return;
+        }
+
+        $relationNames = $eloquent->getTouchedRelations();
+
+        if (empty($relationNames)) {
+            return;
+        }
+
+        if ($force) {
+            $dirtyModels = $models;
+        } else {
+            $dirtyModels = $models->filter(
+                fn (Model $model) => $model->isDirty() || $model->wasRecentlyCreated
+            );
+        }
+
+        if ($dirtyModels->isEmpty()) {
+            return;
+        }
+
+        if (method_exists($dirtyModels, 'loadMissing')) {
+            $dirtyModels->loadMissing(...$relationNames);
+        }
+
+        foreach ($relationNames as $relationName) {
+            $this->touchRelation($models, $relationName);
+        }
+    }
+
+    private function touchRelation(Collection $collection, string $relationName): void
+    {
+        $relations = new $collection();
+
+        $collection->map(
             function (Model $model) use ($relationName, $relations): void {
+                if (!$model->relationLoaded($relationName)) {
+                    return;
+                }
+
                 $relation = $model->getRelation($relationName);
 
                 if ($relation instanceof Collection) {
                     $relations->push(...$relation->filter());
-                } elseif ($relation !== null) {
+                } elseif ($relation instanceof Model) {
                     $relations->push($relation);
                 }
             }
@@ -79,45 +82,28 @@ class TouchRelationsFeature
             return;
         }
 
-        /** @var Model $firstRelation */
-        $firstRelation = $relations->first();
-        $builder = new UpdateBulkBuilder();
-        $builder->table($firstRelation->getTable());
+        $this->freshTimestamps($relations->first(), $relations);
+    }
 
-        $filteredRelations = $relations
-            ->filter()
-            ->each(fn (Model $model) => $model->updateTimestamps())
-            ->filter(fn (Model $model) => $model->isDirty());
-
-        if ($filteredRelations->isEmpty()) {
-            unset($builder, $firstRelation, $relations);
-
+    private function freshTimestamps(Model $eloquent, Collection $relations): void
+    {
+        if ($relations->isEmpty()) {
             return;
         }
 
-        $filteredRelations->each(
-            function (Model $model) use ($builder) {
-                $builder->addSet(
-                    $model->getUpdatedAtColumn(),
-                    [$model->getKeyName() => $model->getKey()],
-                    $model->getAttribute($model->getUpdatedAtColumn())
-                );
-            }
-        );
+        $now = $eloquent->freshTimestamp();
 
-        $builder->limit($relations->count());
-        $this->addWhereClauseToBuilderFeature->handle($builder, ['id'], $relations);
+        /** @var Builder $builder */
+        $builder = call_user_func([$eloquent, 'query']);
 
-        $updateResult = $driver->update($connection, $builder);
+        $this->addWhereClauseToBuilderFeature->handle($builder, [$eloquent->getKeyName()], $relations);
+
+        $updateResult = $builder->update([
+            $eloquent->getUpdatedAtColumn() => $now,
+        ]);
 
         if ($updateResult > 0) {
-            $collection->each(
-                function (Model $model) use ($eventDispatcher) {
-                    $eventDispatcher->dispatch(BulkEventEnum::SAVED, $model);
-                }
-            );
-
-            $this->touchRelations($firstRelation, $filteredRelations, $eventDispatcher, $connection, $driver);
+            $this->touch($relations->first(), $relations, true);
         }
     }
 }

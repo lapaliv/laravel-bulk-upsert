@@ -36,12 +36,12 @@ class PostgreSqlGrammar implements BulkGrammar
         }
 
         return sprintf(
-            'insert into %s (%s) values (%s) %s returning %s',
+            'insert into %s (%s) values (%s) %s %s',
             $builder->getInto(),
             implode(',', $builder->getColumns()),
             implode('),(', $values),
             $builder->doNothingAtConflict() ? 'on conflict do nothing' : '',
-            implode(',', $builder->getSelect())
+            empty($builder->getSelect()) ? '' : sprintf('returning %s', implode(',', $builder->getSelect()))
         );
     }
 

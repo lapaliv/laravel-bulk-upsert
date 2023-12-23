@@ -74,9 +74,7 @@ class UpdateScenario
             $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
         }
 
-        if (!empty($eloquent->getTouchedRelations())) {
-            $this->touchRelationsFeature->handle($eloquent, $data, $eventDispatcher, $eloquent->getConnection(), $driver);
-        }
+        $this->touchRelationsFeature->handle($data);
 
         unset($driver);
 
