@@ -2,8 +2,8 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * @internal
@@ -34,12 +34,6 @@ class SelectExistingRowsFeature
 
         $this->addWhereClauseToBuilderFeature->handle($builder, $uniqueBy, $collection);
 
-        $result = $builder->get();
-
-        if ($result instanceof Collection) {
-            return $result;
-        }
-
-        return new Collection($result->all());
+        return $builder->get();
     }
 }

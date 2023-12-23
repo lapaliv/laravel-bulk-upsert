@@ -2,16 +2,17 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * @internal
  */
 class KeyByFeature
 {
-    public function __construct(private GetUniqueKeyFeature $getUniqueKeyFeature)
-    {
+    public function __construct(
+        private GetUniqueKeyFeature $getUniqueKeyFeature
+    ) {
         //
     }
 

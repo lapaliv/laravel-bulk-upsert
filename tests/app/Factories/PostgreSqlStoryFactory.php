@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlStory;
  */
 final class PostgreSqlStoryFactory extends StoryFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<PostgreSqlStory>
+     */
     protected $model = PostgreSqlStory::class;
 }

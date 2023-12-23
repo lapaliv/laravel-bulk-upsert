@@ -30,8 +30,18 @@ abstract class Post extends Model
     use HasFactory;
     use GlobalTouches;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'posts';
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
         'text',
     ];

@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
  */
 final class SqLiteUserFactory extends UserFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<SqLiteUser>
+     */
     protected $model = SqLiteUser::class;
 }

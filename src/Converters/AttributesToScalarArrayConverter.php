@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Converters;
 
 use DateTime;
+use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Exceptions\BulkAttributeTypeIsNotScalar;
@@ -36,6 +37,8 @@ class AttributesToScalarArrayConverter
                     $value = $value->toArray();
                 } elseif ($value instanceof CastsAttributes) {
                     $value = $value->set($model, $key, $value, $result);
+                } elseif ($value instanceof DateTimeInterface) {
+                    $value = $value->format('Y-m-d H:i:s');
                 } else {
                     throw new BulkAttributeTypeIsNotScalar($key);
                 }

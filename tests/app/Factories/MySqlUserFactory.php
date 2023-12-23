@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
  */
 final class MySqlUserFactory extends UserFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<MySqlUser>
+     */
     protected $model = MySqlUser::class;
 }

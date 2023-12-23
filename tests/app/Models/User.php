@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\UserBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Enums\Gender;
+use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
 
 /**
  * @internal
@@ -35,9 +36,20 @@ abstract class User extends Model
 {
     use SoftDeletes;
     use HasFactory;
+    use GlobalTouches;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'users';
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
         'name',
         'email',

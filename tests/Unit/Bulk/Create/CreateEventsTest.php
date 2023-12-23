@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
+use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
@@ -184,7 +185,9 @@ class CreateEventsTest extends TestCase
         // arrange
         $users = $this->userGenerator
             ->setModel($model)
-            ->makeCollection(2);
+            ->makeCollection(1, [
+                'deleted_at' => Carbon::now(),
+            ]);
         $sut = $model::query()
             ->bulk()
             ->enableEvents()
@@ -195,7 +198,10 @@ class CreateEventsTest extends TestCase
         $model::observe(Observer::class);
         Observer::listenAny($callingSpy);
 
-        $countEventsPerModel = count(BulkEventEnum::create()) + count(BulkEventEnum::save());
+        // 4 for saving
+        // 4 for creating
+        // 4 for deleting
+        $countEventsPerModel = 4 * 3;
 
         // act
         $sut->create($users);
@@ -203,8 +209,6 @@ class CreateEventsTest extends TestCase
         // assert
         $this->spyShouldHaveReceived($callingSpy)->times(
             $countEventsPerModel * $users->count()
-            // Minus due to the collection events
-            - ($users->count() * $users->count())
         );
     }
 

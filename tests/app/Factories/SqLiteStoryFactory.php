@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteStory;
  */
 final class SqLiteStoryFactory extends StoryFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<SqLiteStory>
+     */
     protected $model = SqLiteStory::class;
 }

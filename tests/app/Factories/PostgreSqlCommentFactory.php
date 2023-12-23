@@ -17,8 +17,18 @@ use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
  */
 final class PostgreSqlCommentFactory extends CommentFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<PostgreSqlComment>
+     */
     protected $model = PostgreSqlComment::class;
 
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return array_merge(parent::definition(), [
