@@ -2,6 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+/**
+ * @internal
+ */
 class GetValueHashFeature
 {
     public function handle(mixed $value): string

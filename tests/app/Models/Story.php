@@ -22,11 +22,32 @@ abstract class Story extends Model
     use SoftDeletes;
     use HasFactory;
 
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
     public $incrementing = false;
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
     public $primaryKey = 'uuid';
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'stories';
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
         'uuid',
         'title',

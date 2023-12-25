@@ -20,9 +20,11 @@ class BulkEventDispatcher
     private ?array $enabledEvents = null;
 
     private GetValueHashFeature $getValueHashFeature;
+    private Model $model;
 
-    public function __construct(private Model $model)
+    public function __construct(Model|string $model)
     {
+        $this->model = is_string($model) ? Container::getInstance()->make($model) : $model;
         $this->getValueHashFeature = Container::getInstance()->make(GetValueHashFeature::class);
     }
 

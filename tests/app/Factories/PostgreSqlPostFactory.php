@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
  */
 final class PostgreSqlPostFactory extends PostFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<PostgreSqlPost>
+     */
     protected $model = PostgreSqlPost::class;
 }

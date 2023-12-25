@@ -19,6 +19,8 @@ final class MySqlComment extends Comment
 {
     protected $connection = 'mysql';
 
+    //    protected $touches = ['user'];
+
     public function user(): BelongsTo|UserBuilder
     {
         return $this->belongsTo(MySqlUser::class, 'user_id');

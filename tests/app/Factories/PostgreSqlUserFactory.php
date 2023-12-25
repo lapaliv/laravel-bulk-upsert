@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
  */
 final class PostgreSqlUserFactory extends UserFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<PostgreSqlUser>
+     */
     protected $model = PostgreSqlUser::class;
 }

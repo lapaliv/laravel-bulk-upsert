@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
  */
 final class SqLitePostFactory extends PostFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<SqLitePost>
+     */
     protected $model = SqLitePost::class;
 }

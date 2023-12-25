@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
  */
 final class MySqlPostFactory extends PostFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<MySqlPost>
+     */
     protected $model = MySqlPost::class;
 }

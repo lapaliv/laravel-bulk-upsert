@@ -56,7 +56,7 @@ class UpsertScenario
         array $selectColumns,
         ?string $deletedAtColumn,
     ): void {
-        $accumulationEntity = new BulkAccumulationEntity($data->uniqueBy);
+        $accumulationEntity = new BulkAccumulationEntity(uniqueBy: $data->uniqueBy);
 
         foreach ($data->rows as $row) {
             if ($row->skipUpdating) {
@@ -69,7 +69,6 @@ class UpsertScenario
         }
 
         $this->createScenario->handle(
-            $eloquent,
             $accumulationEntity,
             $eventDispatcher,
             ignore: true,

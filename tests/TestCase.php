@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests;
 
 use Dotenv\Dotenv;
+use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
@@ -10,6 +11,8 @@ use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
 use PDO;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use stdClass;
 
@@ -53,8 +56,9 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         foreach ($modelPrefixes as $modelPrefix) {
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'dropTable']);
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'dropTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'dropTable']);
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'dropTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Article', 'dropTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'dropTable']);
         }
 
         // creating tables
@@ -63,9 +67,15 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'createTable']);
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'createTable']);
             call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'createTable']);
+            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Article', 'createTable']);
         }
     }
 
+    /**
+     * Setup the test environment.
+     *
+     * @return void
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -184,6 +194,25 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
                 );
             }
         }
+    }
+
+    /**
+     * @template T
+     *
+     * @param string $id
+     *
+     * @psalm-param class-string<T> $id
+     *
+     * @return mixed
+     *
+     * @psalm-return  T
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    protected function getFromContainer(string $id): mixed
+    {
+        return Container::getInstance()->get($id);
     }
 
     private static function configureManager(): void

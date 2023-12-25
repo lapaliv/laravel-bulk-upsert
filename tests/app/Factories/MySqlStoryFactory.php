@@ -15,5 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\MySqlStory;
  */
 final class MySqlStoryFactory extends StoryFactory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<MySqlStory>
+     */
     protected $model = MySqlStory::class;
 }
