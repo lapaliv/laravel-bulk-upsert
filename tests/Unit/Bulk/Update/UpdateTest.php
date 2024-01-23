@@ -96,6 +96,36 @@ final class UpdateTest extends TestCase
         );
     }
 
+    /**
+     * If the Bulk gets models for updating, then their origins should be synced
+     * even if the bulk does not have any listeners ending with "ed".
+     *
+     * @param class-string<User> $model
+     *
+     * @return void
+     *
+     * @throws BulkException
+     *
+     * @dataProvider userModelsDataProvider
+     */
+    public function testIsDirtyAfterUpdating(string $model)
+    {
+        // arrange
+        $users = $this->userGenerator
+            ->setModel($model)
+            ->createCollectionAndDirty(2);
+        $sut = $model::query()->bulk();
+
+        // act
+        $sut->update($users);
+
+        // assert
+        foreach ($users as $user) {
+            self::assertFalse($user->isDirty());
+            self::assertNotEmpty($user->getChanges());
+        }
+    }
+
     public function dataProvider(): array
     {
         $target = [
@@ -118,6 +148,17 @@ final class UpdateTest extends TestCase
                     ...$value,
                 ];
             }
+        }
+
+        return $result;
+    }
+
+    public function userModelsDataProvider(): array
+    {
+        $result = [];
+
+        foreach ($this->userModels() as $key => $value) {
+            $result[$key] = [$value];
         }
 
         return $result;
