@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
@@ -68,9 +69,13 @@ class UpdateScenario
             || $eventDispatcher->hasListeners(BulkEventEnum::updated())
             || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
             || $eventDispatcher->hasListeners(BulkEventEnum::restored());
+        $hasModelsInData = !empty(array_filter($data->getRows(), fn (BulkAccumulationItemEntity $entity) => $entity->getOriginal() instanceof Model));
+
+        if ($hasEndListeners || $hasModelsInData) {
+            $this->syncChanges($data);
+        }
 
         if ($hasEndListeners) {
-            $this->syncChanges($data);
             $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
         }
 
@@ -78,7 +83,7 @@ class UpdateScenario
 
         unset($driver);
 
-        if ($hasEndListeners) {
+        if ($hasEndListeners || $hasModelsInData) {
             $this->syncOriginal($data);
         }
     }
