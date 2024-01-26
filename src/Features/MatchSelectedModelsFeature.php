@@ -34,13 +34,13 @@ class MatchSelectedModelsFeature
             }
         );
 
-        foreach ($data->getRows() as $row) {
+        foreach ($data->getRows() as $index => $row) {
             $key = $this->getUniqueKeyFeature->handle($row->getModel(), $data->getUniqueBy());
 
             if ($keyedExistingRows->has($key)) {
                 $row->setModel($keyedExistingRows->get($key));
             } else {
-                $data->unsetRow($key);
+                $data->unsetRow($index);
             }
         }
     }
