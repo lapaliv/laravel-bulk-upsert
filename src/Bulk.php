@@ -946,14 +946,16 @@ class Bulk
                             $this->updateOnly,
                             $this->updateExcept,
                         );
-                    } else {
-                        $this->storage[$storageKey][$key] = new BulkAccumulationEntity(
-                            $chunk,
-                            $accumulation->uniqueBy,
-                            $this->updateOnly,
-                            $this->updateExcept,
-                        );
+
+                        $chunk = [];
                     }
+
+                    $this->storage[$storageKey][$key] = new BulkAccumulationEntity(
+                        $chunk,
+                        $accumulation->uniqueBy,
+                        $this->updateOnly,
+                        $this->updateExcept,
+                    );
                 }
             }
         }
