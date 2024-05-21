@@ -70,33 +70,4 @@ class BulkAccumulationItemEntity
 
         return $this;
     }
-
-    /**
-     * @return bool
-     *
-     * @deprecated. All the skipping rows will be deleted from collection.
-     *              This method is not actual anymore and will be deleted in the future.
-     */
-    public function isSkipSaving(): bool
-    {
-        return $this->skipSaving;
-    }
-
-//    /**
-//     * @return bool
-//     */
-//    public function isCreationSkipped(): bool
-//    {
-//        return $this->skipCreating;
-//    }
-//
-//    /**
-//     * @return BulkAccumulationItemEntity
-//     */
-//    public function skipCreation(): BulkAccumulationItemEntity
-//    {
-//        $this->skipCreating = true;
-//
-//        return $this;
-//    }
 }

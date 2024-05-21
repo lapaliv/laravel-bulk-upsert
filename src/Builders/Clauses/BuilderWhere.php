@@ -9,6 +9,8 @@ use Lapaliv\BulkUpsert\Builders\Clauses\Where\BuilderWhereIn;
 
 /**
  * @internal
+ *
+ * @psalm-api
  */
 trait BuilderWhere
 {
@@ -38,6 +40,15 @@ trait BuilderWhere
         return $this;
     }
 
+    /**
+     * @param Closure|string $field
+     * @param string $operator
+     * @param mixed|null $value
+     *
+     * @return $this
+     *
+     * @psalm-api
+     */
     public function orWhere(string|Closure $field, string $operator = '=', mixed $value = null): static
     {
         return $this->where($field, $operator, $value, 'or');

@@ -17,6 +17,9 @@ use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
 use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
 use Lapaliv\BulkUpsert\Features\KeyByFeature;
 
+/**
+ * @psalm-suppress UnusedClass
+ */
 class BulkUpsertServiceProvider extends ServiceProvider
 {
     /**

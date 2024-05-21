@@ -6,6 +6,8 @@ use Closure;
 
 /**
  * @internal
+ *
+ * @psalm-api
  */
 class BuilderWhereCallback
 {

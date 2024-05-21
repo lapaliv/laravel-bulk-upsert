@@ -17,7 +17,7 @@ class KeyByFeature
     }
 
     /**
-     * @param array<int, array<string, scalar>>|Collection<Model> $rows
+     * @param array<int, array<string, scalar>>|Collection<int, Model> $rows
      * @param string[] $attributes
      *
      * @return array<string, Model|scalar[]>

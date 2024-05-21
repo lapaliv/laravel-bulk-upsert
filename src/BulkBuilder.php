@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @template TCollection of Collection
  * @template TModel of Model
- *
- * @uses BulkBuilderTrait<TCollection, TModel>
  */
 class BulkBuilder extends Builder
 {
+    /**
+     * @use BulkBuilderTrait<TCollection, TModel>
+     */
     use BulkBuilderTrait;
 }

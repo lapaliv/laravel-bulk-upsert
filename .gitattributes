@@ -15,5 +15,5 @@
 /CHANGELOG.md export-ignore
 /phpunit.xml export-ignore
 /.php-cs-fixer.dist.php export-ignore
-/phpstan.neon export-ignore
+/psalm.xml export-ignore
 /docker-compose.yml export-ignore

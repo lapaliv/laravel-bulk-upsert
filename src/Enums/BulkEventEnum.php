@@ -142,6 +142,8 @@ class BulkEventEnum
 
     /**
      * @return string[]
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public static function create(): array
     {
@@ -172,6 +174,8 @@ class BulkEventEnum
 
     /**
      * @return string[]
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public static function update(): array
     {
@@ -280,6 +284,8 @@ class BulkEventEnum
 
     /**
      * @return string[]
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public static function save(): array
     {

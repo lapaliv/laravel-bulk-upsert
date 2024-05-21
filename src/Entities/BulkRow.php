@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @template TModel of Model
  * @template TOriginal of mixed
+ *
+ * @psalm-api
  */
 class BulkRow
 {
