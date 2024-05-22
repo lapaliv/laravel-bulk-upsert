@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="5.13.1@086b94371304750d1c673315321a55d15fc59015">
+  <file src="src/Builders/Clauses/BuilderWhere.php">
+    <MoreSpecificImplementedParamType>
+      <code>$values</code>
+    </MoreSpecificImplementedParamType>
+  </file>
+  <file src="src/Builders/InsertBuilder.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->values]]></code>
+    </InvalidPropertyAssignmentValue>
+  </file>
+  <file src="src/Builders/UpdateBulkBuilder.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->sets]]></code>
+    </InvalidPropertyAssignmentValue>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[$this->sets]]></code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType>
+      <code><![CDATA[array<string, BuilderCase|string>]]></code>
+    </MoreSpecificReturnType>
+    <PossiblyInvalidMethodCall>
+      <code>addWhenThen</code>
+    </PossiblyInvalidMethodCall>
+  </file>
+  <file src="src/Bulk.php">
+    <InvalidPropertyAssignmentValue>
+      <code>$attributes</code>
+      <code><![CDATA[[
+        'createOrIgnore' => [],
+        'create' => [],
+        'update' => [],
+        'upsert' => [],
+        'delete' => [],
+        'forceDelete' => [],
+    ]]]></code>
+      <code>[$attributes]</code>
+      <code><![CDATA[array_merge($this->uniqueBy, $attributes)]]></code>
+    </InvalidPropertyAssignmentValue>
+    <InvalidReturnStatement>
+      <code>$result</code>
+      <code>$result</code>
+      <code>$result</code>
+      <code>array_unique(
+            array_merge($columns, $uniqueBy)
+        )</code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code>TCollection</code>
+      <code>TCollection</code>
+      <code>TCollection</code>
+      <code>string[]</code>
+    </InvalidReturnType>
+    <PossiblyInvalidArgument>
+      <code>$uniqueAttributes</code>
+    </PossiblyInvalidArgument>
+    <PossiblyNullArgument>
+      <code>$createdAt</code>
+      <code>$updatedAt</code>
+    </PossiblyNullArgument>
+    <PropertyTypeCoercion>
+      <code><![CDATA[$this->storage]]></code>
+      <code><![CDATA[$this->storage]]></code>
+      <code><![CDATA[$this->storage]]></code>
+    </PropertyTypeCoercion>
+    <RedundantPropertyInitializationCheck>
+      <code><![CDATA[isset($this->dateFields)]]></code>
+      <code><![CDATA[isset($this->eventDispatcher)]]></code>
+    </RedundantPropertyInitializationCheck>
+  </file>
+  <file src="src/BulkBuilderTrait.php">
+    <PossiblyInvalidArgument>
+      <code>$model</code>
+      <code>$model</code>
+      <code>$model</code>
+      <code>$model</code>
+      <code><![CDATA[$this->getModel()]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyInvalidMethodCall>
+      <code>count</code>
+      <code>count</code>
+      <code>count</code>
+      <code>each</code>
+      <code>isEmpty</code>
+    </PossiblyInvalidMethodCall>
+  </file>
+  <file src="src/Collections/BulkRows.php">
+    <LessSpecificImplementedReturnType>
+      <code><![CDATA[Traversable<int, BulkRow<TModel, TOriginal>>]]></code>
+    </LessSpecificImplementedReturnType>
+  </file>
+  <file src="src/Drivers/MySql/MySqlDriverInsertWithResultFeature.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$builder->getInto()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Drivers/SqLite/SqLiteDriverInsertWithResultFeature.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$builder->getInto()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Entities/BulkAccumulationEntity.php">
+    <InvalidArgument>
+      <code><![CDATA[$row->model]]></code>
+    </InvalidArgument>
+    <InvalidTemplateParam>
+      <code><![CDATA[$result->push(
+                    new BulkRow($row->getModel(), $row->getOriginal(), $this->getUniqueBy())
+                )]]></code>
+    </InvalidTemplateParam>
+  </file>
+  <file src="src/Features/AddWhereClauseToBuilderFeature.php">
+    <InvalidArgument>
+      <code>$rows</code>
+    </InvalidArgument>
+  </file>
+  <file src="src/Features/DispatchDeletingEventsFeature.php">
+    <PossiblyNullArgument>
+      <code>$deletedAtColumn</code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Features/FillInWasRecentlyCreatedPropertyFeature.php">
+    <PossiblyNullArgument>
+      <code>$createdAtColumn</code>
+    </PossiblyNullArgument>
+    <PossiblyNullArrayOffset>
+      <code>$dataFields</code>
+    </PossiblyNullArrayOffset>
+  </file>
+  <file src="src/Features/GetDeleteBuilderFeature.php">
+    <InvalidArgument>
+      <code>$models</code>
+      <code>$models</code>
+    </InvalidArgument>
+  </file>
+  <file src="src/Features/GetInsertBuilderFeature.php">
+    <PossiblyNullPropertyAssignmentValue>
+      <code><![CDATA[$eloquent->getCreatedAtColumn()]]></code>
+      <code><![CDATA[$eloquent->getUpdatedAtColumn()]]></code>
+    </PossiblyNullPropertyAssignmentValue>
+  </file>
+  <file src="src/Features/GetUpdateBuilderFeature.php">
+    <InvalidArgument>
+      <code><![CDATA[$data->getNotSkippedModels('skipUpdating')]]></code>
+    </InvalidArgument>
+    <PossiblyNullArrayOffset>
+      <code>$attributes</code>
+      <code>$attributes</code>
+    </PossiblyNullArrayOffset>
+    <PossiblyNullPropertyAssignmentValue>
+      <code><![CDATA[$eloquent->getUpdatedAtColumn()]]></code>
+    </PossiblyNullPropertyAssignmentValue>
+  </file>
+  <file src="src/Features/InsertAndSelectFeature.php">
+    <PossiblyNullArgument>
+      <code>$deletedAtColumn</code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Features/MarkNonexistentRowsAsSkippedFeature.php">
+    <InvalidArgument>
+      <code><![CDATA[$this->selectExistingRowsFeature->handle(
+                    $eloquent,
+                    $nonexistent->getNotSkippedModels(),
+                    $data->uniqueBy,
+                    $selectColumns,
+                    $deletedAtColumn,
+                    $withTrashed,
+                )]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="src/Features/MatchSelectedModelsFeature.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$keyedExistingRows->get($key)]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Features/SelectExistingRowsFeature.php">
+    <InvalidArgument>
+      <code>$collection</code>
+    </InvalidArgument>
+    <InvalidReturnStatement>
+      <code><![CDATA[$builder->get()]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[Collection<array-key, Model>]]></code>
+    </InvalidReturnType>
+  </file>
+  <file src="src/Features/TouchRelationsFeature.php">
+    <InvalidArgument>
+      <code>$relations</code>
+    </InvalidArgument>
+    <InvalidArrayOffset>
+      <code><![CDATA[[
+            $eloquent->getUpdatedAtColumn() => $now,
+        ]]]></code>
+    </InvalidArrayOffset>
+    <PossiblyNullArgument>
+      <code><![CDATA[$relations->first()]]></code>
+      <code><![CDATA[$relations->first()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Grammars/MySqlGrammar.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$builder->getInto()]]></code>
+      <code><![CDATA[$builder->getLimit()]]></code>
+      <code><![CDATA[$builder->getLimit()]]></code>
+      <code><![CDATA[$builder->getTable()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Grammars/PostgreSqlGrammar.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$builder->getInto()]]></code>
+      <code><![CDATA[$builder->getTable()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Grammars/SqLiteGrammar.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$builder->getInto()]]></code>
+      <code><![CDATA[$builder->getTable()]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Scenarios/DeleteScenario.php">
+    <InvalidTemplateParam>
+      <code><![CDATA[$bulkRows->push(
+                new BulkRow($row->model, $row->row, $data->uniqueBy)
+            )]]></code>
+      <code><![CDATA[$bulkRows->push(
+                new BulkRow($row->model, $row->row, $data->uniqueBy)
+            )]]></code>
+    </InvalidTemplateParam>
+  </file>
+  <file src="src/Scenarios/UpdateScenario.php">
+    <InvalidTemplateParam>
+      <code><![CDATA[$bulkRows->push(
+                new BulkRow($row->model, $row->row, $data->uniqueBy)
+            )]]></code>
+      <code><![CDATA[$bulkRows->push(
+                new BulkRow($row->model, $row->row, $data->uniqueBy)
+            )]]></code>
+      <code><![CDATA[$deletedBulkRows->push(
+                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                )]]></code>
+      <code><![CDATA[$deletingBulkRows->push(
+                        new BulkRow($row->model, $row->row, $data->uniqueBy)
+                    )]]></code>
+      <code><![CDATA[$restoredBulkRows->push(
+                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                )]]></code>
+      <code><![CDATA[$restoringBulkRows->push(
+                        new BulkRow($row->model, $row->row, $data->uniqueBy)
+                    )]]></code>
+      <code><![CDATA[$savedBulkRows->push(
+                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                )]]></code>
+      <code><![CDATA[$updatedBulkRows->push(
+                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
+                )]]></code>
+    </InvalidTemplateParam>
+  </file>
+</files>
