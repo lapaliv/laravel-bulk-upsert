@@ -4,6 +4,8 @@ namespace Lapaliv\BulkUpsert\Builders\Clauses\Where;
 
 /**
  * @internal
+ *
+ * @psalm-api
  */
 class BuilderWhereCondition
 {

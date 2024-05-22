@@ -130,6 +130,14 @@ class Bulk
         $this->uniqueBy([$this->model->getKeyName()]);
     }
 
+    /**
+     * @param string $name
+     * @param array $arguments
+     *
+     * @return $this
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     */
     public function __call(string $name, array $arguments)
     {
         if (str_starts_with($name, 'on')) {
@@ -197,6 +205,8 @@ class Bulk
      * @param callable|string|string[]|string[][] $attributes
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function orUniqueBy(string|array|callable $attributes): static
     {
@@ -246,6 +256,8 @@ class Bulk
      * - `restored`.
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function disableModelEndEvents(): static
     {
@@ -290,6 +302,8 @@ class Bulk
      * @param string $event
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function disableEvent(string $event): static
     {
@@ -328,6 +342,8 @@ class Bulk
      * @param string $event
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function enableEvent(string $event): static
     {
@@ -340,6 +356,8 @@ class Bulk
      * @param string[] $attributes
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function updateOnly(array $attributes): static
     {
@@ -354,6 +372,8 @@ class Bulk
      * @param string[] $attributes
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function updateAllExcept(array $attributes): static
     {
@@ -371,6 +391,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function create(iterable $rows, bool $ignoreConflicts = false): static
     {
@@ -400,6 +422,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function createOrAccumulate(iterable $rows, bool $ignoreConflicts = false): static
     {
@@ -426,9 +450,13 @@ class Bulk
      * @param string[] $columns columns that should be selected from the database
      * @param bool $ignoreConflicts
      *
-     * @return Collection<Model>|TCollection<TModel>
+     * @return Collection
+     *
+     * @psalm-return TCollection
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function createAndReturn(
         iterable $rows,
@@ -481,6 +509,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function updateOrAccumulate(iterable $rows): static
     {
@@ -499,9 +529,13 @@ class Bulk
      * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      * @param string[] $columns columns that should be selected from the database
      *
-     * @return Collection<Model>|TCollection<TModel>
+     * @return Collection
+     *
+     * @psalm-return TCollection
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
@@ -530,6 +564,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function upsert(iterable $rows): static
     {
@@ -550,6 +586,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function upsertOrAccumulate(iterable $rows): static
     {
@@ -568,9 +606,13 @@ class Bulk
      * @param iterable<int|string, array<string, mixed>|Model|object|stdClass|TModel> $rows
      * @param string[] $columns columns that should be selected from the database
      *
-     * @return Collection<Model>|TCollection<TModel>
+     * @return Collection
+     *
+     * @psalm-return TCollection
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function upsertAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
@@ -602,6 +644,8 @@ class Bulk
      *
      * @throws BulkBindingResolution
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function delete(iterable $rows): static
     {
@@ -622,6 +666,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function deleteOrAccumulate(iterable $rows): static
     {
@@ -643,6 +689,8 @@ class Bulk
      *
      * @throws BulkBindingResolution
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function forceDelete(iterable $rows): static
     {
@@ -663,6 +711,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function forceDeleteOrAccumulate(iterable $rows): static
     {
@@ -765,6 +815,8 @@ class Bulk
      * @return $this
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function saveAccumulated(): static
     {
@@ -779,6 +831,8 @@ class Bulk
      * Adds soft deleted rows to queries.
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function withTrashed(): static
     {

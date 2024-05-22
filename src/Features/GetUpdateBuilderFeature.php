@@ -106,15 +106,15 @@ class GetUpdateBuilderFeature
             unset($attributes[$deletedAtColumn]);
         }
 
-        if (!empty($data->updateOnly)) {
-            foreach ($attributes as $key => $value) {
-                if (!in_array($key, $data->updateOnly, true)) {
+        if (!empty($data->getUpdateOnly())) {
+            foreach (array_keys($attributes) as $key) {
+                if (!in_array($key, $data->getUpdateOnly(), true)) {
                     unset($attributes[$key]);
                 }
             }
-        } elseif (!empty($data->updateExcept)) {
-            foreach ($attributes as $key => $value) {
-                if (in_array($key, $data->updateExcept, true)) {
+        } elseif (!empty($data->getUpdateExcept())) {
+            foreach (array_keys($attributes) as $key) {
+                if (in_array($key, $data->getUpdateExcept(), true)) {
                     unset($attributes[$key]);
                 }
             }

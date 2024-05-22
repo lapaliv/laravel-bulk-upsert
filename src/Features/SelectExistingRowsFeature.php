@@ -2,8 +2,9 @@
 
 namespace Lapaliv\BulkUpsert\Features;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 
 /**
  * @internal
@@ -16,9 +17,21 @@ class SelectExistingRowsFeature
         //
     }
 
+    /**
+     * @param Model $eloquent
+     * @param SupportCollection $collection
+     * @param array $uniqueBy
+     * @param array $selectColumns
+     * @param string|null $deletedAtColumn
+     * @param bool $withTrashed
+     *
+     * @return Collection
+     *
+     * @psalm-return Collection<array-key, Model>
+     */
     public function handle(
         Model $eloquent,
-        Collection $collection,
+        SupportCollection $collection,
         array $uniqueBy,
         array $selectColumns,
         ?string $deletedAtColumn = null,

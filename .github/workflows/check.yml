@@ -1,4 +1,4 @@
-name: PHPUnit & PHPStan
+name: PHPUnit & Psalm
 
 on: [push]
 
@@ -9,8 +9,17 @@ jobs:
   phpunit:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - php: '8.0'
+          - php: '8.1'
+          - php: '8.2'
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -25,16 +34,9 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
-
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-
+          coverage: "none"
+          php-version: "${{ matrix.php }}"
+          tools: flex
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
@@ -47,29 +49,29 @@ jobs:
 
       - name: PHPUnit
         run: ./vendor/bin/phpunit
-
-  phpstan:
+  psalm:
     runs-on: ubuntu-latest
 
+    env:
+      php-version: '8.0'
     steps:
-      - uses: actions/checkout@v3
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
+          php-version: ${{ env.php-version }}
+          ini-values: "memory_limit=-1"
+          coverage: none
 
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
+      - name: Checkout target branch
+        uses: actions/checkout@v4
         with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-
+          ref: ${{ github.base_ref }}
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: PHPStan
-        run: ./vendor/bin/phpstan analyze --xdebug --memory-limit 512M
+      - name: Psalm
+        run: ./vendor/bin/psalm --output-format=github --no-progress

@@ -5,6 +5,9 @@ namespace Lapaliv\BulkUpsert\Exceptions;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use RuntimeException;
 
+/**
+ * @psalm-api
+ */
 class BulkModelWasNotTransferred extends RuntimeException implements BulkException
 {
     public function __construct()

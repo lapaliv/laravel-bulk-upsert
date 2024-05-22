@@ -10,6 +10,8 @@ use Traversable;
 /**
  * @template TModel of Model
  * @template TOriginal of mixed
+ *
+ * @extends Collection<int, BulkRow<TModel, TOriginal>>
  */
 class BulkRows extends Collection
 {
