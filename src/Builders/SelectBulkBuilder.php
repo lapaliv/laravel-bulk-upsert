@@ -19,11 +19,23 @@ class SelectBulkBuilder implements BulkBuilderWhereClause
      */
     private array $columns = [];
 
+    /**
+     * @return string|null
+     *
+     * @psalm-api
+     */
     public function getFrom(): ?string
     {
         return $this->from;
     }
 
+    /**
+     * @param string $table
+     *
+     * @return $this
+     *
+     * @psalm-api
+     */
     public function from(string $table): static
     {
         $this->from = $table;
@@ -33,6 +45,8 @@ class SelectBulkBuilder implements BulkBuilderWhereClause
 
     /**
      * @return string[]
+     *
+     * @psalm-api
      */
     public function getSelect(): array
     {
@@ -43,20 +57,12 @@ class SelectBulkBuilder implements BulkBuilderWhereClause
      * @param string[] $columns
      *
      * @return $this
+     *
+     * @psalm-api
      */
     public function select(array $columns): static
     {
         $this->columns = $columns;
-
-        return $this;
-    }
-
-    public function reset(): static
-    {
-        $this->from = null;
-        $this->columns = [];
-        $this->wheres = [];
-        $this->fields = [];
 
         return $this;
     }

@@ -26,6 +26,11 @@ class BulkIdentifierDidNotFind extends RuntimeException implements BulkException
         return $this->uniqueAttributes;
     }
 
+    /**
+     * @return array
+     *
+     * @psalm-api
+     */
     public function context(): array
     {
         return [

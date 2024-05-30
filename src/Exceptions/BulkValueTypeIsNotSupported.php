@@ -17,6 +17,11 @@ class BulkValueTypeIsNotSupported extends RuntimeException implements BulkExcept
         return $this->value;
     }
 
+    /**
+     * @return array
+     *
+     * @psalm-api
+     */
     public function context(): array
     {
         return [

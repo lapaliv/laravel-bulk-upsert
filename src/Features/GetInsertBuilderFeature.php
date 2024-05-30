@@ -100,7 +100,7 @@ class GetInsertBuilderFeature
             $dateFields,
         );
 
-        foreach ($result as $key => $value) {
+        foreach (array_keys($result) as $key) {
             $columns[$key] = $key;
         }
 

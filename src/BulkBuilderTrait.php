@@ -37,6 +37,8 @@ trait BulkBuilderTrait
      * @return int
      *
      * @throws BulkException
+     *
+     * @psalm-api
      */
     public function selectAndUpdateMany(
         array $values,

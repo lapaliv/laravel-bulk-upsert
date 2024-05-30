@@ -105,6 +105,8 @@ class BulkAccumulationEntity
 
     /**
      * @return string[]
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function getUpdateOnly(): array
     {
@@ -113,6 +115,8 @@ class BulkAccumulationEntity
 
     /**
      * @return string[]
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function getUpdateExcept(): array
     {

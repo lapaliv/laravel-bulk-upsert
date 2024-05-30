@@ -69,13 +69,13 @@ class MarkNonexistentRowsAsSkippedFeature
             $key = $this->getUniqueKeyFeature->handle($row->model, $nonExistent->uniqueBy);
 
             if (array_key_exists($key, $keyedSelected)) {
-                foreach ($row->model->getAttributes() as $attribute => $value) {
+                foreach (array_keys($row->getModel()->getAttributes()) as $attribute) {
                     $keyedSelected[$key]->setAttribute(
                         $attribute,
-                        $row->model->getAttribute($attribute)
+                        $row->getModel()->getAttribute($attribute)
                     );
                 }
-                $row->model = $keyedSelected[$key];
+                $row->setModel($keyedSelected[$key]);
             } else {
                 $row->skipUpdating = true;
             }

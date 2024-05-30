@@ -46,11 +46,27 @@ class BulkEventDispatcher
         return $key;
     }
 
+    /**
+     * @param string $event
+     * @param callable|null $listener
+     *
+     * @return string|null
+     *
+     * @psalm-api
+     */
     public function once(string $event, ?callable $listener): ?string
     {
         return $this->listen($event, $listener, true);
     }
 
+    /**
+     * @param string $event
+     * @param string|null $key
+     *
+     * @return $this
+     *
+     * @psalm-api
+     */
     public function forget(string $event, ?string $key): static
     {
         if ($key !== null) {

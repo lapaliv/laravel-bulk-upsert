@@ -23,7 +23,7 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
      */
     private array $sets = [];
 
-    public function getTable(): string
+    public function getTable(): ?string
     {
         return $this->table;
     }
