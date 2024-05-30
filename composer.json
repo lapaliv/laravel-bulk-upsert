@@ -31,7 +31,7 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.0",
-        "nesbot/carbon": "^2.0",
+        "nesbot/carbon": "^2.0 || ^3.0",
         "illuminate/database": "*"
     },
     "require-dev": {
