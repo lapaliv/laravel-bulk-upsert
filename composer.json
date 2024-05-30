@@ -31,7 +31,7 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.0",
-        "nesbot/carbon": "^2.0",
+        "nesbot/carbon": "^2.0 || ^3.0",
         "illuminate/database": "*"
     },
     "require-dev": {
@@ -41,7 +41,7 @@
         "orchestra/testbench": "^7.19",
         "phpunit/phpunit": "9.*",
         "vimeo/psalm": "^5.13",
-        "vlucas/phpdotenv": "5.5.x-dev"
+        "vlucas/phpdotenv": "^5.6"
     },
     "extra": {
         "laravel": {
