@@ -31,17 +31,17 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.0",
-        "nesbot/carbon": "^2.0",
-        "illuminate/database": "*"
+        "nesbot/carbon": "^2.0|^3.0",
+        "illuminate/database": "^8.19|^9.0|^10.0|^11.0"
     },
     "require-dev": {
         "ext-pdo": "*",
         "fakerphp/faker": "^1.9",
         "friendsofphp/php-cs-fixer": "^3.13",
-        "orchestra/testbench": "^7.19",
-        "phpstan/phpstan": "^1.9",
-        "phpunit/phpunit": "9.*",
-        "vlucas/phpdotenv": "5.5.x-dev"
+        "orchestra/testbench": "^9.0",
+        "phpunit/phpunit": "^10.0",
+        "vimeo/psalm": "^5.13",
+        "vlucas/phpdotenv": "^5.6"
     },
     "extra": {
         "laravel": {
