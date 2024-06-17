@@ -9,6 +9,6 @@ class GetValueHashFeature
 {
     public function handle(mixed $value): string
     {
-        return hash('crc32c', $value . ':' . gettype($value));
+        return hash('crc32c', ($value->value ?? $value) . ':' . gettype($value));
     }
 }
