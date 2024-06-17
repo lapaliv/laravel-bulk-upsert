@@ -4,3 +4,4 @@
 .env
 .phpunit.result.cache
 .php-cs-fixer.cache
+/.phpunit.cache/test-results
