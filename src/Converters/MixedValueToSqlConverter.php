@@ -12,6 +12,13 @@ use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
  */
 class MixedValueToSqlConverter
 {
+    public function __construct(
+        private MixedValueToScalarConverter $mixedValueToScalarConverter
+    )
+    {
+        //
+    }
+
     /**
      * @param mixed $value
      * @param mixed[] $bindings
@@ -46,7 +53,7 @@ class MixedValueToSqlConverter
             return 'null';
         }
 
-        $bindings[] = $value;
+        $bindings[] = $this->mixedValueToScalarConverter->handle($value);
 
         return '?';
     }
