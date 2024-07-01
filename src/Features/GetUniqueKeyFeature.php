@@ -3,13 +3,17 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter;
 
 /**
  * @internal
  */
 class GetUniqueKeyFeature
 {
-    public function __construct(private GetValueHashFeature $getValueHashFeature)
+    public function __construct(
+        private GetValueHashFeature $getValueHashFeature,
+        private MixedValueToScalarConverter $mixedValueToScalarConverter
+    )
     {
         //
     }
@@ -26,7 +30,9 @@ class GetUniqueKeyFeature
 
         foreach ($attributes as $attribute) {
             if ($row instanceof Model) {
-                $key .= $row->getAttribute($attribute);
+                $key .= $this->mixedValueToScalarConverter->handle(
+                    $row->getAttribute($attribute)
+                );
             } else {
                 $key .= $row[$attribute];
             }
