@@ -779,6 +779,6 @@ You can check the [actions](https://github.com/lapaliv/laravel-bulk-upsert/actio
 ```shell
 git clone https://github.com/lapaliv/laravel-bulk-upsert.git
 cp .env.example .env
-docker-composer up -d
+docker-compose up -d
 ./vendor/bin/phpunit
 ```
