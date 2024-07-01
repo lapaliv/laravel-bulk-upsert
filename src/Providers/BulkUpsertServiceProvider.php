@@ -6,6 +6,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\ServiceProvider;
 use Lapaliv\BulkUpsert\BulkBulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
+use Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter;
 use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\SqLiteBulkDriver;
@@ -31,8 +32,9 @@ class BulkUpsertServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $getValueHashFeature = new GetValueHashFeature();
-        $getUniqueKeyFeature = new GetUniqueKeyFeature($getValueHashFeature);
+        $mixedValueToScalarConverter = new MixedValueToScalarConverter();
+        $getValueHashFeature = new GetValueHashFeature($mixedValueToScalarConverter);
+        $getUniqueKeyFeature = new GetUniqueKeyFeature($getValueHashFeature, $mixedValueToScalarConverter);
 
         $this->app->singleton(BulkDriverManager::class, fn () => new BulkBulkDriverManager());
         $this->app->singleton(GetDateFieldsFeature::class, fn () => new GetDateFieldsFeature());
