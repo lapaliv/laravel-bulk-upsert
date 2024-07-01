@@ -8,7 +8,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 
 class MixedValueToScalarConverter
 {
-    public function handle(mixed $value): int|float|bool|string
+    public function handle(mixed $value): int|float|bool|string|null
     {
         if (is_scalar($value) || $value === null) {
             return $value;
@@ -16,8 +16,8 @@ class MixedValueToScalarConverter
             return $value->value;
         } elseif (is_object($value) && method_exists($value, '__toString')) {
             $value->__toString();
-        } else {
-            throw new BulkValueTypeIsNotSupported($value);
         }
+
+        throw new BulkValueTypeIsNotSupported($value);
     }
 }
