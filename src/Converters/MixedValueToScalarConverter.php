@@ -16,8 +16,8 @@ class MixedValueToScalarConverter
             return $value->value;
         } elseif (is_object($value) && method_exists($value, '__toString')) {
             return $value->__toString();
-        } else {
-            throw new BulkValueTypeIsNotSupported($value);
         }
+
+        throw new BulkValueTypeIsNotSupported($value);
     }
 }
