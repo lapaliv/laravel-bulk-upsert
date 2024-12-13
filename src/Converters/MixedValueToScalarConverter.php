@@ -15,7 +15,7 @@ class MixedValueToScalarConverter
         } elseif (is_object($value) && PHP_VERSION_ID >= 80100 && enum_exists(get_class($value))) {
             return $value->value;
         } elseif (is_object($value) && method_exists($value, '__toString')) {
-            $value->__toString();
+            return $value->__toString();
         } else {
             throw new BulkValueTypeIsNotSupported($value);
         }
