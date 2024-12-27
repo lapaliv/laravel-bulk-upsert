@@ -32,7 +32,7 @@
     "require": {
         "php": "^8.0",
         "nesbot/carbon": "^2.0|^3.0",
-        "illuminate/database": "^8.19|^9.0|^10.0|^11.0"
+        "illuminate/database": "^8.19|^9.0|^10.0|^11.0|^12.0"
     },
     "require-dev": {
         "ext-pdo": "*",
@@ -54,11 +54,5 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "@php -r \"copy('dev/pre-commit', '.git/hooks/pre-commit'); chmod('.git/hooks/pre-commit', 0755);\"",
-            "@php -r \"copy('dev/cs-fixer.sh','.git/hooks/cs-fixer.sh'); chmod('.git/hooks/cs-fixer.sh', 0755);\""
-        ]
     }
 }

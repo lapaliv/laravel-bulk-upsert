@@ -87,7 +87,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
-    public function assertDatabaseMissing($table, array $data, $connection = null): void
+    public function assertDatabaseMissing($table, array $data = [], $connection = null): void
     {
         $filters = [];
         $jsons = [];
@@ -145,7 +145,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $spy->shouldNotHaveReceived('__invoke');
     }
 
-    protected function assertDatabaseHas($table, array $data, $connection = null): void
+    protected function assertDatabaseHas($table, array $data = [], $connection = null): void
     {
         $filters = [];
         $jsons = [];
