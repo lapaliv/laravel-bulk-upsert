@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer install --no-progress --no-suggest --prefer-dist
+          composer install --no-progress --no-suggest -n -q --prefer-dist
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit --testdox
