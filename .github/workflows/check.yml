@@ -41,10 +41,17 @@ jobs:
           sudo -u postgres psql -c "CREATE USER test_user WITH PASSWORD 'test_password';"
           sudo -u postgres psql -c "CREATE DATABASE test_db OWNER test_user;"
 
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+
       - name: Install dependencies
         uses: php-actions/composer@v6
         with:
-          args: --no-progress --no-suggest -n -q --prefer-dist
+          php-version: ${{ matrix.php-version }}
+          args: "--no-progress --no-suggest -n -q --prefer-dist"
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit --testdox
