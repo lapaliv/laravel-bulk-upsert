@@ -42,6 +42,8 @@ jobs:
           sudo -u postgres psql -c "CREATE DATABASE test_db OWNER test_user;"
 
       - name: Install dependencies
+        with:
+          COMPOSER_PROCESS_TIMEOUT: -1
         run: |
           composer install --no-progress --no-suggest -n -q --prefer-dist
 
