@@ -8,47 +8,45 @@ permissions:
 jobs:
   phpunit:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        include:
-          - php: '8.0'
-          - php: '8.1'
-          - php: '8.2'
+        php-version: [ 8.0, 8.1, 8.2, 8.3, 8.4 ]
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Copy .env
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-
-      - name: Load .env file
-        uses: xom9ikk/dotenv@v2
-
-      - uses: isbang/compose-action@v1.4.1
-        with:
-          compose-file: "./docker-compose.yml"
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          coverage: "none"
-          php-version: "${{ matrix.php }}"
-          tools: flex
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo, mysql, pgsql
+          ini-values: memory_limit=1G, post_max_size=50M, upload_max_filesize=50M
+          coverage: none
+
+      - name: Start MySQL
+        uses: mirromutth/mysql-action@v1
+        with:
+          mysql version: '8.0'
+          root password: 'root'
+          database: 'test_db'
+          user: 'test_user'
+          password: 'test_password'
+
+      - name: Start PostgreSQL
+        uses: Harmon758/postgresql-action@v2.0.0
+        with:
+          postgresql version: '14'
+          postgresql db: 'test_db'
+          postgresql user: 'test_user'
+          postgresql password: 'test_password'
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Waiting for MySQL
         run: |
-          while ! mysqladmin ping --host=${{ env.MYSQL_HOST }} --port=${{ env.MYSQL_PORT }} --password=${{ env.MYSQL_PASSWORD }} --silent; do
-            sleep 1
-          done
+          composer install --no-progress --no-suggest
 
-      - name: PHPUnit
-        run: ./vendor/bin/phpunit
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit --testdox
   psalm:
     runs-on: ubuntu-latest
 
