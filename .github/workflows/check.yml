@@ -42,10 +42,9 @@ jobs:
           sudo -u postgres psql -c "CREATE DATABASE test_db OWNER test_user;"
 
       - name: Install dependencies
+        uses: php-actions/composer@v6
         with:
-          COMPOSER_PROCESS_TIMEOUT: -1
-        run: |
-          composer install --no-progress --no-suggest -n -q --prefer-dist
+          args: --no-progress --no-suggest -n -q --prefer-dist
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit --testdox
