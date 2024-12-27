@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: [ 8.0, 8.1, 8.2, 8.3, 8.4 ]
+        php-version: [8.0, 8.1, 8.2, 8.3, 8.4]
 
     steps:
       - name: Checkout repository
@@ -34,12 +34,12 @@ jobs:
           password: 'test_password'
 
       - name: Start PostgreSQL
-        uses: Harmon758/postgresql-action@v2.0.0
-        with:
-          postgresql version: '14'
-          postgresql db: 'test_db'
-          postgresql user: 'test_user'
-          postgresql password: 'test_password'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo service postgresql start
+          sudo -u postgres psql -c "CREATE USER test_user WITH PASSWORD 'test_password';"
+          sudo -u postgres psql -c "CREATE DATABASE test_db OWNER test_user;"
 
       - name: Install dependencies
         run: |
