@@ -43,8 +43,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer config --global process-timeout 2000
-          composer config --global memory-limit -1
           composer install --no-progress --no-suggest --prefer-dist
 
       - name: Run PHPUnit tests
