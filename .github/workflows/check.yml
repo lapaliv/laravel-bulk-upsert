@@ -1,64 +1,95 @@
 name: PHPUnit & Psalm
 
-on: [push]
-
-permissions:
-  contents: read
+on: [pull_request]
 
 jobs:
   phpunit:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        include:
-          - php: '8.0'
-          - php: '8.1'
-          - php: '8.2'
+        php-version: [8.0, 8.1, 8.2, 8.3]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Copy .env
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-
-      - name: Load .env file
-        uses: xom9ikk/dotenv@v2
-
-      - uses: isbang/compose-action@v1.4.1
-        with:
-          compose-file: "./docker-compose.yml"
+      - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          coverage: "none"
-          php-version: "${{ matrix.php }}"
-          tools: flex
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo, mysql, pgsql
+          coverage: none
+
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL..."
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            sleep 2
+          done
+          echo "MySQL is up!"
+
+          echo "Waiting for PostgreSQL..."
+          until pg_isready -h 127.0.0.1 -p 5432; do
+            sleep 2
+          done
+          echo "PostgreSQL is up!"
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: composer install --prefer-dist --no-progress --ignore-platform-reqs
 
-      - name: Waiting for MySQL
+      - name: Create .env file for testing
         run: |
-          while ! mysqladmin ping --host=${{ env.MYSQL_HOST }} --port=${{ env.MYSQL_PORT }} --password=${{ env.MYSQL_PASSWORD }} --silent; do
-            sleep 1
-          done
+          echo "POSTGRESQL_HOST=127.0.0.1" > .env
+          echo "POSTGRESQL_DATABASE=test_db" >> .env
+          echo "POSTGRESQL_USERNAME=test_user" >> .env
+          echo "POSTGRESQL_PASSWORD=test_password" >> .env
+          echo "POSTGRESQL_PORT=5432" >> .env
+          echo "MYSQL_HOST=127.0.0.1" >> .env
+          echo "MYSQL_DATABASE=test_db" >> .env
+          echo "MYSQL_USERNAME=test_user" >> .env
+          echo "MYSQL_PASSWORD=test_password" >> .env
+          echo "MYSQL_PORT=3306" >> .env
 
-      - name: PHPUnit
-        run: ./vendor/bin/phpunit
+      - name: Run Tests
+        run: ./vendor/bin/phpunit --testdox
+
   psalm:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     env:
-      php-version: '8.0'
+      php_version: '8.0'
+
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ env.php-version }}
+          php-version: ${{ env.php_version }}
           ini-values: "memory_limit=-1"
           coverage: none
 
