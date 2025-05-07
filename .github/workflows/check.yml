@@ -109,7 +109,7 @@ jobs:
       - name: Creating Laravel project
         run: |
           cd /home/runner/work/
-          composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
+          composer create-project --prefer-dist laravel/laravel /home/runner/work/laravel ${{ matrix.laravel }}
           cd laravel
           composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
@@ -127,7 +127,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd laravel/vendor/lapaliv/laravel-bulk-upsert
+          cd /home/runner/work/laravel/vendor/lapaliv/laravel-bulk-upsert
           make run-tests
 
   psalm:
