@@ -107,7 +107,7 @@ jobs:
         run: |
           composer install --prefer-dist --no-progress
           cd /home/runner/work/
-          composer create-project --prefer-dist laravel/laravel /home/runner/work/laravel ${{ matrix.laravel }}
+          "composer create-project --prefer-dist laravel/laravel /home/runner/work/laravel ${{ matrix.laravel }}"
           cd laravel
           composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
