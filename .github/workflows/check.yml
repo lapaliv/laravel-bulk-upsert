@@ -3,69 +3,117 @@ name: PHPUnit & Psalm
 on: [pull_request]
 
 jobs:
+#  phpunit:
+#    runs-on: ubuntu-22.04
+#    strategy:
+#      matrix:
+#        php-version: [8.0, 8.1, 8.2, 8.3]
+#    services:
+#      mysql:
+#        image: mysql:8.0
+#        env:
+#          MYSQL_ROOT_PASSWORD: root
+#          MYSQL_DATABASE: test_db
+#          MYSQL_USER: test_user
+#          MYSQL_PASSWORD: test_password
+#        ports:
+#          - 3306:3306
+#        options: >-
+#          --health-cmd="mysqladmin ping --silent"
+#          --health-interval=10s
+#          --health-timeout=5s
+#          --health-retries=3
+#      postgres:
+#        image: postgres:14
+#        env:
+#          POSTGRES_USER: test_user
+#          POSTGRES_PASSWORD: test_password
+#          POSTGRES_DB: test_db
+#        ports:
+#          - 5432:5432
+#        options: >-
+#          --health-cmd="pg_isready"
+#          --health-interval=10s
+#          --health-timeout=5s
+#          --health-retries=3
+#
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Setup PHP
+#        uses: shivammathur/setup-php@v2
+#        with:
+#          php-version: ${{ matrix.php-version }}
+#          extensions: mbstring, pdo, mysql, pgsql
+#          coverage: none
+#
+#      - name: Wait for MySQL
+#        run: |
+#          echo "Waiting for MySQL..."
+#          until mysqladmin ping -h 127.0.0.1 --silent; do
+#            sleep 2
+#          done
+#          echo "MySQL is up!"
+#
+#          echo "Waiting for PostgreSQL..."
+#          until pg_isready -h 127.0.0.1 -p 5432; do
+#            sleep 2
+#          done
+#          echo "PostgreSQL is up!"
+#
+#      - name: Install dependencies
+#        run: composer install --prefer-dist --no-progress --ignore-platform-reqs
+#
+#      - name: Create .env file for testing
+#        run: |
+#          echo "POSTGRESQL_HOST=127.0.0.1" > .env
+#          echo "POSTGRESQL_DATABASE=test_db" >> .env
+#          echo "POSTGRESQL_USERNAME=test_user" >> .env
+#          echo "POSTGRESQL_PASSWORD=test_password" >> .env
+#          echo "POSTGRESQL_PORT=5432" >> .env
+#          echo "MYSQL_HOST=127.0.0.1" >> .env
+#          echo "MYSQL_DATABASE=test_db" >> .env
+#          echo "MYSQL_USERNAME=test_user" >> .env
+#          echo "MYSQL_PASSWORD=test_password" >> .env
+#          echo "MYSQL_PORT=3306" >> .env
+#
+#      - name: Run Tests
+#        run: ./vendor/bin/phpunit --testdox
+
   phpunit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: [8.0, 8.1, 8.2, 8.3]
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test_db
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
+        laravel: [ 8.*, 9.*, 10.*, 11.*, 12.* ]
+        php: [ 8.0, 8.1, 8.2, 8.3 ]
+        include:
+          - laravel: 8.*
+            php: 8.0
+          - laravel: 9.*
+            php: 8.0
+          - laravel: 10.*
+            php: 8.1
+          - laravel: 11.*
+            php: 8.2
+          - laravel: 12.*
+            php: 8.2
     steps:
-      - uses: actions/checkout@v4
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           extensions: mbstring, pdo, mysql, pgsql
           coverage: none
 
-      - name: Wait for MySQL
+      - name: Cloning repository
+        uses: actions/checkout@v3
+
+      - name: Creating Laravel project
         run: |
-          echo "Waiting for MySQL..."
-          until mysqladmin ping -h 127.0.0.1 --silent; do
-            sleep 2
-          done
-          echo "MySQL is up!"
-
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h 127.0.0.1 -p 5432; do
-            sleep 2
-          done
-          echo "PostgreSQL is up!"
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --ignore-platform-reqs
-
-      - name: Create .env file for testing
-        run: |
+          composer create-project --prefer-dist laravel/laravel laravel-${{ matrix.laravel }} ${{ matrix.laravel }}
+          cd laravel-${{ matrix.laravel }}
+          composer config repositories.local path ../lapaliv/laravel-bulk-upsert
+          composer require lapaliv/laravel-bulk-upsert:@dev
           echo "POSTGRESQL_HOST=127.0.0.1" > .env
           echo "POSTGRESQL_DATABASE=test_db" >> .env
           echo "POSTGRESQL_USERNAME=test_user" >> .env
@@ -76,9 +124,12 @@ jobs:
           echo "MYSQL_USERNAME=test_user" >> .env
           echo "MYSQL_PASSWORD=test_password" >> .env
           echo "MYSQL_PORT=3306" >> .env
+          php artisan key:generate
 
-      - name: Run Tests
-        run: ./vendor/bin/phpunit --testdox
+      - name: Run tests
+        run: |
+          cd laravel-${{ matrix.laravel }}/vendor/lapaliv/laravel-bulk-upsert
+          make run-tests
 
   psalm:
     runs-on: ubuntu-22.04
