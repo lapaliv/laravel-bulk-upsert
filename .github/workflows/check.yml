@@ -106,8 +106,8 @@ jobs:
       - name: Preparing Laravel project
         run: |
           composer install --prefer-dist --no-progress
-          cd /home/runner/work/
-          "composer create-project --prefer-dist laravel/laravel /home/runner/work/laravel ${{ matrix.laravel }}"
+          cd ${{ runner.workspace }}/../../
+          "composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}"
           cd laravel
           composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
@@ -122,14 +122,11 @@ jobs:
           echo "MYSQL_PASSWORD=test_password" >> .env
           echo "MYSQL_PORT=3306" >> .env
           php artisan key:generate
-#          rm -rf
-          cp -r /home/runner/work/laravel-bulk-upsert/laravel-bulk-upsert/Makefile /home/runner/work/laravel/
+          cp -r ${{ runner.workspace }}/../../laravel-bulk-upsert/laravel-bulk-upsert/Makefile ${{ runner.workspace }}/../../laravel/
 
       - name: Run tests
         run: |
-#          env DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=test_db DB_USERNAME=test_user DB_PASSWORD=test_password ./vendor/bin/phpunit
-#          env DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_DATABASE=test_db DB_USERNAME=test_user DB_PASSWORD=test_password ./vendor/bin/phpunit
-          cd /home/runner/work/laravel/vendor/lapaliv/laravel-bulk-upsert
+          cd ${{ runner.workspace }}/../../laravel/vendor/lapaliv/laravel-bulk-upsert
           make run-tests
 
   psalm:
