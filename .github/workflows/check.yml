@@ -106,11 +106,9 @@ jobs:
       - name: Checkout PR
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Creating Laravel project
+      - name: Preparing Laravel project
         run: |
+          composer install --prefer-dist --no-progress
           cd /home/runner/work/
           composer create-project --prefer-dist laravel/laravel /home/runner/work/laravel ${{ matrix.laravel }}
           cd laravel
