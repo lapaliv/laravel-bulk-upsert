@@ -6,16 +6,7 @@ use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
@@ -25,43 +16,37 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 final class CreateAndTouchTest extends TestCase
 {
     /**
-     * @param class-string<User> $userModel
-     * @param class-string<Post> $postModel
-     * @param class-string<Comment> $commentModel
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider modelsDataProvider
      */
-    public function test(string $userModel, string $postModel, string $commentModel): void
+    public function test(): void
     {
         // arrange
         $now = Carbon::now();
         Carbon::setTestNow(Carbon::now()->subYear());
 
-        $posts = $postModel::factory()->count(2)->create();
-        $users = $userModel::factory()->count(2)->create();
+        $posts = Post::factory()->count(2)->create();
+        $users = User::factory()->count(2)->create();
 
         $comments = new CommentCollection([
-            $commentModel::factory()->make([
+            Comment::factory()->make([
                 'post_id' => $posts->get(0)->id,
                 'user_id' => $users->get(0)->id,
             ]),
-            $commentModel::factory()->make([
+            Comment::factory()->make([
                 'post_id' => $posts->get(1)->id,
                 'user_id' => $users->get(1)->id,
             ]),
         ]);
 
-        $sut = $commentModel::query()
+        $sut = Comment::query()
             ->bulk()
             ->uniqueBy(['post_id', 'user_id']);
         Carbon::setTestNow($now);
 
-        $commentModel::setGlobalTouchedRelations(['user', 'post']);
-        $postModel::setGlobalTouchedRelations([]);
+        Comment::setGlobalTouchedRelations(['user', 'post']);
+        Post::setGlobalTouchedRelations([]);
 
         // act
         $sut->create($comments);
@@ -81,26 +66,5 @@ final class CreateAndTouchTest extends TestCase
                 'updated_at' => Carbon::now()->toDateTimeString(),
             ], $user->getConnectionName());
         }
-    }
-
-    public function modelsDataProvider(): array
-    {
-        return [
-            'mysql' => [
-                MySqlUser::class,
-                MySqlPost::class,
-                MySqlComment::class,
-            ],
-            'pgsql' => [
-                PostgreSqlUser::class,
-                PostgreSqlPost::class,
-                PostgreSqlComment::class,
-            ],
-            'sqlite' => [
-                SqLiteUser::class,
-                SqLitePost::class,
-                SqLiteComment::class,
-            ],
-        ];
     }
 }

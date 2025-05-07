@@ -4,11 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -21,16 +17,11 @@ final class CreateDifferentUniqueByTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function test(string $model): void
+    public function test(): void
     {
         // arrange
         $userWithEmail = Arr::except(
@@ -42,10 +33,9 @@ final class CreateDifferentUniqueByTest extends TestCase
             ['email']
         );
         $connectionName = $this->userGenerator
-            ->setModel($model)
             ->makeOne()
             ->getConnectionName();
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy('email')
             ->orUniqueBy('avatar');
@@ -54,7 +44,7 @@ final class CreateDifferentUniqueByTest extends TestCase
         $sut->create([$userWithEmail, $userWithAvatar]);
 
         // assert
-        $this->assertDatabaseHas($model::table(), [
+        $this->assertDatabaseHas(User::table(), [
             'name' => $userWithAvatar['name'],
             'gender' => $userWithAvatar['gender']->value,
             'avatar' => $userWithAvatar['avatar'],
@@ -69,7 +59,7 @@ final class CreateDifferentUniqueByTest extends TestCase
             'deleted_at' => null,
         ], $connectionName);
 
-        $this->assertDatabaseHas($model::table(), [
+        $this->assertDatabaseHas(User::table(), [
             'email' => $userWithEmail['email'],
             'name' => $userWithEmail['name'],
             'gender' => $userWithEmail['gender']->value,
@@ -83,14 +73,5 @@ final class CreateDifferentUniqueByTest extends TestCase
             'updated_at' => Carbon::now()->toDateTimeString(),
             'deleted_at' => null,
         ], $connectionName);
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

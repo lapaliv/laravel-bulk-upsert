@@ -4,11 +4,17 @@ namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
+use Lapaliv\BulkUpsert\Tests\App\Builders\ArticleBuilder;
+use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Builders\UserBuilder;
+use Lapaliv\BulkUpsert\Tests\App\Collection\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Enums\Gender;
+use Lapaliv\BulkUpsert\Tests\App\Factories\UserFactory;
 use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
 
 /**
@@ -31,8 +37,13 @@ use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
  * @property CarbonInterface|null $deleted_at
  *
  * @method static UserBuilder query()
+ *
+ * @property-read CommentCollection $comments
+ * @property-read ArticleCollection $articles
+ *
+ * @method static UserFactory factory($count = null, $state = [])
  */
-abstract class User extends Model
+class User extends Model
 {
     use SoftDeletes;
     use HasFactory;
@@ -113,5 +124,20 @@ abstract class User extends Model
     public function newCollection(array $models = []): UserCollection
     {
         return new UserCollection($models);
+    }
+
+    public function comments(): HasMany|CommentBuilder
+    {
+        return $this->hasMany(Comment::class, 'user_id');
+    }
+
+    public function articles(): HasMany|ArticleBuilder
+    {
+        return $this->hasMany(Article::class, 'user_id');
+    }
+
+    protected static function newFactory(): UserFactory
+    {
+        return new UserFactory();
     }
 }

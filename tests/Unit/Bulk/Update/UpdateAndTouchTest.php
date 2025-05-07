@@ -8,13 +8,7 @@ use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteComment;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
@@ -23,40 +17,35 @@ use Lapaliv\BulkUpsert\Tests\TestCase;
 final class UpdateAndTouchTest extends TestCase
 {
     /**
-     * @param class-string<Post> $postModel
-     * @param class-string<Comment> $commentModel
-     *
      * @return void
      *
      * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider modelsDataProvider
      */
-    public function test(string $postModel, string $commentModel): void
+    public function test(): void
     {
         // arrange
         $now = Carbon::now();
         Carbon::setTestNow(Carbon::now()->subYear());
 
         /** @var PostCollection $posts */
-        $posts = $postModel::factory()
+        $posts = Post::factory()
             ->count(2)
             ->create()
             ->each(
-                function (Post $post) use ($commentModel): void {
-                    $commentModel::factory()
+                function (Post $post): void {
+                    Comment::factory()
                         ->count(2)
                         ->create(['post_id' => $post->id]);
 
                     $post->text = Str::random();
                 }
             );
-        $sut = $postModel::query()->bulk();
+        $sut = Post::query()->bulk();
         Carbon::setTestNow($now);
 
-        $commentModel::setGlobalTouchedRelations(['user']);
-        $postModel::setGlobalTouchedRelations(['comments']);
+        Comment::setGlobalTouchedRelations(['user']);
+        Post::setGlobalTouchedRelations(['comments']);
 
         // act
         $sut->update($posts);
@@ -76,14 +65,5 @@ final class UpdateAndTouchTest extends TestCase
                 ], $comment->user->getConnectionName());
             }
         }
-    }
-
-    public function modelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlPost::class, MySqlComment::class],
-            'pgsql' => [PostgreSqlPost::class, PostgreSqlComment::class],
-            'sqlite' => [SqLitePost::class, SqLiteComment::class],
-        ];
     }
 }

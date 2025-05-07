@@ -10,9 +10,6 @@ use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -27,7 +24,6 @@ final class CreateBuilderCallbacksTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -37,12 +33,12 @@ final class CreateBuilderCallbacksTest extends TestCase
      *
      * @throws BulkException
      */
-    public function testModel(string $model, string $method, Closure $callback): void
+    public function testModel(string $method, Closure $callback): void
     {
         // arrange
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
         $sut->{$method}($spy);
@@ -51,7 +47,7 @@ final class CreateBuilderCallbacksTest extends TestCase
         $sut->create($users);
 
         // arrange
-        $this->spyShouldHaveReceived($spy)
+        self::spyShouldHaveReceived($spy)
             ->once()
             ->withArgs(
                 function (User $user) use ($users): bool {
@@ -61,7 +57,6 @@ final class CreateBuilderCallbacksTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $method
      * @param Closure $callback
      *
@@ -71,13 +66,13 @@ final class CreateBuilderCallbacksTest extends TestCase
      *
      * @throws BulkException
      */
-    public function testCollection(string $model, string $method, Closure $callback): void
+    public function testCollection(string $method, Closure $callback): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
         $sut->{$method . 'Many'}($spy);
@@ -86,7 +81,7 @@ final class CreateBuilderCallbacksTest extends TestCase
         $sut->create($users);
 
         // arrange
-        $this->spyShouldHaveReceived($spy)
+        self::spyShouldHaveReceived($spy)
             ->once()
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
@@ -100,16 +95,14 @@ final class CreateBuilderCallbacksTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testCallUndefinedListener(string $model): void
+    public function testCallUndefinedListener(): void
     {
         // arrange
-        $sut = $model::query()->bulk();
+        $sut = User::query()->bulk();
 
         // assert
         $this->expectException(BadMethodCallException::class);
@@ -120,7 +113,7 @@ final class CreateBuilderCallbacksTest extends TestCase
 
     public function dataProvider(): array
     {
-        $target = [
+        return [
             'onCreating' => [
                 'onCreating',
                 function () {
@@ -163,28 +156,6 @@ final class CreateBuilderCallbacksTest extends TestCase
                     );
                 },
             ],
-        ];
-
-        $result = [];
-
-        foreach ($target as $key => $value) {
-            foreach ($this->userModelsDataProvider() as $type => $model) {
-                $result[$key . '&& ' . $type] = [
-                    $model[0],
-                    ...$value,
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

@@ -15,8 +15,10 @@ use Lapaliv\BulkUpsert\Tests\App\Models\Post;
  * @method Post|PostCollection createMany(iterable $records)
  * @method self|static count(?int $count)
  */
-abstract class PostFactory extends Factory
+class PostFactory extends Factory
 {
+    protected $model = Post::class;
+
     /**
      * Define the model's default state.
      *

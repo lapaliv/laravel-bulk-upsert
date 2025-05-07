@@ -2,10 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Tests\Unit\BulkBuilderTrait;
 
-use JsonException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\TestCase;
@@ -19,18 +16,13 @@ class SelectAndUpdateManyTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testWithoutEvents(string $model): void
+    public function testWithoutEvents(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = $this->userGenerator->createCollection(2);
         $fakeUser = $this->userGenerator->makeOne();
         $values = [
@@ -44,7 +36,7 @@ class SelectAndUpdateManyTest extends TestCase
             'phones' => $fakeUser->phones,
             'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
-        $sut = $model::query()
+        $sut = User::query()
             ->whereIn('email', $users->pluck('email'));
 
         // act
@@ -74,18 +66,13 @@ class SelectAndUpdateManyTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testWithEventsById(string $model): void
+    public function testWithEventsById(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = $this->userGenerator->createCollection(10);
         $fakeUser = $this->userGenerator->makeOne();
         $values = [
@@ -99,8 +86,8 @@ class SelectAndUpdateManyTest extends TestCase
             'phones' => $fakeUser->phones,
             'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
-        $model::observe(Observer::class);
-        $sut = $model::query()
+        User::observe(Observer::class);
+        $sut = User::query()
             ->whereIn('email', $users->pluck('email'));
 
         // act
@@ -130,18 +117,13 @@ class SelectAndUpdateManyTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testWithEventsByEmail(string $model): void
+    public function testWithEventsByEmail(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = $this->userGenerator->createCollection(10);
         $fakeUser = $this->userGenerator->makeOne();
         $values = [
@@ -155,8 +137,8 @@ class SelectAndUpdateManyTest extends TestCase
             'phones' => $fakeUser->phones,
             'last_visited_at' => $fakeUser->last_visited_at?->toDateTimeString(),
         ];
-        $model::observe(Observer::class);
-        $sut = $model::query()
+        User::observe(Observer::class);
+        $sut = User::query()
             ->whereIn('email', $users->pluck('email'));
 
         // act
@@ -183,14 +165,5 @@ class SelectAndUpdateManyTest extends TestCase
                 );
             }
         );
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'psql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

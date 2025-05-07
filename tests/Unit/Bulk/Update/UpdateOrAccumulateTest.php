@@ -3,9 +3,6 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -18,21 +15,15 @@ final class UpdateOrAccumulateTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testBigChunkSize(string $model): void
+    public function testBigChunkSize(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -41,12 +32,11 @@ final class UpdateOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasNotUpdated($user)
+            fn(User $user) => $this->userWasNotUpdated($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
@@ -55,13 +45,11 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testSmallChunkSize(string $model, string $uniqBy): void
+    public function testSmallChunkSize(string $uniqBy): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy($uniqBy)
             ->chunk(2);
@@ -71,12 +59,11 @@ final class UpdateOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasUpdated($user)
+            fn(User $user) => $this->userWasUpdated($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
@@ -85,13 +72,11 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testSmallChunkSizeWithExtraCount(string $model, string $uniqBy): void
+    public function testSmallChunkSizeWithExtraCount(string $uniqBy): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(5);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(5);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy($uniqBy)
             ->chunk($users->count() - 1);
@@ -101,13 +86,12 @@ final class UpdateOrAccumulateTest extends TestCase
 
         // assert
         $users->slice(0, $users->count() - 1)->each(
-            fn (User $user) => $this->userWasUpdated($user)
+            fn(User $user) => $this->userWasUpdated($user)
         );
         $this->userWasNotUpdated($users->last());
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $uniqBy
      *
      * @return void
@@ -116,13 +100,11 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function testSaveAccumulated(string $model, string $uniqBy): void
+    public function testSaveAccumulated(string $uniqBy): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy($uniqBy)
             ->updateOrAccumulate($users);
@@ -132,37 +114,15 @@ final class UpdateOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasUpdated($user)
+            fn(User $user) => $this->userWasUpdated($user)
         );
     }
 
     public function dataProvider(): array
     {
-        $target = [
+        return [
             'email' => ['email'],
             'id' => ['id'],
-        ];
-
-        $result = [];
-
-        foreach ($this->userModelsDataProvider() as $type => $model) {
-            foreach ($target as $key => $value) {
-                $result[$key . ' && ' . $type] = [
-                    $model[0],
-                    ...$value,
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
         ];
     }
 }

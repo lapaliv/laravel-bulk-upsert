@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\StoryBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\StoryCollection;
+use Lapaliv\BulkUpsert\Tests\App\Factories\StoryFactory;
 
 /**
  * @property string $uuid
@@ -16,8 +17,10 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\StoryCollection;
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
  * @property CarbonInterface|null $deleted_at
+ *
+ * @method static StoryFactory factory($count = null, $state = [])
  */
-abstract class Story extends Model
+class Story extends Model
 {
     use SoftDeletes;
     use HasFactory;
@@ -74,5 +77,10 @@ abstract class Story extends Model
     public function newCollection(array $models = []): StoryCollection
     {
         return new StoryCollection($models);
+    }
+
+    public static function newFactory(): StoryFactory
+    {
+        return new StoryFactory();
     }
 }

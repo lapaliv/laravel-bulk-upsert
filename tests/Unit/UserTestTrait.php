@@ -3,11 +3,7 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 
@@ -25,20 +21,6 @@ trait UserTestTrait
         $this->userGenerator = new UserGenerator();
         Carbon::setTestNow(Carbon::now());
         Observer::flush();
-    }
-
-    /**
-     * The models for checking.
-     *
-     * @return array[]
-     */
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'psql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 
     protected function userWasCreated(User $user): void
@@ -160,32 +142,5 @@ trait UserTestTrait
         self::assertEquals(Carbon::now()->startOfSecond(), $actual->updated_at);
         self::assertEquals($expect->deleted_at, $actual->deleted_at);
         self::assertTrue($actual->id > 0);
-    }
-
-    protected function makeUserCollection(string $model, int $count, array $data = []): UserCollection
-    {
-        return call_user_func([$model, 'factory'])->count($count)->make($data);
-    }
-
-    protected function createUserCollection(string $model, int $count, array $data = []): UserCollection
-    {
-        return call_user_func([$model, 'factory'])->count($count)->create($data);
-    }
-
-    protected function createDirtyUserCollection(string $model, int $count, array $data = []): UserCollection
-    {
-        $users = $this->createUserCollection($model, $count);
-        $result = $this->makeUserCollection($model, $count, $data);
-
-        foreach ($result as $key => $user) {
-            $user->email = $users->get($key)->email;
-        }
-
-        return $result;
-    }
-
-    protected function createUser(string $model, array $data = []): User
-    {
-        return call_user_func([$model, 'factory'])->create($data);
     }
 }

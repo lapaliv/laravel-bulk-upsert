@@ -5,7 +5,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk;
 use Illuminate\Support\Str;
 use Lapaliv\BulkUpsert\Bulk;
 use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 
 /**
@@ -16,7 +16,7 @@ final class TransmittingModelIntoConstructorTest extends TestCase
     public function testModel(): void
     {
         // arrange
-        $payload = new MySqlUser();
+        $payload = new User();
 
         // act
         $bulk = new Bulk($payload);
@@ -28,7 +28,7 @@ final class TransmittingModelIntoConstructorTest extends TestCase
     public function testModelClassName(): void
     {
         // arrange
-        $payload = MySqlUser::class;
+        $payload = User::class;
 
         // act
         $bulk = new Bulk($payload);

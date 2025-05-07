@@ -7,6 +7,11 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Support\Facades\DB;
 use Lapaliv\BulkUpsert\Providers\BulkUpsertServiceProvider;
+use Lapaliv\BulkUpsert\Tests\App\Models\Article;
+use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
+use Lapaliv\BulkUpsert\Tests\App\Models\Post;
+use Lapaliv\BulkUpsert\Tests\App\Models\Story;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
@@ -34,41 +39,20 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $dotenv = Dotenv::createMutable(dirname(__DIR__));
         $dotenv->load();
 
-        $sqlitePath = self::getSqLitePath();
-
-        if (file_exists($sqlitePath)) {
-            unlink($sqlitePath);
-        }
-
-        if (!is_dir(dirname($sqlitePath))) {
-            mkdir(dirname($sqlitePath), 0777, true);
-        }
-
-        if (!touch($sqlitePath)) {
-            throw new RuntimeException('SQLite database was not created');
-        }
-
         self::configureManager();
 
         // deleting tables
-        $modelPrefixes = ['MySql', 'PostgreSql', 'SqLite'];
+        Comment::dropTable();
+        Post::dropTable();
+        Story::dropTable();
+        Article::dropTable();
+        User::dropTable();
 
-        foreach ($modelPrefixes as $modelPrefix) {
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'dropTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'dropTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'dropTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Article', 'dropTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'dropTable']);
-        }
-
-        // creating tables
-        foreach ($modelPrefixes as $modelPrefix) {
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'User', 'createTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Post', 'createTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Comment', 'createTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Story', 'createTable']);
-            call_user_func(['Lapaliv\BulkUpsert\Tests\App\Models\\' . $modelPrefix . 'Article', 'createTable']);
-        }
+        User::createTable();
+        Post::createTable();
+        Comment::createTable();
+        Story::createTable();
+        Article::createTable();
     }
 
     /**
@@ -83,7 +67,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
 
-        $this->app->bind('db', fn () => self::$manager->getDatabaseManager());
+        $this->app->bind('db', fn() => self::$manager->getDatabaseManager());
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
@@ -135,12 +119,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         }
     }
 
-    protected function spyShouldHaveReceived(LegacyMockInterface|MockInterface $spy): VerificationDirector
+    protected static function spyShouldHaveReceived(LegacyMockInterface|MockInterface $spy): VerificationDirector
     {
         return $spy->shouldHaveReceived('__invoke');
     }
 
-    protected function spyShouldNotHaveReceived(LegacyMockInterface|MockInterface $spy): void
+    protected static function spyShouldNotHaveReceived(LegacyMockInterface|MockInterface $spy): void
     {
         $spy->shouldNotHaveReceived('__invoke');
     }
@@ -218,6 +202,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
     private static function configureManager(): void
     {
         $manager = new Manager();
+
         $manager->addConnection([
             'driver' => 'mysql',
             'url' => env('MYSQL_URL'),
@@ -257,13 +242,31 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
             'driver' => 'sqlite',
             'database' => self::getSqLitePath(),
             'prefix' => '',
-            //            'foreign_key_constraints' => true,
         ], 'sqlite');
+
+        $connection = env('DB_CONNECTION', 'mysql');
 
         self::$manager = $manager;
 
         self::$manager->setAsGlobal();
         self::$manager->bootEloquent();
+        self::$manager->getDatabaseManager()->setDefaultConnection($connection);
+
+        if ($connection === 'sqlite') {
+            $sqlitePath = self::getSqLitePath();
+
+            if (file_exists($sqlitePath)) {
+                unlink($sqlitePath);
+            }
+
+            if (!is_dir(dirname($sqlitePath))) {
+                mkdir(dirname($sqlitePath), 0777, true);
+            }
+
+            if (!touch($sqlitePath)) {
+                throw new RuntimeException('SQLite database was not created');
+            }
+        }
     }
 
     private static function getSqLitePath(): string

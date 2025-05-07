@@ -6,9 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -21,7 +18,6 @@ final class UpdateDifferentUniqueByTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
      * @param array|string $uniqueBy
      * @param array|string $orUniqueBy
      *
@@ -32,10 +28,9 @@ final class UpdateDifferentUniqueByTest extends TestCase
      *
      * @dataProvider dataProvider
      */
-    public function test(string $model, string|array $uniqueBy, string|array $orUniqueBy): void
+    public function test(string|array $uniqueBy, string|array $orUniqueBy): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $userWithEmail = Arr::except(
             $this->userGenerator->createOneAndDirty()->toArray(),
             ['id']
@@ -45,7 +40,7 @@ final class UpdateDifferentUniqueByTest extends TestCase
             ['email']
         );
         $connectionName = $this->userGenerator->makeOne()->getConnectionName();
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy($uniqueBy)
             ->orUniqueBy($orUniqueBy);
@@ -54,7 +49,7 @@ final class UpdateDifferentUniqueByTest extends TestCase
         $sut->update([$userWithEmail, $userWithId]);
 
         // assert
-        $this->assertDatabaseHas($model::table(), [
+        $this->assertDatabaseHas(User::table(), [
             'id' => $userWithId['id'],
             'name' => $userWithId['name'],
             'gender' => $userWithId['gender']->value,
@@ -69,12 +64,12 @@ final class UpdateDifferentUniqueByTest extends TestCase
             'deleted_at' => $userWithId['deleted_at'],
         ], $connectionName);
 
-        $this->assertDatabaseMissing($model::table(), [
+        $this->assertDatabaseMissing(User::table(), [
             'id' => $userWithId['id'],
             'created_at' => Carbon::now()->toDateTimeString(),
         ], $connectionName);
 
-        $this->assertDatabaseHas($model::table(), [
+        $this->assertDatabaseHas(User::table(), [
             'email' => $userWithEmail['email'],
             'name' => $userWithEmail['name'],
             'gender' => $userWithEmail['gender']->value,
@@ -89,7 +84,7 @@ final class UpdateDifferentUniqueByTest extends TestCase
             'deleted_at' => $userWithEmail['deleted_at'],
         ], $connectionName);
 
-        $this->assertDatabaseMissing($model::table(), [
+        $this->assertDatabaseMissing(User::table(), [
             'email' => $userWithEmail['email'],
             'created_at' => Carbon::now()->toDateTimeString(),
         ], $connectionName);
@@ -97,32 +92,10 @@ final class UpdateDifferentUniqueByTest extends TestCase
 
     public function dataProvider(): array
     {
-        $target = [
+        return [
             'email, id' => ['email', 'id'],
             '[email], [id]' => [['email'], ['id']],
             '[[email]], [[id]]' => [[['email']], [['id']]],
-        ];
-
-        $result = [];
-
-        foreach ($this->userModels() as $type => $model) {
-            foreach ($target as $key => $value) {
-                $result[$key . ' && ' . $type] = [
-                    $model,
-                    ...$value,
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    public function userModels(): array
-    {
-        return [
-            'mysql' => MySqlUser::class,
-            'pgsql' => PostgreSqlUser::class,
-            'sqlite' => SqLiteUser::class,
         ];
     }
 }

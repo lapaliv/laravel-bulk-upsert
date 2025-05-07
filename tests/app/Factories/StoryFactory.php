@@ -3,9 +3,21 @@
 namespace Lapaliv\BulkUpsert\Tests\App\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Tests\App\Collection\StoryCollection;
+use Lapaliv\BulkUpsert\Tests\App\Models\Story;
 
-abstract class StoryFactory extends Factory
+/**
+ * @internal
+ *
+ * @method Story|StoryCollection create($attributes = [], ?Model $parent = null)
+ * @method Story|StoryCollection make($attributes = [], ?Model $parent = null)
+ * @method Story|StoryCollection createMany(iterable $records)
+ */
+class StoryFactory extends Factory
 {
+    protected $model = Story::class;
+
     /**
      * Define the model's default state.
      *

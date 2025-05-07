@@ -8,7 +8,6 @@ use Lapaliv\BulkUpsert\Tests\App\Models\Story;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\StoryTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 use PDOException;
 
@@ -19,22 +18,17 @@ class InsertTest extends CreateScenarioTestCase
 {
     use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
-    use StoryTestTrait;
 
     /**
      * Verifying the successful creation of users.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testSuccessfully(string $userModel): void
+    public function testSuccessfully(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
-        $users = $this->makeUserCollection($userModel, 2);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -49,18 +43,14 @@ class InsertTest extends CreateScenarioTestCase
      * If any of the rows already exist in the database, the request should trigger a PDOException,
      * and none of the rows should be updated.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDuplicate(string $userModel): void
+    public function testDuplicate(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
-        $existingUser = $this->createUser($userModel);
-        $users = $this->makeUserCollection($userModel, 2);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
+        $existingUser = User::factory()->create();
+        $users = User::factory()->count(2)->make();
         $users->get(0)->email = $existingUser->email;
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
@@ -83,18 +73,14 @@ class InsertTest extends CreateScenarioTestCase
      * If any of the rows already exist in the database and the 'ignoring' flag is set to true,
      * the request should not trigger a PDOException, and new rows should be inserted.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDuplicateWithIgnoring(string $userModel): void
+    public function testDuplicateWithIgnoring(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
-        $existingUser = $this->createUser($userModel);
-        $users = $this->makeUserCollection($userModel, 2);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
+        $existingUser = User::factory()->create();
+        $users = User::factory()->count(2)->make();
         $users->get(0)->email = $existingUser->email;
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
@@ -111,20 +97,16 @@ class InsertTest extends CreateScenarioTestCase
      * After creation, the 'wasRecentlyCreated' flag must be set to true
      * if the model has the 'incrementing' flag set to true.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testFlagWasRecentlyCreatedWithIncrementing(string $userModel): void
+    public function testFlagWasRecentlyCreatedWithIncrementing(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $eventDispatcher->listen(BulkEventEnum::SAVED, function (User $user) {
             self::assertTrue($user->wasRecentlyCreated);
         });
-        $users = $this->makeUserCollection($userModel, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -135,22 +117,16 @@ class InsertTest extends CreateScenarioTestCase
      * After creation, the 'wasRecentlyCreated' flag must be set to true
      * if the model has the 'incrementing' flag set to false.
      *
-     * @param string $storyModel
-     *
-     * @psalm-param class-string<Story> $storyModel
-     *
      * @return void
-     *
-     * @dataProvider storyModelsDataProvider
      */
-    public function testFlagWasRecentlyCreatedWithoutIncrementing(string $storyModel): void
+    public function testFlagWasRecentlyCreatedWithoutIncrementing(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($storyModel);
+        $eventDispatcher = new BulkEventDispatcher(Story::class);
         $eventDispatcher->listen(BulkEventEnum::SAVED, function (Story $story) {
             self::assertTrue($story->wasRecentlyCreated);
         });
-        $stories = $this->makeStoryCollection($storyModel, 2);
+        $stories = Story::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($stories, ['uuid']);
 
         // act

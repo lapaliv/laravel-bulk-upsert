@@ -4,10 +4,12 @@ namespace Lapaliv\BulkUpsert\Tests\App\Models;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\ArticleBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\ArticleCollection;
+use Lapaliv\BulkUpsert\Tests\App\Factories\ArticleFactory;
 use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
 
 /**
@@ -19,6 +21,9 @@ use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  * @property-read CarbonInterface|null $deleted_at
+ * @property-read User $user
+ *
+ * @method static ArticleFactory factory($count = null, $state = [])
  */
 class Article extends Model
 {
@@ -84,5 +89,15 @@ class Article extends Model
     public function newCollection(array $models = []): ArticleCollection
     {
         return new ArticleCollection($models);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public static function newFactory(): ArticleFactory
+    {
+        return new ArticleFactory();
     }
 }

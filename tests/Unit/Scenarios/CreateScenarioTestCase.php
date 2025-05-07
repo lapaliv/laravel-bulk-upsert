@@ -16,7 +16,8 @@ abstract class CreateScenarioTestCase extends TestCase
         array $dateFields = [],
         array $selectColumns = ['*'],
         ?string $deletedAtColumn = null,
-    ): void {
+    ): void
+    {
         // arrange
         $sut = $this->getFromContainer(CreateScenario::class);
 

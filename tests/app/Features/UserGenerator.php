@@ -4,7 +4,6 @@ namespace Lapaliv\BulkUpsert\Tests\App\Features;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 /**
@@ -12,38 +11,26 @@ use Lapaliv\BulkUpsert\Tests\App\Models\User;
  */
 final class UserGenerator
 {
-    /**
-     * @var class-string<User>
-     */
-    private string $model = MySqlUser::class;
-
-    public function setModel(string $model): self
-    {
-        $this->model = $model;
-
-        return $this;
-    }
-
     public function makeCollection(int $count, array $attributes = []): UserCollection
     {
-        return $this->model::factory()
+        return User::factory()
             ->count($count)
             ->make($attributes);
     }
 
     public function makeOne(array $attributes = []): User
     {
-        return $this->model::factory()->make($attributes);
+        return User::factory()->make($attributes);
     }
 
     public function createOne(array $attributes = []): User
     {
-        return $this->model::factory()->create($attributes);
+        return User::factory()->create($attributes);
     }
 
     public function createOneAndDirty(array $creatingAttributes = [], array $dirtyAttributes = []): User
     {
-        $result = $this->model::factory()->create($creatingAttributes);
+        $result = User::factory()->create($creatingAttributes);
 
         $result->created_at = Carbon::now()->subYears(2);
         $result->updated_at = Carbon::now()->subYear();
@@ -75,7 +62,8 @@ final class UserGenerator
         int $count,
         array $creatingAttributes = [],
         array $dirtyAttributes = [],
-    ): UserCollection {
+    ): UserCollection
+    {
         $result = new UserCollection();
 
         for ($i = 0; $i < $count; ++$i) {

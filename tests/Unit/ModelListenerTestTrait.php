@@ -28,7 +28,8 @@ trait ModelListenerTestTrait
     protected function makeSimpleModelListener(
         string $event,
         BulkEventDispatcher $eventDispatcher,
-    ): LegacyMockInterface|MockInterface {
+    ): LegacyMockInterface|MockInterface
+    {
         $result = Mockery::spy(TestCallback::class);
         $eventDispatcher->listen($event, $result);
 
@@ -39,7 +40,8 @@ trait ModelListenerTestTrait
         string $event,
         BulkEventDispatcher $eventDispatcher,
         mixed $returningValue,
-    ): LegacyMockInterface|MockInterface {
+    ): LegacyMockInterface|MockInterface
+    {
         $result = Mockery::spy(TestCallback::class);
         $result->expects('__invoke')
             ->zeroOrMoreTimes()

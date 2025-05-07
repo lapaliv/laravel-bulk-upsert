@@ -3,13 +3,22 @@
 namespace Lapaliv\BulkUpsert\Tests\App\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
+use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Enums\Gender;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 
 /**
  * @internal
+ *
+ * @method User|UserCollection create($attributes = [], ?Model $parent = null)
+ * @method User|UserCollection make($attributes = [], ?Model $parent = null)
+ * @method User|UserCollection createMany(iterable $records)
  */
-abstract class UserFactory extends Factory
+class UserFactory extends Factory
 {
+    protected $model = User::class;
+
     /**
      * Define the model's default state.
      *

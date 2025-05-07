@@ -3,11 +3,8 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
 
 use Carbon\Carbon;
-use JsonException;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\TestCase;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
@@ -20,21 +17,17 @@ final class UpsertTest extends TestCase
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testBase(string $model): void
+    public function testBase(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -47,15 +40,12 @@ final class UpsertTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
+     * @throws RandomException
      */
-    public function testWithTimestamps(string $model): void
+    public function testWithTimestamps(): void
     {
         // arrange
         $expectedCreatedAt = Carbon::now()->subSeconds(
@@ -64,7 +54,6 @@ final class UpsertTest extends TestCase
         $expectedUpdatedAt = Carbon::now()->subSeconds(
             random_int(100, 100_000)
         );
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
@@ -75,7 +64,7 @@ final class UpsertTest extends TestCase
                 $user->setUpdatedAt($expectedUpdatedAt);
             }
         );
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -92,14 +81,5 @@ final class UpsertTest extends TestCase
                 ], $user->getConnectionName());
             }
         );
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

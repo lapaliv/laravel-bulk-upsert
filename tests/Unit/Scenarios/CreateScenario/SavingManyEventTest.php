@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
 
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
@@ -21,52 +22,44 @@ class SavingManyEventTest extends CreateScenarioTestCase
     /**
      * If the model has a listener for the 'savingMany' event, then this listener should be called.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testTriggering(string $userModel): void
+    public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVING_MANY, $eventDispatcher);
-        $users = $this->makeUserCollection($userModel, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
         $this->handleCreateScenario($data, $eventDispatcher);
 
         // assert
-        $this->spyShouldHaveReceived($listener)->once();
+        self::spyShouldHaveReceived($listener)->once();
     }
 
     /**
      * The listener for the 'savingMany' event should receive two arguments:
      * the model and an object of the BulkRows class.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testListenerArguments(string $userModel): void
+    public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVING_MANY, $eventDispatcher);
-        $users = $this->makeUserCollection($userModel, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
         $this->handleCreateScenario($data, $eventDispatcher);
 
         // assert
-        $this->spyShouldHaveReceived($listener)
+        self::spyShouldHaveReceived($listener)
             ->withArgs(
-                fn () => $this->assertCollectionListenerArguments($users, ...func_get_args())
+                fn() => $this->assertCollectionListenerArguments($users, ...func_get_args())
             );
     }
 }

@@ -10,9 +10,6 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
@@ -25,7 +22,6 @@ use Mockery;
 final class UpdateAfterWritingEventsTest extends TestCase
 {
     /**
-     * @param class-string<User> $model
      * @param Closure $data
      * @param array $events
      *
@@ -35,16 +31,16 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @throws BulkException
      */
-    public function testModel(string $model, Closure $data, array $events): void
+    public function testModel(Closure $data, array $events): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
 
         $spies = [];
 
@@ -60,7 +56,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
         foreach ($events as $event) {
             $copiesUsers = clone $users;
 
-            $this->spyShouldHaveReceived($spies[$event])
+            self::spyShouldHaveReceived($spies[$event])
                 ->times($users->count())
                 ->withArgs(
                     function (User $user) use ($copiesUsers): bool {
@@ -74,7 +70,6 @@ final class UpdateAfterWritingEventsTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
      * @param Closure $data
      * @param string $event
      *
@@ -84,24 +79,24 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @throws BulkException
      */
-    public function testCollection(string $model, Closure $data, string $event): void
+    public function testCollection(Closure $data, string $event): void
     {
         // arrange
         /** @var UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listen($event, $spy);
 
         // act
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($spy)
+        self::spyShouldHaveReceived($spy)
             ->once()
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
@@ -114,7 +109,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
 
     public function modelDataProvider(): array
     {
-        $target = [
+        return [
             'saved' => [
                 function () {
                     return App::make(UserGenerator::class)
@@ -195,24 +190,11 @@ final class UpdateAfterWritingEventsTest extends TestCase
                 [BulkEventEnum::RESTORED],
             ],
         ];
-
-        $result = [];
-
-        foreach ($this->userModels() as $type => $model) {
-            foreach ($target as $key => $value) {
-                $result[$key . ' && ' . $type] = [
-                    $model,
-                    ...$value,
-                ];
-            }
-        }
-
-        return $result;
     }
 
     public function collectionDataProvider(): array
     {
-        $target = [
+        return [
             'saved many' => [
                 function () {
                     return App::make(UserGenerator::class)
@@ -249,28 +231,6 @@ final class UpdateAfterWritingEventsTest extends TestCase
                 },
                 BulkEventEnum::RESTORED_MANY,
             ],
-        ];
-
-        $result = [];
-
-        foreach ($this->userModels() as $type => $model) {
-            foreach ($target as $key => $value) {
-                $result[$key . ' && ' . $type] = [
-                    $model,
-                    ...$value,
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    public function userModels(): array
-    {
-        return [
-            'mysql' => MySqlUser::class,
-            'pgsql' => PostgreSqlUser::class,
-            'sqlite' => SqLiteUser::class,
         ];
     }
 }

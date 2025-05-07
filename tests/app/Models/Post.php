@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Schema\Blueprint;
 use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Builders\PostBuilder;
+use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
 use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
 use Lapaliv\BulkUpsert\Tests\App\Factories\PostFactory;
 use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
@@ -21,11 +22,12 @@ use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
  * @property CarbonInterface $updated_at
  *
  * @property-read Comment $comment
+ * @property-read CommentCollection $comments
  *
  * @method static PostBuilder query()
  * @method static PostFactory factory($count = null, $state = [])
  */
-abstract class Post extends Model
+class Post extends Model
 {
     use HasFactory;
     use GlobalTouches;
@@ -67,5 +69,13 @@ abstract class Post extends Model
         return new PostCollection($models);
     }
 
-    abstract public function comments(): HasMany|CommentBuilder;
+    public function comments(): HasMany|CommentBuilder
+    {
+        return $this->hasMany(Comment::class, 'post_id', 'id');
+    }
+
+    public static function newFactory(): PostFactory
+    {
+        return new PostFactory();
+    }
 }

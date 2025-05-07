@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Tests\App\Builders\CommentBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Builders\PostBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Builders\UserBuilder;
 use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
+use Lapaliv\BulkUpsert\Tests\App\Factories\CommentFactory;
 use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
 
 /**
@@ -24,9 +25,10 @@ use Lapaliv\BulkUpsert\Tests\App\Traits\GlobalTouches;
  * @property-read User $user
  * @property-read Post $post
  *
+ * @method static CommentFactory factory($count = null, $state = [])
  * @method static CommentBuilder query()
  */
-abstract class Comment extends Model
+class Comment extends Model
 {
     use HasFactory;
     use GlobalTouches;
@@ -83,7 +85,18 @@ abstract class Comment extends Model
         return new CommentCollection($models);
     }
 
-    abstract public function user(): BelongsTo|UserBuilder;
+    public function user(): BelongsTo|UserBuilder
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
-    abstract public function post(): BelongsTo|PostBuilder;
+    public function post(): BelongsTo|PostBuilder
+    {
+        return $this->belongsTo(Post::class, 'post_id', 'id');
+    }
+
+    public static function newFactory(): CommentFactory
+    {
+        return new CommentFactory();
+    }
 }
