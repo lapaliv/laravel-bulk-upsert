@@ -1,18 +1,19 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * @internal
  */
-final class UpdateAndReturnTest extends TestCase
+final class UpdateAndReturnTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -21,10 +22,12 @@ final class UpdateAndReturnTest extends TestCase
      *
      * @return void
      *
+     *
      * @dataProvider dataProvider
      *
      * @throws BulkException
      */
+    #[DataProvider('dataProvider')]
     public function testDatabase(string $uniqBy): void
     {
         // arrange
@@ -55,6 +58,7 @@ final class UpdateAndReturnTest extends TestCase
      *
      * @throws BulkException
      */
+    #[DataProvider('dataProvider')]
     public function testResult(string $uniqBy): void
     {
         // arrange
@@ -89,6 +93,7 @@ final class UpdateAndReturnTest extends TestCase
      *
      * @throws BulkException
      */
+    #[DataProvider('dataProvider')]
     public function testSelectColumns(string $uniqBy): void
     {
         // arrange
@@ -130,7 +135,7 @@ final class UpdateAndReturnTest extends TestCase
         }
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email' => ['email'],

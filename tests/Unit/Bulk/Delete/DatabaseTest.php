@@ -1,20 +1,21 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use Carbon\Carbon;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DatabaseTest extends TestCase
+class DatabaseTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -103,6 +104,7 @@ class DatabaseTest extends TestCase
      *
      * @dataProvider postModelsDataProvider
      */
+    #[DataProvider('postModelsDataProvider')]
     public function testDeleteWithoutSoftDeleting(string $method): void
     {
         // arrange
@@ -120,7 +122,7 @@ class DatabaseTest extends TestCase
         }
     }
 
-    public function postModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
             'delete' => ['delete'],

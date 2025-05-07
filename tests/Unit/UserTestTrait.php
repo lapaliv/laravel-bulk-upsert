@@ -1,11 +1,11 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit;
+namespace Tests\Unit;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
+use Tests\App\Features\UserGenerator;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
 
 /**
  * @internal

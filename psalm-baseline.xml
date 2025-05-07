@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.13.1@086b94371304750d1c673315321a55d15fc59015">
+<files psalm-version="6.16.1@f1f5de594dc76faf8784e02d3dc4716c91c6f6ac">
   <file src="src/Builders/Clauses/BuilderWhere.php">
     <MoreSpecificImplementedParamType>
-      <code>$values</code>
+      <code><![CDATA[$values]]></code>
     </MoreSpecificImplementedParamType>
   </file>
   <file src="src/Builders/InsertBuilder.php">
@@ -21,12 +21,12 @@
       <code><![CDATA[array<string, BuilderCase|string>]]></code>
     </MoreSpecificReturnType>
     <PossiblyInvalidMethodCall>
-      <code>addWhenThen</code>
+      <code><![CDATA[addWhenThen]]></code>
     </PossiblyInvalidMethodCall>
   </file>
   <file src="src/Bulk.php">
     <InvalidPropertyAssignmentValue>
-      <code>$attributes</code>
+      <code><![CDATA[$attributes]]></code>
       <code><![CDATA[[
         'createOrIgnore' => [],
         'create' => [],
@@ -35,29 +35,26 @@
         'delete' => [],
         'forceDelete' => [],
     ]]]></code>
-      <code>[$attributes]</code>
+      <code><![CDATA[[$attributes]]]></code>
       <code><![CDATA[array_merge($this->uniqueBy, $attributes)]]></code>
     </InvalidPropertyAssignmentValue>
     <InvalidReturnStatement>
-      <code>$result</code>
-      <code>$result</code>
-      <code>$result</code>
-      <code>array_unique(
+      <code><![CDATA[$result]]></code>
+      <code><![CDATA[$result]]></code>
+      <code><![CDATA[$result]]></code>
+      <code><![CDATA[array_unique(
             array_merge($columns, $uniqueBy)
-        )</code>
+        )]]></code>
     </InvalidReturnStatement>
     <InvalidReturnType>
-      <code>TCollection</code>
-      <code>TCollection</code>
-      <code>TCollection</code>
-      <code>string[]</code>
+      <code><![CDATA[TCollection]]></code>
+      <code><![CDATA[TCollection]]></code>
+      <code><![CDATA[TCollection]]></code>
+      <code><![CDATA[string[]]]></code>
     </InvalidReturnType>
-    <PossiblyInvalidArgument>
-      <code>$uniqueAttributes</code>
-    </PossiblyInvalidArgument>
     <PossiblyNullArgument>
-      <code>$createdAt</code>
-      <code>$updatedAt</code>
+      <code><![CDATA[$createdAt]]></code>
+      <code><![CDATA[$updatedAt]]></code>
     </PossiblyNullArgument>
     <PropertyTypeCoercion>
       <code><![CDATA[$this->storage]]></code>
@@ -69,36 +66,76 @@
       <code><![CDATA[isset($this->eventDispatcher)]]></code>
     </RedundantPropertyInitializationCheck>
   </file>
-  <file src="src/BulkBuilderTrait.php">
-    <PossiblyInvalidArgument>
-      <code>$model</code>
-      <code>$model</code>
-      <code>$model</code>
-      <code>$model</code>
-      <code><![CDATA[$this->getModel()]]></code>
-    </PossiblyInvalidArgument>
-    <PossiblyInvalidMethodCall>
-      <code>count</code>
-      <code>count</code>
-      <code>count</code>
-      <code>each</code>
-      <code>isEmpty</code>
-    </PossiblyInvalidMethodCall>
-  </file>
   <file src="src/Collections/BulkRows.php">
     <LessSpecificImplementedReturnType>
       <code><![CDATA[Traversable<int, BulkRow<TModel, TOriginal>>]]></code>
     </LessSpecificImplementedReturnType>
   </file>
+  <file src="src/Drivers/MySql/MySqlDriverDeleteFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
   <file src="src/Drivers/MySql/MySqlDriverInsertWithResultFeature.php">
     <PossiblyNullArgument>
       <code><![CDATA[$builder->getInto()]]></code>
     </PossiblyNullArgument>
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/MySql/MySqlDriverQuietInsertFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/MySql/MySqlDriverUpdateFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/PostgreSql/PostgreSqlDriverDeleteFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new PostgresGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/PostgreSql/PostgreSqlDriverInsertWithResultFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new PostgresGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/PostgreSql/PostgreSqlDriverQuietInsertFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new PostgresGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/PostgreSql/PostgreSqlDriverUpdateFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new PostgresGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/SqLite/SqLiteDriverForceDeleteFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
+    </TooManyArguments>
   </file>
   <file src="src/Drivers/SqLite/SqLiteDriverInsertWithResultFeature.php">
     <PossiblyNullArgument>
       <code><![CDATA[$builder->getInto()]]></code>
     </PossiblyNullArgument>
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/SqLite/SqLiteDriverQuietInsertFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
+    </TooManyArguments>
+  </file>
+  <file src="src/Drivers/SqLite/SqLiteDriverUpdateFeature.php">
+    <TooManyArguments>
+      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
+    </TooManyArguments>
   </file>
   <file src="src/Entities/BulkAccumulationEntity.php">
     <InvalidArgument>
@@ -110,28 +147,23 @@
                 )]]></code>
     </InvalidTemplateParam>
   </file>
-  <file src="src/Features/AddWhereClauseToBuilderFeature.php">
-    <InvalidArgument>
-      <code>$rows</code>
-    </InvalidArgument>
-  </file>
   <file src="src/Features/DispatchDeletingEventsFeature.php">
     <PossiblyNullArgument>
-      <code>$deletedAtColumn</code>
+      <code><![CDATA[$deletedAtColumn]]></code>
     </PossiblyNullArgument>
   </file>
   <file src="src/Features/FillInWasRecentlyCreatedPropertyFeature.php">
     <PossiblyNullArgument>
-      <code>$createdAtColumn</code>
+      <code><![CDATA[$createdAtColumn]]></code>
     </PossiblyNullArgument>
     <PossiblyNullArrayOffset>
-      <code>$dataFields</code>
+      <code><![CDATA[$dataFields]]></code>
     </PossiblyNullArrayOffset>
   </file>
   <file src="src/Features/GetDeleteBuilderFeature.php">
     <InvalidArgument>
-      <code>$models</code>
-      <code>$models</code>
+      <code><![CDATA[$models]]></code>
+      <code><![CDATA[$models]]></code>
     </InvalidArgument>
   </file>
   <file src="src/Features/GetInsertBuilderFeature.php">
@@ -145,8 +177,8 @@
       <code><![CDATA[$data->getNotSkippedModels('skipUpdating')]]></code>
     </InvalidArgument>
     <PossiblyNullArrayOffset>
-      <code>$attributes</code>
-      <code>$attributes</code>
+      <code><![CDATA[$attributes]]></code>
+      <code><![CDATA[$attributes]]></code>
     </PossiblyNullArrayOffset>
     <PossiblyNullPropertyAssignmentValue>
       <code><![CDATA[$eloquent->getUpdatedAtColumn()]]></code>
@@ -154,20 +186,8 @@
   </file>
   <file src="src/Features/InsertAndSelectFeature.php">
     <PossiblyNullArgument>
-      <code>$deletedAtColumn</code>
+      <code><![CDATA[$deletedAtColumn]]></code>
     </PossiblyNullArgument>
-  </file>
-  <file src="src/Features/MarkNonexistentRowsAsSkippedFeature.php">
-    <InvalidArgument>
-      <code><![CDATA[$this->selectExistingRowsFeature->handle(
-                    $eloquent,
-                    $nonexistent->getNotSkippedModels(),
-                    $data->uniqueBy,
-                    $selectColumns,
-                    $deletedAtColumn,
-                    $withTrashed,
-                )]]></code>
-    </InvalidArgument>
   </file>
   <file src="src/Features/MatchSelectedModelsFeature.php">
     <PossiblyNullArgument>
@@ -176,7 +196,7 @@
   </file>
   <file src="src/Features/SelectExistingRowsFeature.php">
     <InvalidArgument>
-      <code>$collection</code>
+      <code><![CDATA[$collection]]></code>
     </InvalidArgument>
     <InvalidReturnStatement>
       <code><![CDATA[$builder->get()]]></code>
@@ -187,7 +207,7 @@
   </file>
   <file src="src/Features/TouchRelationsFeature.php">
     <InvalidArgument>
-      <code>$relations</code>
+      <code><![CDATA[$relations]]></code>
     </InvalidArgument>
     <InvalidArrayOffset>
       <code><![CDATA[[

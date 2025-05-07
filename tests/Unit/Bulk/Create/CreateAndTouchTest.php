@@ -1,19 +1,19 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
+namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Collection\CommentCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Tests\App\Collection\CommentCollection;
+use Tests\App\Models\Comment;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
 
 /**
  * @internal
  */
-final class CreateAndTouchTest extends TestCase
+final class CreateAndTouchTest extends TestCaseWrapper
 {
     /**
      * @return void

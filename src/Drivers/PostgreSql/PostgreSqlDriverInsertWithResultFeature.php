@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
@@ -22,7 +23,10 @@ class PostgreSqlDriverInsertWithResultFeature
 
     public function handle(ConnectionInterface $connection, InsertBuilder $builder): BulkInsertResult
     {
-        $grammar = new PostgreSqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new PostgreSqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new PostgresGrammar($connection)
+        );
 
         $rows = $connection->select($grammar->insert($builder), $grammar->getBindings());
 

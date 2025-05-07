@@ -149,8 +149,7 @@ class InsertAndSelectFeature
             $models = $eloquent->newCollection();
 
             foreach ($insertedRows as $row) {
-                $model = new $eloquent();
-                $model->exists = true;
+                $model = $eloquent->newInstance([], true);
                 $model->wasRecentlyCreated = true;
                 $model->setRawAttributes((array) $row);
                 $models->push($model);

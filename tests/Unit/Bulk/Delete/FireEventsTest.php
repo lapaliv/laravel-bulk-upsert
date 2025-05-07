@@ -1,25 +1,26 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
-use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Collection\PostCollection;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-class FireEventsTest extends TestCase
+class FireEventsTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -36,6 +37,7 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringSoftDelete(
         string $forceDeleteEvent,
         string $deleteEvent,
@@ -112,6 +114,7 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringForceDeleting(
         string $forceDeleteEvent,
         string $deleteEvent,
@@ -225,6 +228,7 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithoutSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithoutSoftDeletingDataProvider')]
     public function testFiringDeletingWithoutSoft(
         string $forceDeleteEvent,
         string $deleteEvent,
@@ -291,7 +295,7 @@ class FireEventsTest extends TestCase
         self::spyShouldNotHaveReceived($forceDeletingManyListener);
     }
 
-    public function modelWithSoftDeletingDataProvider(): array
+    public static function modelWithSoftDeletingDataProvider(): array
     {
         return [
             '-ing events' => [
@@ -309,7 +313,7 @@ class FireEventsTest extends TestCase
         ];
     }
 
-    public function modelWithoutSoftDeletingDataProvider(): array
+    public static function modelWithoutSoftDeletingDataProvider(): array
     {
         return [
             '-ing events' => [

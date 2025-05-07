@@ -8,6 +8,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
+use UnexpectedValueException;
 
 /**
  * @internal
@@ -181,7 +182,13 @@ class BulkEventDispatcher
 
     private function getEventDispatcher(): Dispatcher
     {
-        return self::$illuminateEventDispatcher ?? $this->model::getEventDispatcher();
+        $result = self::$illuminateEventDispatcher ?? $this->model::getEventDispatcher();
+
+        if ($result === null) {
+            throw new UnexpectedValueException();
+        }
+
+        return $result;
     }
 
     private static function convertListenerToClosure(mixed $listener): mixed

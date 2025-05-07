@@ -1,21 +1,22 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
+namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-class CreateEventsTest extends TestCase
+class CreateEventsTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -54,6 +55,7 @@ class CreateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
+    #[DataProvider('eventsDataProvider')]
     public function testDisableSomeEvents(string $disabledEvent): void
     {
         // arrange
@@ -124,6 +126,7 @@ class CreateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
+    #[DataProvider('eventsDataProvider')]
     public static function testDisableOneEvent(string $disabledEvent): void
     {
         // arrange
@@ -195,6 +198,7 @@ class CreateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
+    #[DataProvider('eventsDataProvider')]
     public function testEnableSomeDisabledEvents(string $enabledEvent): void
     {
         // arrange
@@ -227,6 +231,7 @@ class CreateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
+    #[DataProvider('eventsDataProvider')]
     public function testEnableSomeEvents(string $enabledEvent): void
     {
         // arrange
@@ -261,6 +266,7 @@ class CreateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
+    #[DataProvider('eventsDataProvider')]
     public function testEnableOneEvent(string $enabledEvent): void
     {
         // arrange
@@ -286,7 +292,7 @@ class CreateEventsTest extends TestCase
         self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
-    public function eventsDataProvider(): array
+    public static function eventsDataProvider(): array
     {
         return array_map(
             static fn(string $event) => [$event],

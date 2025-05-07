@@ -1,15 +1,16 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
+namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\User;
+use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\Unit\ModelListenerTestTrait;
+use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
@@ -69,6 +70,7 @@ class DeletingEventTest extends CreateScenarioTestCase
      *
      * @dataProvider notTriggeringWhenPreviousListenerReturnedFalseDataProvider
      */
+    #[DataProvider('notTriggeringWhenPreviousListenerReturnedFalseDataProvider')]
     public function testNotTriggeringWhenSavingReturnedFalse(string $previousEventName): void
     {
         // arrange
@@ -117,7 +119,7 @@ class DeletingEventTest extends CreateScenarioTestCase
      *
      * @return array[]
      */
-    public function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],

@@ -24,7 +24,10 @@ class MySqlDriverQuietInsertFeature
 
     public function handle(ConnectionInterface $connection, InsertBuilder $builder): void
     {
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new MySqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)
+        );
 
         $connection->insert($grammar->insert($builder), $grammar->getBindings());
 

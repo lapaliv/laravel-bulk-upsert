@@ -1,15 +1,16 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
+namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\User;
+use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\Unit\ModelListenerTestTrait;
+use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
@@ -30,7 +31,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -51,7 +52,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETED_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => null]);
+        $users = User::factory()->count(2)->make(['deleted_at' => null]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -70,6 +71,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
      *
      * @dataProvider notTriggeringWhenPreviousListenerReturnedFalseDataProvider
      */
+    #[DataProvider('notTriggeringWhenPreviousListenerReturnedFalseDataProvider')]
     public function testNotTriggeringWhenPreviousListenerReturnedFalse(string $previousEventName): void
     {
         // arrange
@@ -80,7 +82,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
             [false, false]
         );
         $deletingManyListener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -101,7 +103,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -119,7 +121,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
      *
      * @return array[]
      */
-    public function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],

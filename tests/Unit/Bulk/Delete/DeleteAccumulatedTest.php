@@ -1,18 +1,19 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DeleteAccumulatedTest extends TestCase
+class DeleteAccumulatedTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -71,6 +72,7 @@ class DeleteAccumulatedTest extends TestCase
      *
      * @dataProvider postModelsDataProvider
      */
+    #[DataProvider('postModelsDataProvider')]
     public function testDeleteAccumulatedWithoutSoftDeleting(string $accumulateMethod, string $deleteMethod): void
     {
         // arrange
@@ -92,7 +94,7 @@ class DeleteAccumulatedTest extends TestCase
         );
     }
 
-    public function postModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
             'not force' => [

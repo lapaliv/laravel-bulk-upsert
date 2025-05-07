@@ -21,7 +21,10 @@ class MySqlDriverDeleteFeature
         ConnectionInterface $connection,
         DeleteBulkBuilder $builder,
     ): int {
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new MySqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)
+        );
 
         $result = $connection->delete($grammar->delete($builder), $grammar->getBindings());
 

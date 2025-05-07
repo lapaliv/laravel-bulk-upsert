@@ -21,5 +21,10 @@
                 <referencedMethod name="*::__construct"/>
             </errorLevel>
         </PossiblyUnusedMethod>
+        <MissingOverrideAttribute>
+            <errorLevel type="suppress">
+                <directory name="src" />
+            </errorLevel>
+        </MissingOverrideAttribute>
     </issueHandlers>
 </psalm>

@@ -17,7 +17,10 @@ class MySqlGrammar implements BulkGrammar
 {
     private array $bindings = [];
 
-    public function __construct(private MixedValueToSqlConverter $mixedValueToSqlConverter)
+    public function __construct(
+        private MixedValueToSqlConverter $mixedValueToSqlConverter,
+        private \Illuminate\Database\Query\Grammars\MySqlGrammar $laravelGrammar,
+    )
     {
         //
     }
@@ -30,7 +33,7 @@ class MySqlGrammar implements BulkGrammar
             $item = [];
 
             foreach ($builder->getColumns() as $column) {
-                $item[] = $this->mixedValueToSqlConverter->handle($value[$column] ?? null, $this->bindings);
+                $item[] = $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $value[$column] ?? null, $this->bindings);
             }
             $values[] = implode(',', $item);
         }
@@ -57,15 +60,15 @@ class MySqlGrammar implements BulkGrammar
                     '`%s` = if(%s, %s, `%s`)',
                     $field,
                     $this->getSqlWhereClause($when->getWheres()),
-                    $this->mixedValueToSqlConverter->handle($when->getThen(), $this->bindings),
-                    $this->mixedValueToSqlConverter->handle($set->getElse(), $this->bindings),
+                    $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $when->getThen(), $this->bindings),
+                    $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $set->getElse(), $this->bindings),
                 );
             } elseif ($set instanceof BuilderCase) {
                 foreach ($set->getWhens() as $when) {
                     $whens[] = sprintf(
                         'when %s then %s',
                         $this->getSqlWhereClause($when->getWheres()),
-                        $this->mixedValueToSqlConverter->handle($when->getThen(), $this->bindings)
+                        $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $when->getThen(), $this->bindings)
                     );
                 }
 
@@ -73,13 +76,13 @@ class MySqlGrammar implements BulkGrammar
                     '`%s` = case %s else `%s` end',
                     $field,
                     implode(' ', $whens),
-                    $this->mixedValueToSqlConverter->handle($set->getElse(), $this->bindings),
+                    $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $set->getElse(), $this->bindings),
                 );
             } else {
                 $sets[] = sprintf(
                     '`%s` = %s',
                     $field,
-                    $this->mixedValueToSqlConverter->handle($set, $this->bindings),
+                    $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $set, $this->bindings),
                 );
             }
         }
@@ -137,13 +140,13 @@ class MySqlGrammar implements BulkGrammar
                     '`%s` %s %s',
                     $where->field,
                     $where->operator,
-                    $this->mixedValueToSqlConverter->handle($where->value, $this->bindings),
+                    $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $where->value, $this->bindings),
                 );
             } elseif ($where instanceof BuilderWhereIn) {
                 $values = [];
 
                 foreach ($where->values as $value) {
-                    $values[] = $this->mixedValueToSqlConverter->handle($value, $this->bindings);
+                    $values[] = $this->mixedValueToSqlConverter->handle($this->laravelGrammar, $value, $this->bindings);
                 }
 
                 if (count($values) === 1) {

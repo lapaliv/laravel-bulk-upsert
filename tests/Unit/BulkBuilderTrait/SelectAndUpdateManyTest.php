@@ -1,17 +1,17 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\BulkBuilderTrait;
+namespace Tests\Unit\BulkBuilderTrait;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class SelectAndUpdateManyTest extends TestCase
+class SelectAndUpdateManyTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

@@ -1,16 +1,17 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateOrAccumulateTest extends TestCase
+final class UpdateOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -45,6 +46,7 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testSmallChunkSize(string $uniqBy): void
     {
         // arrange
@@ -72,6 +74,7 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testSmallChunkSizeWithExtraCount(string $uniqBy): void
     {
         // arrange
@@ -100,6 +103,7 @@ final class UpdateOrAccumulateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testSaveAccumulated(string $uniqBy): void
     {
         // arrange
@@ -118,7 +122,7 @@ final class UpdateOrAccumulateTest extends TestCase
         );
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email' => ['email'],

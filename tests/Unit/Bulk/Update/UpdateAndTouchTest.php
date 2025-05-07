@@ -1,20 +1,20 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Tests\App\Collection\PostCollection;
+use Tests\App\Models\Comment;
+use Tests\App\Models\Post;
+use Tests\TestCaseWrapper;
 
 /**
  * @internal
  */
-final class UpdateAndTouchTest extends TestCase
+final class UpdateAndTouchTest extends TestCaseWrapper
 {
     /**
      * @return void

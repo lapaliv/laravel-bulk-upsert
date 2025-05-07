@@ -1,19 +1,20 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateDifferentUniqueByTest extends TestCase
+final class UpdateDifferentUniqueByTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -28,6 +29,7 @@ final class UpdateDifferentUniqueByTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function test(string|array $uniqueBy, string|array $orUniqueBy): void
     {
         // arrange
@@ -90,7 +92,7 @@ final class UpdateDifferentUniqueByTest extends TestCase
         ], $connectionName);
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email, id' => ['email', 'id'],

@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
@@ -39,7 +40,7 @@ class GetUpdateBuilderFeature
 
         if ($eloquent->usesTimestamps()) {
             $this->updatedAt = Carbon::now()->format(
-                $dateFields[$this->updatedAtColumn] ?? 'Y-m-d H:i:s'
+                Arr::get($dateFields, $this->updatedAtColumn) ?? 'Y-m-d H:i:s'
             );
         }
 

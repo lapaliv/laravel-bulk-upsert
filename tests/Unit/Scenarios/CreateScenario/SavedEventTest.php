@@ -1,14 +1,14 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
+namespace Tests\Unit\Scenarios\CreateScenario;
 
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\Unit\ModelListenerTestTrait;
+use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
@@ -29,7 +29,7 @@ class SavedEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVED, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make();
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -49,7 +49,7 @@ class SavedEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVED, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make();
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act

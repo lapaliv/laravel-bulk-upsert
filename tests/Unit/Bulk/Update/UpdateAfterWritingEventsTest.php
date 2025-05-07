@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Closure;
@@ -8,18 +8,19 @@ use Illuminate\Support\Facades\App;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Features\UserGenerator;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
 use Mockery;
 
 /**
  * @internal
  */
-final class UpdateAfterWritingEventsTest extends TestCase
+final class UpdateAfterWritingEventsTest extends TestCaseWrapper
 {
     /**
      * @param Closure $data
@@ -31,6 +32,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @throws BulkException
      */
+    #[DataProvider('modelDataProvider')]
     public function testModel(Closure $data, array $events): void
     {
         // arrange
@@ -79,6 +81,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
      *
      * @throws BulkException
      */
+    #[DataProvider('collectionDataProvider')]
     public function testCollection(Closure $data, string $event): void
     {
         // arrange
@@ -107,7 +110,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
             );
     }
 
-    public function modelDataProvider(): array
+    public static function modelDataProvider(): array
     {
         return [
             'saved' => [
@@ -192,7 +195,7 @@ final class UpdateAfterWritingEventsTest extends TestCase
         ];
     }
 
-    public function collectionDataProvider(): array
+    public static function collectionDataProvider(): array
     {
         return [
             'saved many' => [

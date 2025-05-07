@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use BadMethodCallException;
 use Carbon\Carbon;
@@ -8,18 +8,19 @@ use Closure;
 use Illuminate\Support\Facades\App;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Features\UserGenerator;
+use Tests\App\Models\User;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-final class UpdateBuilderCallbacksTest extends TestCase
+final class UpdateBuilderCallbacksTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -33,6 +34,7 @@ final class UpdateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testModel(string $method, Closure $callback): void
     {
         // arrange
@@ -64,6 +66,7 @@ final class UpdateBuilderCallbacksTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testCollection(string $method, Closure $callback): void
     {
         // arrange
@@ -102,7 +105,7 @@ final class UpdateBuilderCallbacksTest extends TestCase
         $sut->onFake();
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'onUpdating' => [

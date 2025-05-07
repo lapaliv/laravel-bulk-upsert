@@ -1,17 +1,19 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Random\RandomException;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateTest extends TestCase
+final class UpdateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
@@ -24,6 +26,7 @@ final class UpdateTest extends TestCase
      *
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testBase(array|string|callable $uniqBy): void
     {
         // arrange
@@ -50,6 +53,7 @@ final class UpdateTest extends TestCase
      * @throws RandomException
      * @dataProvider dataProvider
      */
+    #[DataProvider('dataProvider')]
     public function testWithTimestamps(array|string|callable $uniqBy): void
     {
         // arrange
@@ -110,7 +114,7 @@ final class UpdateTest extends TestCase
         }
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email' => ['email'],

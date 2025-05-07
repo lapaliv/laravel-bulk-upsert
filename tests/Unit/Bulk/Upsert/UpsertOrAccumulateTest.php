@@ -1,17 +1,17 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
+namespace Tests\Unit\Bulk\Upsert;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpsertOrAccumulateTest extends TestCase
+final class UpsertOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

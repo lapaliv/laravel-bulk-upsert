@@ -123,7 +123,7 @@ class Bulk
             $this->model = $model;
         } else {
             throw new BulkTransmittedClassIsNotAModel(
-                is_object($model) ? get_class($model) : (string) $model
+                is_object($model) ? get_class($model) : $model
             );
         }
 
@@ -858,7 +858,7 @@ class Bulk
             $model = $this->convertRowToModel($row);
 
             if ($uniqueAttributesAreRequired) {
-                [$uniqueAttributesIndex, $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
+                ['index' => $uniqueAttributesIndex, 'attributes' => $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
 
                 $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity(uniqueBy: $uniqueAttributes);
                 $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->rows[] = new BulkAccumulationItemEntity($row, $model);
@@ -894,7 +894,6 @@ class Bulk
 
         if (is_array($row) && !empty($row)) {
             try {
-                /** @var Model|TModel $result */
                 $result = Container::getInstance()->make(
                     get_class($this->model),
                     ['attributes' => $row]
@@ -944,7 +943,7 @@ class Bulk
      * @param mixed $row
      * @param Model|TModel $model
      *
-     * @return array<int, int|string[]>
+     * @return array{index:int, attributes:string[]}
      */
     private function getUniqueAttributesForModel(mixed $row, Model $model): array
     {
@@ -953,7 +952,7 @@ class Bulk
                 $result = $uniqueBy($row);
 
                 if (is_array($result) || is_string($result)) {
-                    return [$index, (array) $result];
+                    return ['index' => $index, 'attributes' => (array) $result];
                 }
             }
 
@@ -967,7 +966,7 @@ class Bulk
                 $result[] = $attribute;
             }
 
-            return [$index, $result];
+            return ['index' => $index, 'attributes' => $result];
         }
 
         throw new BulkIdentifierDidNotFind($row, $this->uniqueBy);
@@ -1029,18 +1028,6 @@ class Bulk
     private function runCreateScenario(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
     {
         try {
-            /** @var CreateScenario $scenario */
-            //            $scenario = Container::getInstance()->make(CreateScenario::class);
-            //            $scenario->handle(
-            //                $this->model,
-            //                $accumulation,
-            //                $this->getEventDispatcher(),
-            //                $ignore,
-            //                $this->getDateFields(),
-            //                $this->getSelectColumns($columns, $accumulation->uniqueBy),
-            //                $this->getDeletedAtColumn(),
-            //            );
-            /** @var CreateScenario $scenario */
             $scenario = Container::getInstance()->make(CreateScenario::class);
             $scenario->handle(
                 $accumulation,
@@ -1074,7 +1061,6 @@ class Bulk
     private function runDeleteScenario(BulkAccumulationEntity $accumulation, bool $force): void
     {
         try {
-            /** @var DeleteScenario $scenario */
             $scenario = Container::getInstance()->make(DeleteScenario::class);
             $scenario->handle(
                 $this->model,
@@ -1108,7 +1094,6 @@ class Bulk
     private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
     {
         try {
-            /** @var UpdateScenario $scenario */
             $scenario = Container::getInstance()->make(UpdateScenario::class);
             $scenario->handle(
                 $this->model,
@@ -1143,7 +1128,6 @@ class Bulk
     private function runUpsertScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
     {
         try {
-            /** @var UpsertScenario $scenario */
             $scenario = Container::getInstance()->make(UpsertScenario::class);
             $scenario->handle(
                 $this->model,

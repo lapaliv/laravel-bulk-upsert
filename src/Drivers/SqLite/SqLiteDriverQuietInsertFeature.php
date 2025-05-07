@@ -24,7 +24,10 @@ class SqLiteDriverQuietInsertFeature
 
     public function handle(ConnectionInterface $connection, InsertBuilder $builder): void
     {
-        $grammar = new SqLiteGrammar($this->mixedValueToSqlConverter);
+        $grammar = new SqLiteGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection),
+        );
 
         $connection->insert($grammar->insert($builder), $grammar->getBindings());
 

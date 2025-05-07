@@ -21,7 +21,10 @@ class MySqlDriverUpdateFeature
         ConnectionInterface $connection,
         UpdateBulkBuilder $builder,
     ): int {
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new MySqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)
+        );
 
         $result = $connection->update($grammar->update($builder), $grammar->getBindings());
 

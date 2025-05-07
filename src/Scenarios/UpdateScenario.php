@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
@@ -97,6 +98,7 @@ class UpdateScenario
             return;
         }
 
+        /** @var Collection<int, Model> $models */
         $models = $eloquent->newCollection();
         $bulkRows = new BulkRows();
 
@@ -139,6 +141,7 @@ class UpdateScenario
             return;
         }
 
+        /** @var Collection<int, Model> $models */
         $models = $eloquent->newCollection();
         $bulkRows = new BulkRows();
 
@@ -185,7 +188,9 @@ class UpdateScenario
             return;
         }
 
+        /** @var Collection<int, Model> $deletingModels */
         $deletingModels = $eloquent->newCollection();
+        /** @var Collection<int, Model> $restoringModels */
         $restoringModels = $eloquent->newCollection();
         $deletingBulkRows = new BulkRows();
         $restoringBulkRows = new BulkRows();
@@ -271,9 +276,13 @@ class UpdateScenario
             return;
         }
 
+        /** @var Collection<int, Model> $savedModels */
         $savedModels = $eloquent->newCollection();
+        /** @var Collection<int, Model> $updatedModels */
         $updatedModels = $eloquent->newCollection();
+        /** @var Collection<int, Model> $deletedModels */
         $deletedModels = $eloquent->newCollection();
+        /** @var Collection<int, Model> $restoredModels */
         $restoredModels = $eloquent->newCollection();
         $savedBulkRows = new BulkRows();
         $updatedBulkRows = new BulkRows();
