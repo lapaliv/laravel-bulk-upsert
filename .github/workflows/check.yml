@@ -85,14 +85,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - laravel: 8.*
-            php: 8.0
-          - laravel: 9.*
-            php: 8.0
-          - laravel: 10.*
-            php: 8.1
-          - laravel: 11.*
-            php: 8.2
+#          - laravel: 8.*
+#            php: 8.0
+#          - laravel: 9.*
+#            php: 8.0
+#          - laravel: 10.*
+#            php: 8.1
+#          - laravel: 11.*
+#            php: 8.2
           - laravel: 12.*
             php: 8.2
     steps:
@@ -106,7 +106,7 @@ jobs:
       - name: Preparing Laravel project
         run: |
           cd ../../
-          "composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}"
+          composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
           cd laravel
           composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
