@@ -126,6 +126,7 @@ jobs:
           ls -lha ${{ runner.workspace }}
           ls -lha ${{ runner.workspace }}/laravel-bulk-upsert
           ls -lha ${{ runner.workspace }}/laravel/vendor/lapaliv/laravel-bulk-upsert
+          ls -lha ${{ runner.workspace }}/laravel/vendor/lapaliv/laravel-bulk-upsert/src
           cp ${{ runner.workspace }}/laravel-bulk-upsert/Makefile ${{ runner.workspace }}/laravel/
           mv ${{ runner.workspace }}/laravel/tests ${{ runner.workspace }}/laravel/tests_old
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests ${{ runner.workspace }}/laravel/
