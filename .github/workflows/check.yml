@@ -108,11 +108,10 @@ jobs:
 
       - name: Creating Laravel project
         run: |
-          pwd
-          cd ..
+          cd /home/runner/work/
           composer create-project --prefer-dist laravel/laravel laravel-${{ matrix.laravel }} ${{ matrix.laravel }}
           cd laravel-${{ matrix.laravel }}
-          composer config repositories.local path ../lapaliv/laravel-bulk-upsert
+          composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
           echo "POSTGRESQL_HOST=127.0.0.1" > .env
           echo "POSTGRESQL_DATABASE=test_db" >> .env
