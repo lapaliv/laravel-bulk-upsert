@@ -108,6 +108,8 @@ jobs:
 
       - name: Creating Laravel project
         run: |
+          pwd
+          cd ..
           composer create-project --prefer-dist laravel/laravel laravel-${{ matrix.laravel }} ${{ matrix.laravel }}
           cd laravel-${{ matrix.laravel }}
           composer config repositories.local path ../lapaliv/laravel-bulk-upsert
