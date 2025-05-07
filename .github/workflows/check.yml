@@ -121,6 +121,7 @@ jobs:
           echo "MYSQL_PASSWORD=test_password" >> .env
           echo "MYSQL_PORT=3306" >> .env
           php artisan key:generate
+          ls -lha ${{ runner.workspace }}/laravel-bulk-upsert
           cp ${{ runner.workspace }}/laravel-bulk-upsert/Makefile ${{ runner.workspace }}/laravel/
           mv ${{ runner.workspace }}/laravel/tests ${{ runner.workspace }}/laravel/tests_old
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests ${{ runner.workspace }}/laravel/
