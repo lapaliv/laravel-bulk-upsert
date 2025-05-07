@@ -6,13 +6,13 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class CreateOrAccumulateTest extends TestCase
+final class CreateOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

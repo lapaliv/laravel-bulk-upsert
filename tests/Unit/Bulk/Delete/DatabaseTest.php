@@ -8,13 +8,13 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DatabaseTest extends TestCase
+class DatabaseTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

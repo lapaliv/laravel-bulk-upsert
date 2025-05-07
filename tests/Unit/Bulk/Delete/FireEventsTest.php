@@ -12,14 +12,14 @@ use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-class FireEventsTest extends TestCase
+class FireEventsTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

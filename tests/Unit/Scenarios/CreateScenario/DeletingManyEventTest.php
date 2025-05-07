@@ -3,9 +3,9 @@
 namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
 use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
@@ -30,7 +30,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -51,7 +51,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETED_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => null]);
+        $users = User::factory()->count(2)->make(['deleted_at' => null]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -80,7 +80,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
             [false, false]
         );
         $deletingManyListener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
@@ -101,7 +101,7 @@ class DeletingManyEventTest extends CreateScenarioTestCase
         // arrange
         $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING_MANY, $eventDispatcher);
-        $users = \Lapaliv\BulkUpsert\Tests\App\Models\User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
+        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act

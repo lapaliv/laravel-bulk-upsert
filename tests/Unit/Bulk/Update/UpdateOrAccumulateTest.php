@@ -4,13 +4,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateOrAccumulateTest extends TestCase
+final class UpdateOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

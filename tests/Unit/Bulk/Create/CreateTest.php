@@ -8,13 +8,13 @@ use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class CreateTest extends TestCase
+final class CreateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

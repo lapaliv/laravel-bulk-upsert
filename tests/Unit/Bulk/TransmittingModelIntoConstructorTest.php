@@ -6,12 +6,12 @@ use Illuminate\Support\Str;
 use Lapaliv\BulkUpsert\Bulk;
 use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 
 /**
  * @internal
  */
-final class TransmittingModelIntoConstructorTest extends TestCase
+final class TransmittingModelIntoConstructorTest extends TestCaseWrapper
 {
     public function testModel(): void
     {

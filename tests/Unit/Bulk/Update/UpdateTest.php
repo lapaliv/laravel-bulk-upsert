@@ -5,13 +5,13 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
 use Carbon\Carbon;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateTest extends TestCase
+final class UpdateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

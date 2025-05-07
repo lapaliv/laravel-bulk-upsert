@@ -5,9 +5,9 @@ namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 
-abstract class CreateScenarioTestCase extends TestCase
+abstract class CreateScenarioTestCase extends TestCaseWrapper
 {
     protected function handleCreateScenario(
         BulkAccumulationEntity $data,

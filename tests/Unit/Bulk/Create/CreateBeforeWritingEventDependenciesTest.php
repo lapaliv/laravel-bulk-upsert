@@ -13,7 +13,7 @@ use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 use Mockery;
 use Mockery\LegacyMockInterface;
@@ -22,7 +22,7 @@ use Mockery\MockInterface;
 /**
  * @internal
  */
-final class CreateBeforeWritingEventDependenciesTest extends TestCase
+final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

@@ -6,13 +6,13 @@ use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateAndReturnTest extends TestCase
+final class UpdateAndReturnTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

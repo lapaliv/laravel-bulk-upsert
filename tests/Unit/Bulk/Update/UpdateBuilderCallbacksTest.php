@@ -12,14 +12,14 @@ use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
 use Lapaliv\BulkUpsert\Tests\App\Features\UserGenerator;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
 use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-final class UpdateBuilderCallbacksTest extends TestCase
+final class UpdateBuilderCallbacksTest extends TestCaseWrapper
 {
     use UserTestTrait;
 

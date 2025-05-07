@@ -6,13 +6,13 @@ use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Tests\App\Models\Post;
 use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
+use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
 use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DeleteOrAccumulateTest extends TestCase
+class DeleteOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
