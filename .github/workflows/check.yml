@@ -105,7 +105,9 @@ jobs:
 
       - name: Preparing Laravel project
         run: |
+          pwd
           cd ${{ runner.workspace }}
+          ls -lha
           composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
           cd ${{ runner.workspace }}/laravel
           composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
