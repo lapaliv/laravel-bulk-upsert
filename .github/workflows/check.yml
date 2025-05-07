@@ -103,8 +103,8 @@ jobs:
           extensions: mbstring, pdo, mysql, pgsql
           coverage: none
 
-      - name: Cloning repository
-        uses: actions/checkout@v3
+      - name: Checkout PR
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
