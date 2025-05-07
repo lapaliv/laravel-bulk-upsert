@@ -116,8 +116,7 @@ jobs:
 
       - name: Preparing Laravel project
         run: |
-          composer install --prefer-dist --no-progress
-          cd ${{ runner.workspace }}/../../
+          cd ../../
           "composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}"
           cd laravel
           composer config repositories.local path ../laravel-bulk-upsert/laravel-bulk-upsert
@@ -133,11 +132,11 @@ jobs:
           echo "MYSQL_PASSWORD=test_password" >> .env
           echo "MYSQL_PORT=3306" >> .env
           php artisan key:generate
-          cp -r ${{ runner.workspace }}/../../laravel-bulk-upsert/laravel-bulk-upsert/Makefile ${{ runner.workspace }}/../../laravel/
+          cp -r ${{ runner.workspace }}/Makefile ${{ runner.workspace }}/../../laravel/
 
       - name: Run tests
         run: |
-          cd ${{ runner.workspace }}/../../laravel/vendor/lapaliv/laravel-bulk-upsert
+          cd ../../laravel/vendor/lapaliv/laravel-bulk-upsert
           make run-tests
 
   psalm:
