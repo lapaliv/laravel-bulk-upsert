@@ -102,7 +102,7 @@ final class UpdateBuilderCallbacksTest extends TestCaseWrapper
         $sut->onFake();
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'onUpdating' => [

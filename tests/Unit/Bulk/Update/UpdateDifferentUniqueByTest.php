@@ -90,7 +90,7 @@ final class UpdateDifferentUniqueByTest extends TestCaseWrapper
         ], $connectionName);
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email, id' => ['email', 'id'],

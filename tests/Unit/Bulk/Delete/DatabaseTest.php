@@ -120,7 +120,7 @@ class DatabaseTest extends TestCaseWrapper
         }
     }
 
-    public function postModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
             'delete' => ['delete'],

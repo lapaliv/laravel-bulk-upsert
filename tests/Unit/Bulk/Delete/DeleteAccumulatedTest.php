@@ -92,7 +92,7 @@ class DeleteAccumulatedTest extends TestCaseWrapper
         );
     }
 
-    public function postModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
             'not force' => [

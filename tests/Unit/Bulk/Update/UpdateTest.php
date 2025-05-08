@@ -110,7 +110,7 @@ final class UpdateTest extends TestCaseWrapper
         }
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'email' => ['email'],

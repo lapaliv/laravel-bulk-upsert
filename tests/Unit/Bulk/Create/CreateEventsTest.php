@@ -286,7 +286,7 @@ class CreateEventsTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
-    public function eventsDataProvider(): array
+    public static function eventsDataProvider(): array
     {
         return array_map(
             static fn(string $event) => [$event],

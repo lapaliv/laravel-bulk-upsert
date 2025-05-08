@@ -291,7 +291,7 @@ class FireEventsTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($forceDeletingManyListener);
     }
 
-    public function modelWithSoftDeletingDataProvider(): array
+    public static function modelWithSoftDeletingDataProvider(): array
     {
         return [
             '-ing events' => [
@@ -309,7 +309,7 @@ class FireEventsTest extends TestCaseWrapper
         ];
     }
 
-    public function modelWithoutSoftDeletingDataProvider(): array
+    public static function modelWithoutSoftDeletingDataProvider(): array
     {
         return [
             '-ing events' => [

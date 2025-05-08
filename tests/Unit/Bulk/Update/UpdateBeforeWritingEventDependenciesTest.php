@@ -247,7 +247,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($updatingManySpy);
     }
 
-    public function modelDataProvider(): array
+    public static function modelDataProvider(): array
     {
         return [
             'saving' => [
@@ -424,7 +424,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         ];
     }
 
-    public function collectionDataProvider(): array
+    public static function collectionDataProvider(): array
     {
         return [
             'saving many' => [

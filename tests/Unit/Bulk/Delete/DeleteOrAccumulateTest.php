@@ -155,7 +155,7 @@ class DeleteOrAccumulateTest extends TestCaseWrapper
         );
     }
 
-    public function postModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
             'deleteOrAccumulate' => [

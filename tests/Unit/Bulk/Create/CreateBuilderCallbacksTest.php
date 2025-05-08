@@ -111,7 +111,7 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
         $sut->onFake();
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             'onCreating' => [

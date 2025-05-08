@@ -198,7 +198,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         }
     }
 
-    public function modelDataProvider(): array
+    public static function modelDataProvider(): array
     {
         return [
             'saving' => [
@@ -300,7 +300,7 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         ];
     }
 
-    public function collectionDataProvider(): array
+    public static function collectionDataProvider(): array
     {
         return [
             'saving many' => [

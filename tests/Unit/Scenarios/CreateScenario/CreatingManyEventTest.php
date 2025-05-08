@@ -97,7 +97,7 @@ class CreatingManyEventTest extends CreateScenarioTestCase
      *
      * @return array[]
      */
-    public function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],
