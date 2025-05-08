@@ -120,17 +120,24 @@ jobs:
           cd ${{ runner.workspace }}/laravel
           composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
-          echo "POSTGRESQL_HOST=127.0.0.1" >> .env
-          echo "POSTGRESQL_DATABASE=test_db" >> .env
-          echo "POSTGRESQL_USERNAME=test_user" >> .env
-          echo "POSTGRESQL_PASSWORD=test_password" >> .env
-          echo "POSTGRESQL_PORT=5432" >> .env
-          echo "MYSQL_HOST=127.0.0.1" >> .env
-          echo "MYSQL_DATABASE=test_db" >> .env
-          echo "MYSQL_USERNAME=test_user" >> .env
-          echo "MYSQL_PASSWORD=test_password" >> .env
-          echo "MYSQL_PORT=3306" >> .env
+#          echo "POSTGRESQL_HOST=127.0.0.1" >> .env
+#          echo "POSTGRESQL_DATABASE=test_db" >> .env
+#          echo "POSTGRESQL_USERNAME=test_user" >> .env
+#          echo "POSTGRESQL_PASSWORD=test_password" >> .env
+#          echo "POSTGRESQL_PORT=5432" >> .env
+#          echo "MYSQL_HOST=127.0.0.1" >> .env
+#          echo "MYSQL_DATABASE=test_db" >> .env
+#          echo "MYSQL_USERNAME=test_user" >> .env
+#          echo "MYSQL_PASSWORD=test_password" >> .env
+#          echo "MYSQL_PORT=3306" >> .env
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=test_db" >> .env
+          echo "DB_USERNAME=test_user" >> .env
+          echo "DB_PASSWORD=test_password" >> .env
           php artisan key:generate
+          cat .env
           ls -lha ${{ runner.workspace }}
           ls -lha ${{ runner.workspace }}/laravel-bulk-upsert
           ls -lha ${{ runner.workspace }}/laravel/vendor/lapaliv/laravel-bulk-upsert
