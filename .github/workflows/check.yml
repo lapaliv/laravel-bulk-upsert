@@ -217,10 +217,12 @@ jobs:
           cd ${{ runner.workspace }}/laravel
           sed -i 's/^DB_CONNECTION=.*/# &/' .env
           sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          sed -i 's/^DB_DATABASE=.*/# &/' .env
+          sed -i 's/^DB_DATABASE=.*/# &/' .env.testing
           echo "DB_CONNECTION=sqlite" >> .env
           echo "DB_CONNECTION=sqlite" >> .env.testing
           rm ${{ runner.workspace }}/laravel/database/migrations/*
-          php artisan migrate:fresh
+#          php artisan migrate:fresh
           php artisan config:show database.default
 
       - name: Run tests (SQLite)
