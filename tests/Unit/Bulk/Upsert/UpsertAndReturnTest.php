@@ -1,38 +1,33 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Upsert;
+namespace Tests\Unit\Bulk\Upsert;
 
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpsertAndReturnTest extends TestCase
+final class UpsertAndReturnTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testDatabase(string $model): void
+    public function testDatabase(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -45,19 +40,14 @@ final class UpsertAndReturnTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testDatabaseCreateOnly(string $model): void
+    public function testDatabaseCreateOnly(): void
     {
         // arrange
-        $user = $this->userGenerator
-            ->setModel($model)
-            ->makeOne();
-        $sut = $model::query()
+        $user = $this->userGenerator->makeOne();
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -69,19 +59,15 @@ final class UpsertAndReturnTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testDatabaseUpdateOnly(string $model): void
+    public function testDatabaseUpdateOnly(): void
     {
         // arrange
-        $user = $this->userGenerator
-            ->setModel($model)
-            ->createOneAndDirty();
-        $sut = $model::query()
+        $user = $this->userGenerator->createOneAndDirty();
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -93,21 +79,17 @@ final class UpsertAndReturnTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testResult(string $model): void
+    public function testResult(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
             $this->userGenerator->makeOne(),
         ]);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -126,20 +108,16 @@ final class UpsertAndReturnTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testResultCreateOnly(string $model): void
+    public function testResultCreateOnly(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->makeOne(),
         ]);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -156,20 +134,16 @@ final class UpsertAndReturnTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testResultUpdateOnly(string $model): void
+    public function testResultUpdateOnly(): void
     {
         // arrange
-        $this->userGenerator->setModel($model);
         $users = new UserCollection([
             $this->userGenerator->createOneAndDirty(),
         ]);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -183,14 +157,5 @@ final class UpsertAndReturnTest extends TestCase
         self::assertEquals($users->get(0)->id, $result->get(0)->id);
 
         $this->returnedUserWasUpserted($users->get(0), $result->get(0));
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

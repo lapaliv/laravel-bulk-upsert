@@ -1,14 +1,14 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
+namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\Unit\ModelListenerTestTrait;
+use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
@@ -22,25 +22,21 @@ class CreatingEventTest extends CreateScenarioTestCase
     /**
      * If the model has a listener for the 'creating' event, then this listener should be called.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testTriggering(string $userModel): void
+    public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = $this->makeUserCollection($userModel, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
         $this->handleCreateScenario($data, $eventDispatcher);
 
         // assert
-        $this->spyShouldHaveReceived($listener)->times($users->count());
+        self::spyShouldHaveReceived($listener)->times($users->count());
     }
 
     /**
@@ -55,47 +51,43 @@ class CreatingEventTest extends CreateScenarioTestCase
     public function testNotTriggeringWhenSavingReturnedFalse(string $previousEventName): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(MySqlUser::class);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $this->makeModelListenerWithReturningValue(
             $previousEventName,
             $eventDispatcher,
             [false, false]
         );
         $creatingListener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = $this->makeUserCollection(MySqlUser::class, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
         $this->handleCreateScenario($data, $eventDispatcher);
 
         // assert
-        $this->spyShouldNotHaveReceived($creatingListener);
+        self::spyShouldNotHaveReceived($creatingListener);
     }
 
     /**
      * The listener for the 'creating' event should receive only one argument, which must be the model.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testListenerArguments(string $userModel): void
+    public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
         $listener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = $this->makeUserCollection($userModel, 2);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
 
         // act
         $this->handleCreateScenario($data, $eventDispatcher);
 
         // assert
-        $this->spyShouldHaveReceived($listener)
+        self::spyShouldHaveReceived($listener)
             ->withArgs(
-                fn () => $this->assertModelListenerArguments($users, ...func_get_args())
+                fn() => $this->assertModelListenerArguments($users, ...func_get_args())
             );
     }
 
@@ -104,7 +96,7 @@ class CreatingEventTest extends CreateScenarioTestCase
      *
      * @return array[]
      */
-    public function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],

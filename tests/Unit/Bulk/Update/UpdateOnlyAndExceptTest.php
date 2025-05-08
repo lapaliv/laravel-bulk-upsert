@@ -1,40 +1,30 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
-use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class UpdateOnlyAndExceptTest extends TestCase
+final class UpdateOnlyAndExceptTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws BulkException
      */
-    public function testOnly(string $model): void
+    public function testOnly(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['id'])
             ->updateOnly(['name']);
@@ -67,22 +57,15 @@ final class UpdateOnlyAndExceptTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testUpdateAllExcept(string $model): void
+    public function testUpdateAllExcept(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['id'])
             ->updateAllExcept(['name']);
@@ -112,14 +95,5 @@ final class UpdateOnlyAndExceptTest extends TestCase
                 ], $user->getConnectionName());
             }
         );
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

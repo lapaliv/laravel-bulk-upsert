@@ -78,7 +78,157 @@ jobs:
           echo "MYSQL_PORT=3306" >> .env
 
       - name: Run Tests
-        run: ./vendor/bin/phpunit --testdox
+        run: make run-tests
+
+  phpunit-with-laravel:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - laravel: 8.*
+            php: 8.0
+          - laravel: 9.*
+            php: 8.0
+          - laravel: 10.*
+            php: 8.1
+          - laravel: 11.*
+            php: 8.2
+          - laravel: 11.*
+            php: 8.3
+          - laravel: 11.*
+            php: 8.4
+          - laravel: 12.*
+            php: 8.2
+          - laravel: 12.*
+            php: 8.3
+          - laravel: 12.*
+            php: 8.4
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo, mysql, pgsql
+          coverage: none
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Preparing Laravel project
+        run: |
+          cd ${{ runner.workspace }}
+          composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
+          cd ${{ runner.workspace }}/laravel
+          composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
+          composer require lapaliv/laravel-bulk-upsert:@dev
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_DATABASE=test_db" >> .env
+          echo "DB_USERNAME=test_user" >> .env
+          echo "DB_PASSWORD=test_password" >> .env
+          php artisan key:generate
+          cp .env .env.testing
+          mv ${{ runner.workspace }}/laravel/tests/Unit ${{ runner.workspace }}/laravel/tests/Unit_old
+          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/App ${{ runner.workspace }}/laravel/tests/
+          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Database ${{ runner.workspace }}/laravel/tests/
+          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Unit ${{ runner.workspace }}/laravel/tests/
+          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/TestCaseWrapper.php ${{ runner.workspace }}/laravel/tests/
+          sed -i '/^[[:space:]]*<env name="DB_CONNECTION" value="/d' phpunit.xml
+          sed -i '/^[[:space:]]*<env name="DB_DATABASE" value="/d' phpunit.xml
+
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL..."
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            sleep 2
+          done
+          echo "MySQL is up!"
+
+      - name: Preparing MySQL
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_CONNECTION=mysql" >> .env.testing
+          php artisan config:show database.default
+
+      - name: Run tests (MySQL)
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          ./vendor/bin/phpunit
+
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL..."
+          until pg_isready -h 127.0.0.1 -p 5432; do
+            sleep 2
+          done
+          echo "PostgreSQL is up!"
+
+      - name: Preparing PostgreSQL
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_CONNECTION=pgsql" >> .env.testing
+          php artisan config:show database.default
+
+      - name: Run tests (PostgreSQL)
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          ./vendor/bin/phpunit
+
+      - name: Preparing SQLite
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          sed -i 's/^DB_DATABASE=.*/# &/' .env
+          sed -i 's/^DB_DATABASE=.*/# &/' .env.testing
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env.testing
+          rm ${{ runner.workspace }}/laravel/database/migrations/*
+          php artisan config:show database.default
+
+      - name: Run tests (SQLite)
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          ./vendor/bin/phpunit
+
 
   psalm:
     runs-on: ubuntu-22.04

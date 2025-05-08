@@ -1,80 +1,65 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Update;
+namespace Tests\Unit\Bulk\Update;
 
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-class UpdateEventsTest extends TestCase
+class UpdateEventsTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDisableAllEvents(string $model): void
+    public function testDisableAllEvents(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableEvents();
 
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($spy);
 
         // act
         $sut->update($users);
 
         // assert
-        $this->spyShouldNotHaveReceived($spy);
+        self::spyShouldNotHaveReceived($spy);
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDisableModelEndEvents(string $model): void
+    public function testDisableModelEndEvents(): void
     {
         // arrange
         $disabledEvents = BulkEventEnum::modelEnd();
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableModelEndEvents();
 
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($callingSpy);
 
         foreach ($disabledEvents as $event) {
@@ -85,14 +70,13 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy)
+        self::spyShouldHaveReceived($callingSpy)
             ->atLeast()
             ->once();
-        $this->spyShouldNotHaveReceived($notCallingSpy);
+        self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $disabledEvent
      *
      * @return void
@@ -101,20 +85,18 @@ class UpdateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
-    public function testDisableSomeEvents(string $model, string $disabledEvent): void
+    public function testDisableSomeEvents(string $disabledEvent): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableEvents([$disabledEvent]);
 
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($callingSpy);
         Observer::listen($disabledEvent, $notCallingSpy);
 
@@ -122,14 +104,13 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy)
+        self::spyShouldHaveReceived($callingSpy)
             ->atLeast()
             ->once();
-        $this->spyShouldNotHaveReceived($notCallingSpy);
+        self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $disabledEvent
      *
      * @return void
@@ -138,20 +119,18 @@ class UpdateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
-    public function testDisableOneEvent(string $model, string $disabledEvent): void
+    public function testDisableOneEvent(string $disabledEvent): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableEvent($disabledEvent);
 
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($callingSpy);
         Observer::listen($disabledEvent, $notCallingSpy);
 
@@ -159,33 +138,27 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy)
+        self::spyShouldHaveReceived($callingSpy)
             ->atLeast()
             ->once();
-        $this->spyShouldNotHaveReceived($notCallingSpy);
+        self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testEnableAllEvents(string $model): void
+    public function testEnableAllEvents(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->enableEvents();
 
         $spy = Mockery::spy(TestCallback::class);
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($spy);
         $countOfCallingPerModel = count(BulkEventEnum::update()) + count(BulkEventEnum::save());
 
@@ -193,7 +166,7 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($spy)
+        self::spyShouldHaveReceived($spy)
             ->times(
                 $countOfCallingPerModel * $users->count()
                 // The minus due to the collection events
@@ -202,7 +175,6 @@ class UpdateEventsTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $enabledEvent
      *
      * @return void
@@ -211,13 +183,11 @@ class UpdateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
-    public function testEnableSomeDisabledEvents(string $model, string $enabledEvent): void
+    public function testEnableSomeDisabledEvents(string $enabledEvent): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->enableEvents()
             ->disableEvent($enabledEvent)
@@ -225,18 +195,17 @@ class UpdateEventsTest extends TestCase
 
         $callingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listen($enabledEvent, $callingSpy);
 
         // act
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy);
+        self::spyShouldHaveReceived($callingSpy);
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $enabledEvent
      *
      * @return void
@@ -245,13 +214,11 @@ class UpdateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
-    public function testEnableSomeEvents(string $model, string $enabledEvent): void
+    public function testEnableSomeEvents(string $enabledEvent): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableEvents()
             ->enableEvents([$enabledEvent]);
@@ -259,7 +226,7 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($notCallingSpy, [$enabledEvent]);
         Observer::listen($enabledEvent, $callingSpy);
 
@@ -267,12 +234,11 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy);
-        $this->spyShouldNotHaveReceived($notCallingSpy);
+        self::spyShouldHaveReceived($callingSpy);
+        self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $enabledEvent
      *
      * @return void
@@ -281,13 +247,11 @@ class UpdateEventsTest extends TestCase
      *
      * @dataProvider eventsDataProvider
      */
-    public function testEnableOneEvent(string $model, string $enabledEvent): void
+    public function testEnableOneEvent(string $enabledEvent): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollectionAndDirty(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollectionAndDirty(2);
+        $sut = User::query()
             ->bulk()
             ->disableEvents()
             ->enableEvent($enabledEvent);
@@ -295,7 +259,7 @@ class UpdateEventsTest extends TestCase
         $callingSpy = Mockery::spy(TestCallback::class);
         $notCallingSpy = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listenAny($notCallingSpy, [$enabledEvent]);
         Observer::listen($enabledEvent, $callingSpy);
 
@@ -303,34 +267,18 @@ class UpdateEventsTest extends TestCase
         $sut->update($users);
 
         // assert
-        $this->spyShouldHaveReceived($callingSpy);
-        $this->spyShouldNotHaveReceived($notCallingSpy);
+        self::spyShouldHaveReceived($callingSpy);
+        self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
-    public function eventsDataProvider(): array
+    public static function eventsDataProvider(): array
     {
-        $targetEvents = [
-            ...BulkEventEnum::save(),
-            ...BulkEventEnum::update(),
-        ];
-
-        $result = [];
-
-        foreach ($this->userModelsDataProvider() as $key => [$model]) {
-            foreach ($targetEvents as $targetEvent) {
-                $result[$targetEvent . ' && ' . $key] = [$model, $targetEvent];
-            }
-        }
-
-        return $result;
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
+        return array_map(
+            fn(string $event) => [$event],
+            [
+                ...BulkEventEnum::save(),
+                ...BulkEventEnum::update(),
+            ]
+        );
     }
 }

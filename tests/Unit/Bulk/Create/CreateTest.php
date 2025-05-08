@@ -1,44 +1,33 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
+namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class CreateTest extends TestCase
+final class CreateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testBase(string $model): void
+    public function testBase(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->makeCollection(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -66,16 +55,12 @@ final class CreateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
-     * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
+     * @throws RandomException
      */
-    public function testWithTimestamps(string $model): void
+    public function testWithTimestamps(): void
     {
         // arrange
         $expectedCreatedAt = Carbon::now()->subSeconds(
@@ -85,7 +70,6 @@ final class CreateTest extends TestCase
             random_int(100, 100_000)
         );
         $users = $this->userGenerator
-            ->setModel($model)
             ->makeCollection(2)
             ->each(
                 function (User $user) use ($expectedCreatedAt, $expectedUpdatedAt): void {
@@ -93,7 +77,7 @@ final class CreateTest extends TestCase
                     $user->setUpdatedAt($expectedUpdatedAt);
                 }
             );
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -112,46 +96,34 @@ final class CreateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      *
      * @throws BulkException
      */
-    public function testStdRow(string $model): void
+    public function testStdRow(): void
     {
         // arrange
-        $user = $this->userGenerator
-            ->setModel($model)
-            ->makeOne();
-        $sut = $model::query()
+        $user = $this->userGenerator->makeOne();
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
         // act
-        $sut->create([(object) $user->toArray()]);
+        $sut->create([(object)$user->toArray()]);
 
         // assert
         $this->userWasCreated($user);
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      *
      * @throws BulkException
      */
-    public function testObjectRowWithMethodToArray(string $model): void
+    public function testObjectRowWithMethodToArray(): void
     {
         // arrange
-        $user = $this->userGenerator
-            ->setModel($model)
-            ->makeOne();
+        $user = $this->userGenerator->makeOne();
         $userAsArray = $user->toArray();
         $userAsArray['gender'] = $user->gender->value;
         $className = 'SomeClass' . Str::random();
@@ -162,7 +134,7 @@ final class CreateTest extends TestCase
                 }
             }
         ");
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -174,20 +146,16 @@ final class CreateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testCreatingWithoutUniqueAttributesWithEvents(string $model): void
+    public function testCreatingWithoutUniqueAttributesWithEvents(): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $model::observe(Observer::class);
-        $sut = $model::query()->bulk();
+        User::observe(Observer::class);
+        $sut = User::query()->bulk();
 
         // assert
         $this->expectException(BulkIdentifierDidNotFind::class);
@@ -197,37 +165,22 @@ final class CreateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testCreatingWithoutUniqueAttributesWithoutEvents(string $model): void
+    public function testCreatingWithoutUniqueAttributesWithoutEvents(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(2);
-        $sut = $model::query()->bulk();
+        $users = $this->userGenerator->makeCollection(2);
+        $sut = User::query()->bulk();
 
         // act
         $sut->create($users);
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasCreated($user)
+            fn(User $user) => $this->userWasCreated($user)
         );
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

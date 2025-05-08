@@ -1,12 +1,12 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit;
+namespace Tests\Unit;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
+use Tests\App\Support\TestCallback;
 use Mockery;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
@@ -28,7 +28,8 @@ trait ModelListenerTestTrait
     protected function makeSimpleModelListener(
         string $event,
         BulkEventDispatcher $eventDispatcher,
-    ): LegacyMockInterface|MockInterface {
+    ): LegacyMockInterface|MockInterface
+    {
         $result = Mockery::spy(TestCallback::class);
         $eventDispatcher->listen($event, $result);
 
@@ -39,7 +40,8 @@ trait ModelListenerTestTrait
         string $event,
         BulkEventDispatcher $eventDispatcher,
         mixed $returningValue,
-    ): LegacyMockInterface|MockInterface {
+    ): LegacyMockInterface|MockInterface
+    {
         $result = Mockery::spy(TestCallback::class);
         $result->expects('__invoke')
             ->zeroOrMoreTimes()

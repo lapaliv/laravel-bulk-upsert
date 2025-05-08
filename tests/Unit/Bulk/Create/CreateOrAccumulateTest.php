@@ -1,40 +1,31 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Create;
+namespace Tests\Unit\Bulk\Create;
 
-use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-final class CreateOrAccumulateTest extends TestCase
+final class CreateOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     * @throws JsonException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testBigChunkSize(string $model): void
+    public function testBigChunkSize(): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $sut = $model::query()
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk(100);
@@ -51,21 +42,15 @@ final class CreateOrAccumulateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testSmallChunkSize(string $model): void
+    public function testSmallChunkSize(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->makeCollection(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk($users->count());
@@ -80,21 +65,15 @@ final class CreateOrAccumulateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testSmallChunkSizeWithExtraCount(string $model): void
+    public function testSmallChunkSizeWithExtraCount(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(5);
-        $sut = $model::query()
+        $users = $this->userGenerator->makeCollection(5);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->chunk($users->count() - 1);
@@ -110,21 +89,15 @@ final class CreateOrAccumulateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testSaveAccumulation(string $model): void
+    public function testSaveAccumulation(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->makeCollection(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email'])
             ->createOrAccumulate($users);
@@ -134,25 +107,21 @@ final class CreateOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasCreated($user)
+            fn(User $user) => $this->userWasCreated($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testCreatingWithoutUniqueAttributesWithEvents(string $model): void
+    public function testCreatingWithoutUniqueAttributesWithEvents(): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
-        $model::observe(Observer::class);
-        $sut = $model::query()->bulk();
+        User::observe(Observer::class);
+        $sut = User::query()->bulk();
 
         // assert
         $this->expectException(BulkIdentifierDidNotFind::class);
@@ -162,21 +131,15 @@ final class CreateOrAccumulateTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testCreatingWithoutUniqueAttributesWithoutEvents(string $model): void
+    public function testCreatingWithoutUniqueAttributesWithoutEvents(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->makeCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->makeCollection(2);
+        $sut = User::query()
             ->bulk()
             ->chunk(2);
 
@@ -185,16 +148,7 @@ final class CreateOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasCreated($user)
+            fn(User $user) => $this->userWasCreated($user)
         );
-    }
-
-    public function userModelsDataProvider(): array
-    {
-        return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
     }
 }

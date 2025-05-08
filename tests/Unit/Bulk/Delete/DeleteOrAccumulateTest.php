@@ -1,95 +1,71 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DeleteOrAccumulateTest extends TestCase
+class DeleteOrAccumulateTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDeleteWithSoftDeletingSmallChunk(string $model): void
+    public function testDeleteWithSoftDeletingSmallChunk(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()->bulk();
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()->bulk();
 
         // act
         $sut->deleteOrAccumulate($users);
 
         // assert
         $users->each(
-            fn (User $user) => $this->userExists($user)
+            fn(User $user) => $this->userExists($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testForceDeleteWithSoftDeletingSmallChunk(string $model): void
+    public function testForceDeleteWithSoftDeletingSmallChunk(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()->bulk();
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()->bulk();
 
         // act
         $sut->forceDeleteOrAccumulate($users);
 
         // assert
         $users->each(
-            fn (User $user) => $this->userExists($user)
+            fn(User $user) => $this->userExists($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDeleteWithSoftDeletingBigChunk(string $model): void
+    public function testDeleteWithSoftDeletingBigChunk(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()
             ->bulk()
             ->chunk($users->count());
 
@@ -98,26 +74,20 @@ class DeleteOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userWasSoftDeleted($user)
+            fn(User $user) => $this->userWasSoftDeleted($user)
         );
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testForceDeleteWithSoftDeletingBigChunk(string $model): void
+    public function testForceDeleteWithSoftDeletingBigChunk(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()
             ->bulk()
             ->chunk($users->count());
 
@@ -126,12 +96,11 @@ class DeleteOrAccumulateTest extends TestCase
 
         // assert
         $users->each(
-            fn (User $user) => $this->userDoesNotExist($user)
+            fn(User $user) => $this->userDoesNotExist($user)
         );
     }
 
     /**
-     * @param class-string<Post> $model
      * @param string $method
      *
      * @return void
@@ -141,25 +110,24 @@ class DeleteOrAccumulateTest extends TestCase
      *
      * @dataProvider postModelsDataProvider
      */
-    public function testDeleteWithoutSoftDeletingSmallChunk(string $model, string $method): void
+    public function testDeleteWithoutSoftDeletingSmallChunk(string $method): void
     {
         // arrange
-        $posts = $model::factory()->count(2)->create();
-        $sut = $model::query()->bulk();
+        $posts = Post::factory()->count(2)->create();
+        $sut = Post::query()->bulk();
 
         // act
         $sut->{$method}($posts);
 
         // assert
         $posts->each(
-            fn (Post $post) => $this->assertDatabaseHas($post->getTable(), [
+            fn(Post $post) => $this->assertDatabaseHas($post->getTable(), [
                 'id' => $post->id,
             ], $post->getConnectionName())
         );
     }
 
     /**
-     * @param class-string<Post> $model
      * @param string $method
      *
      * @return void
@@ -168,11 +136,11 @@ class DeleteOrAccumulateTest extends TestCase
      *
      * @dataProvider postModelsDataProvider
      */
-    public function testDeleteWithoutSoftDeletingBigChunk(string $model, string $method): void
+    public function testDeleteWithoutSoftDeletingBigChunk(string $method): void
     {
         // arrange
-        $posts = $model::factory()->count(2)->create();
-        $sut = $model::query()
+        $posts = Post::factory()->count(2)->create();
+        $sut = Post::query()
             ->bulk()
             ->chunk($posts->count());
 
@@ -181,46 +149,19 @@ class DeleteOrAccumulateTest extends TestCase
 
         // assert
         $posts->each(
-            fn (Post $post) => $this->assertDatabaseMissing($post->getTable(), [
+            fn(Post $post) => $this->assertDatabaseMissing($post->getTable(), [
                 'id' => $post->id,
             ], $post->getConnectionName())
         );
     }
 
-    public function userModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqLiteUser::class],
-        ];
-    }
-
-    public function postModelsDataProvider(): array
-    {
-        return [
-            'mysql, deleteOrAccumulate' => [
-                MySqlPost::class,
+            'deleteOrAccumulate' => [
                 'deleteOrAccumulate',
             ],
-            'mysql, forceDeleteOrAccumulate' => [
-                MySqlPost::class,
-                'forceDeleteOrAccumulate',
-            ],
-            'pgsql, deleteOrAccumulate' => [
-                PostgreSqlPost::class,
-                'deleteOrAccumulate',
-            ],
-            'pgsql, forceDeleteOrAccumulate' => [
-                PostgreSqlPost::class,
-                'forceDeleteOrAccumulate',
-            ],
-            'sqlite, deleteOrAccumulate' => [
-                SqLitePost::class,
-                'deleteOrAccumulate',
-            ],
-            'sqlite, forceDeleteOrAccumulate' => [
-                SqLitePost::class,
+            'forceDeleteOrAccumulate' => [
                 'forceDeleteOrAccumulate',
             ],
         ];

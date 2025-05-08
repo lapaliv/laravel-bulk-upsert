@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit;
+namespace Tests\Unit;
 
 use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
