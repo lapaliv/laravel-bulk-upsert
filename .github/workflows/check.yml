@@ -128,7 +128,7 @@ jobs:
           echo "DB_USERNAME=test_user" >> .env
           echo "DB_PASSWORD=test_password" >> .env
           php artisan key:generate
-          cat .env
+          cp .env .env.testing
           mv ${{ runner.workspace }}/laravel/tests/Unit ${{ runner.workspace }}/laravel/tests/Unit_old
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/App ${{ runner.workspace }}/laravel/tests/
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Database ${{ runner.workspace }}/laravel/tests/
