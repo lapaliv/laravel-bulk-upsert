@@ -135,6 +135,7 @@ jobs:
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Unit ${{ runner.workspace }}/laravel/tests/
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/TestCaseWrapper.php ${{ runner.workspace }}/laravel/tests/
           sed -i '/^[[:space:]]*<env name="DB_CONNECTION" value="/d' phpunit.xml
+          sed -i '/^[[:space:]]*<env name="DB_DATABASE" value="/d' phpunit.xml
 
       - name: Run tests
         run: |
