@@ -120,7 +120,7 @@ jobs:
           cd ${{ runner.workspace }}/laravel
           composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
-          sed -i 's/^DB_CONNECTION=.*/#&/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
           echo "DB_CONNECTION=mysql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_PORT=3306" >> .env
@@ -129,11 +129,6 @@ jobs:
           echo "DB_PASSWORD=test_password" >> .env
           php artisan key:generate
           cat .env
-          ls -lha ${{ runner.workspace }}
-          ls -lha ${{ runner.workspace }}/laravel-bulk-upsert
-          ls -lha ${{ runner.workspace }}/laravel/vendor/lapaliv/laravel-bulk-upsert
-          ls -lha ${{ runner.workspace }}/laravel/vendor/lapaliv/laravel-bulk-upsert/src
-          cp ${{ runner.workspace }}/laravel-bulk-upsert/Makefile ${{ runner.workspace }}/laravel/
           mv ${{ runner.workspace }}/laravel/tests/Unit ${{ runner.workspace }}/laravel/tests/Unit_old
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/App ${{ runner.workspace }}/laravel/tests/
           cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Database ${{ runner.workspace }}/laravel/tests/
@@ -143,7 +138,7 @@ jobs:
       - name: Run tests
         run: |
           cd ${{ runner.workspace }}/laravel
-          make run-tests
+          ./vendor/bin/phpunit
 
   psalm:
     runs-on: ubuntu-22.04
