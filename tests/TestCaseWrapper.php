@@ -18,13 +18,13 @@ use Tests\App\Models\User;
 
 abstract class TestCaseWrapper extends TestCase
 {
-    private bool $schemaIsRefreshed = false;
+    private static bool $schemaIsRefreshed = false;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        if (!$this->schemaIsRefreshed) {
+        if (!self::$schemaIsRefreshed) {
             Comment::dropTable();
             Post::dropTable();
             Story::dropTable();
@@ -37,7 +37,7 @@ abstract class TestCaseWrapper extends TestCase
             Story::createTable();
             Article::createTable();
 
-            $this->schemaIsRefreshed = true;
+            self::$schemaIsRefreshed = true;
         }
     }
 
