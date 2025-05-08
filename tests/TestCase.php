@@ -1,6 +1,6 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests;
+namespace Tests;
 
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager;
@@ -117,6 +117,6 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
     private static function getSqLitePath(): string
     {
-        return __DIR__ . '/database/database.sqlite';
+        return __DIR__ . '/Database/database.sqlite';
     }
 }

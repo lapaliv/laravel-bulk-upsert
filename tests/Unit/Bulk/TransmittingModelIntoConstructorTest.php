@@ -1,12 +1,12 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk;
+namespace Tests\Unit\Bulk;
 
 use Illuminate\Support\Str;
 use Lapaliv\BulkUpsert\Bulk;
 use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCaseWrapper;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
 
 /**
  * @internal

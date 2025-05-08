@@ -1,14 +1,14 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests;
+namespace Tests;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\DB;
-use Lapaliv\BulkUpsert\Tests\App\Models\Article;
-use Lapaliv\BulkUpsert\Tests\App\Models\Comment;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\Story;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
+use Tests\App\Models\Article;
+use Tests\App\Models\Comment;
+use Tests\App\Models\Post;
+use Tests\App\Models\Story;
+use Tests\App\Models\User;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
