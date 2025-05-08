@@ -4,36 +4,39 @@ namespace Tests;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\DB;
-use Tests\App\Models\Article;
-use Tests\App\Models\Comment;
-use Tests\App\Models\Post;
-use Tests\App\Models\Story;
-use Tests\App\Models\User;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 use Mockery\VerificationDirector;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use stdClass;
+use Tests\App\Models\Article;
+use Tests\App\Models\Comment;
+use Tests\App\Models\Post;
+use Tests\App\Models\Story;
+use Tests\App\Models\User;
 
 abstract class TestCaseWrapper extends TestCase
 {
-    public static function setUpBeforeClass(): void
+    private bool $schemaIsRefreshed = false;
+
+    protected function setUp(): void
     {
-        parent::setUpBeforeClass();
+        parent::setUp();
 
-        // deleting tables
-        Comment::dropTable();
-        Post::dropTable();
-        Story::dropTable();
-        Article::dropTable();
-        User::dropTable();
+        if (!$this->schemaIsRefreshed) {
+            Comment::dropTable();
+            Post::dropTable();
+            Story::dropTable();
+            Article::dropTable();
+            User::dropTable();
 
-        User::createTable();
-        Post::createTable();
-        Comment::createTable();
-        Story::createTable();
-        Article::createTable();
+            User::createTable();
+            Post::createTable();
+            Comment::createTable();
+            Story::createTable();
+            Article::createTable();
+        }
     }
 
     public function assertDatabaseMissing($table, array $data = [], $connection = null): void
