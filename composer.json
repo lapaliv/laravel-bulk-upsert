@@ -17,8 +17,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Lapaliv\\BulkUpsert\\Tests\\": "tests",
-            "Lapaliv\\BulkUpsert\\Tests\\App\\": "tests/app"
+            "Tests\\": "tests"
         }
     },
     "authors": [
@@ -40,7 +39,7 @@
         "friendsofphp/php-cs-fixer": "^3.13",
         "orchestra/testbench": "^7.0|^8.0|^9.0",
         "phpunit/phpunit": "^9.0|^10.0",
-        "vimeo/psalm": "^5.13",
+        "vimeo/psalm": "^6.10",
         "vlucas/phpdotenv": "^5.6"
     },
     "extra": {
