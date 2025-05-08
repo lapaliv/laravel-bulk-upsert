@@ -146,8 +146,6 @@ jobs:
           cd ${{ runner.workspace }}/laravel
           composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
           composer require lapaliv/laravel-bulk-upsert:@dev
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env
-          echo "DB_CONNECTION=mysql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_DATABASE=test_db" >> .env
           echo "DB_USERNAME=test_user" >> .env
@@ -170,6 +168,15 @@ jobs:
           done
           echo "MySQL is up!"
 
+      - name: Preparing MySQL
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_CONNECTION=mysql" >> .env.testing
+          php artisan config:show database.default
+
       - name: Run tests (MySQL)
         run: |
           cd ${{ runner.workspace }}/laravel
@@ -183,15 +190,32 @@ jobs:
           done
           echo "PostgreSQL is up!"
 
-      - name: Preparing
+      - name: Preparing PostgreSQL
         run: |
           cd ${{ runner.workspace }}/laravel
           sed -i 's/^DB_CONNECTION=.*/# &/' .env
           sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
           echo "DB_CONNECTION=pgsql" >> .env
           echo "DB_CONNECTION=pgsql" >> .env.testing
+          php artisan config:show database.default
 
       - name: Run tests (PostgreSQL)
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          ./vendor/bin/phpunit
+
+      - name: Preparing SQLite
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env.testing
+          rm ${{ runner.workspace }}/laravel/database/migrations
+          php artisan migrate:fresh
+          php artisan config:show database.default
+
+      - name: Run tests (SQLite)
         run: |
           cd ${{ runner.workspace }}/laravel
           ./vendor/bin/phpunit
