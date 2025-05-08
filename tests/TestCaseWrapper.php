@@ -36,6 +36,8 @@ abstract class TestCaseWrapper extends TestCase
             Comment::createTable();
             Story::createTable();
             Article::createTable();
+
+            $this->schemaIsRefreshed = true;
         }
     }
 
