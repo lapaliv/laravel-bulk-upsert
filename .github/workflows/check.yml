@@ -89,10 +89,10 @@ jobs:
 #            php: 8.0
 #          - laravel: 9.*
 #            php: 8.0
-#          - laravel: 10.*
-#            php: 8.1
-#          - laravel: 11.*
-#            php: 8.2
+          - laravel: 10.*
+            php: 8.1
+          - laravel: 11.*
+            php: 8.2
           - laravel: 12.*
             php: 8.2
     services:
@@ -211,7 +211,7 @@ jobs:
           sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
           echo "DB_CONNECTION=sqlite" >> .env
           echo "DB_CONNECTION=sqlite" >> .env.testing
-          rm ${{ runner.workspace }}/laravel/database/migrations
+          rm ${{ runner.workspace }}/laravel/database/migrations/*
           php artisan migrate:fresh
           php artisan config:show database.default
 
