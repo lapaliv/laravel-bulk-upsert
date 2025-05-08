@@ -139,25 +139,9 @@ jobs:
       - name: Checkout PR
         uses: actions/checkout@v4
 
-      - name: Wait for MySQL
-        run: |
-          echo "Waiting for MySQL..."
-          until mysqladmin ping -h 127.0.0.1 --silent; do
-            sleep 2
-          done
-          echo "MySQL is up!"
-
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h 127.0.0.1 -p 5432; do
-            sleep 2
-          done
-          echo "PostgreSQL is up!"
-
       - name: Preparing Laravel project
         run: |
-          pwd
           cd ${{ runner.workspace }}
-          ls -lha
           composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
           cd ${{ runner.workspace }}/laravel
           composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
@@ -165,7 +149,6 @@ jobs:
           sed -i 's/^DB_CONNECTION=.*/# &/' .env
           echo "DB_CONNECTION=mysql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_PORT=3306" >> .env
           echo "DB_DATABASE=test_db" >> .env
           echo "DB_USERNAME=test_user" >> .env
           echo "DB_PASSWORD=test_password" >> .env
@@ -179,10 +162,40 @@ jobs:
           sed -i '/^[[:space:]]*<env name="DB_CONNECTION" value="/d' phpunit.xml
           sed -i '/^[[:space:]]*<env name="DB_DATABASE" value="/d' phpunit.xml
 
-      - name: Run tests
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL..."
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            sleep 2
+          done
+          echo "MySQL is up!"
+
+      - name: Run tests (MySQL)
         run: |
           cd ${{ runner.workspace }}/laravel
           ./vendor/bin/phpunit
+
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL..."
+          until pg_isready -h 127.0.0.1 -p 5432; do
+            sleep 2
+          done
+          echo "PostgreSQL is up!"
+
+      - name: Preparing
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env
+          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_CONNECTION=pgsql" >> .env.testing
+
+      - name: Run tests (PostgreSQL)
+        run: |
+          cd ${{ runner.workspace }}/laravel
+          ./vendor/bin/phpunit
+
 
   psalm:
     runs-on: ubuntu-22.04
