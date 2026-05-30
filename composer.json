@@ -17,7 +17,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests"
+            "Lapaliv\\BulkUpsert\\Tests\\": "tests",
+            "Lapaliv\\BulkUpsert\\Tests\\App\\": "tests/app"
         }
     },
     "authors": [
@@ -29,9 +30,9 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": "^8.2",
+        "php": "^8.0",
         "nesbot/carbon": "^2.0|^3.0",
-        "illuminate/database": "^11.0|^12.0|^13.0"
+        "illuminate/database": "^8.19|^9.0|^10.0|^11.0|^12.0|^13.0"
     },
     "require-dev": {
         "ext-pdo": "*",
@@ -39,7 +40,7 @@
         "friendsofphp/php-cs-fixer": "^3.13",
         "orchestra/testbench": "^7.0|^8.0|^9.0",
         "phpunit/phpunit": "^9.0|^10.0",
-        "vimeo/psalm": "^6.10",
+        "vimeo/psalm": "^5.13",
         "vlucas/phpdotenv": "^5.6"
     },
     "extra": {
