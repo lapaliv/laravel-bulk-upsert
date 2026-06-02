@@ -230,7 +230,7 @@ jobs:
   psalm:
     runs-on: ubuntu-latest
     env:
-      php_version: '8.4'
+      php_version: '8.3'
 
     steps:
       - name: Setup PHP
