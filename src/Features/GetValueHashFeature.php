@@ -16,6 +16,6 @@ class GetValueHashFeature
 
     public function handle(mixed $value): string
     {
-        return hash('crc32c', $this->mixedValueToScalarConverter->handle($value) . ':' . gettype($value));
+        return hash('crc32c', (string)$this->mixedValueToScalarConverter->handle($value) . ':' . gettype($value));
     }
 }

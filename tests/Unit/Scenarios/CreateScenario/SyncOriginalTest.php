@@ -1,14 +1,15 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenario;
+namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\Unit\BulkAccumulationEntityTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\ModelListenerTestTrait;
-use Lapaliv\BulkUpsert\Tests\Unit\Scenarios\CreateScenarioTestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\User;
+use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\Unit\ModelListenerTestTrait;
+use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
@@ -22,17 +23,13 @@ class SyncOriginalTest extends CreateScenarioTestCase
     /**
      * After creation, the model should be clear, without any changes.
      *
-     * @param string $userModel
-     *
      * @return void
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function test(string $userModel): void
+    public function test(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher($userModel);
-        $users = $this->makeUserCollection($userModel, 2);
+        $eventDispatcher = new BulkEventDispatcher(User::class);
+        $users = User::factory()->count(2)->make();
         $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
         $usersFromEvent = null;
         $eventDispatcher->listen(

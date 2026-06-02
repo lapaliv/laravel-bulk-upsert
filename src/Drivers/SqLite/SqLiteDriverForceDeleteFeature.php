@@ -22,7 +22,10 @@ class SqLiteDriverForceDeleteFeature
         ConnectionInterface $connection,
         DeleteBulkBuilder $builder,
     ): int {
-        $grammar = new SqLiteGrammar($this->mixedValueToSqlConverter);
+        $grammar = new SqLiteGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection),
+        );
 
         $result = $connection->delete($grammar->delete($builder), $grammar->getBindings());
 

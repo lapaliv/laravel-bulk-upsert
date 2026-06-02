@@ -43,7 +43,10 @@ class MySqlDriverInsertWithResultFeature
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $grammar = new MySqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new MySqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)
+        );
 
         $connection->insert($grammar->insert($builder), $grammar->getBindings());
 

@@ -22,7 +22,10 @@ class SqLiteDriverUpdateFeature
         ConnectionInterface $connection,
         UpdateBulkBuilder $builder,
     ): int {
-        $grammar = new SqLiteGrammar($this->mixedValueToSqlConverter);
+        $grammar = new SqLiteGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection),
+        );
 
         $result = $connection->update($grammar->update($builder), $grammar->getBindings());
 

@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection as SupportCollection;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
@@ -82,9 +83,9 @@ trait BulkBuilderTrait
         if (in_array($model->getKeyName(), $unique) && $model->getIncrementing()) {
             $this->chunkById(
                 $chunk,
-                function (Collection $collection) use ($bulk, $values, &$result) {
+                function (SupportCollection $collection) use ($bulk, $values, &$result): void {
                     $collection->each(
-                        function (Model $model) use ($values) {
+                        function (Model $model) use ($values): void {
                             foreach ($values as $attribute => $value) {
                                 $model->setAttribute($attribute, $value);
                             }

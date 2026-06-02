@@ -1,35 +1,30 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use Lapaliv\BulkUpsert\Collections\BulkRows;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
-use Lapaliv\BulkUpsert\Tests\App\Collection\PostCollection;
-use Lapaliv\BulkUpsert\Tests\App\Collection\UserCollection;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\App\Observers\Observer;
-use Lapaliv\BulkUpsert\Tests\App\Support\TestCallback;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Collection\PostCollection;
+use Tests\App\Collection\UserCollection;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
+use Tests\App\Support\TestCallback;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
  * @internal
  */
-class FireEventsTest extends TestCase
+class FireEventsTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
      * @param string $forceDeleteEvent
      * @param string $deleteEvent
      * @param string $deleteManyEvent
@@ -42,25 +37,24 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringSoftDelete(
-        string $model,
         string $forceDeleteEvent,
         string $deleteEvent,
         string $deleteManyEvent,
         string $forceDeleteManyEvent,
-    ): void {
+    ): void
+    {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()->bulk();
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()->bulk();
 
         $forceDeletingCallback = Mockery::spy(TestCallback::class);
         $deletingCallback = Mockery::spy(TestCallback::class);
         $deletingManyCallback = Mockery::spy(TestCallback::class);
         $forceDeletingManyCallback = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listen($forceDeleteEvent, $forceDeletingCallback);
         Observer::listen($deleteEvent, $deletingCallback);
         Observer::listen($deleteManyEvent, $deletingManyCallback);
@@ -72,7 +66,7 @@ class FireEventsTest extends TestCase
         // assert
         $modelListenerUserIndex = 0;
 
-        $this->spyShouldHaveReceived($deletingCallback)
+        self::spyShouldHaveReceived($deletingCallback)
             ->twice()
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
@@ -85,7 +79,7 @@ class FireEventsTest extends TestCase
                     return false;
                 }
             );
-        $this->spyShouldHaveReceived($deletingManyCallback)
+        self::spyShouldHaveReceived($deletingManyCallback)
             ->once()
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users, &$modelListenerUserIndex): bool {
@@ -103,12 +97,11 @@ class FireEventsTest extends TestCase
                         && $modelListenerUserIndex === 2;
                 }
             );
-        $this->spyShouldNotHaveReceived($forceDeletingCallback);
-        $this->spyShouldNotHaveReceived($forceDeletingManyCallback);
+        self::spyShouldNotHaveReceived($forceDeletingCallback);
+        self::spyShouldNotHaveReceived($forceDeletingManyCallback);
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $forceDeleteEvent
      * @param string $deleteEvent
      * @param string $deleteManyEvent
@@ -121,25 +114,24 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringForceDeleting(
-        string $model,
         string $forceDeleteEvent,
         string $deleteEvent,
         string $deleteManyEvent,
         string $forceDeleteManyEvent,
-    ): void {
+    ): void
+    {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()->bulk();
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()->bulk();
 
         $forceDeletingListener = Mockery::spy(TestCallback::class);
         $deletingListener = Mockery::spy(TestCallback::class);
         $deletingManyListener = Mockery::spy(TestCallback::class);
         $forceDeletingManyListener = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        User::observe(Observer::class);
         Observer::listen($forceDeleteEvent, $forceDeletingListener);
         Observer::listen($deleteEvent, $deletingListener);
         Observer::listen($deleteManyEvent, $deletingManyListener);
@@ -151,7 +143,7 @@ class FireEventsTest extends TestCase
         // assert
         $modelListenerUserIndex = 0;
 
-        $this->spyShouldHaveReceived($forceDeletingListener)
+        self::spyShouldHaveReceived($forceDeletingListener)
             ->twice()
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
@@ -165,7 +157,7 @@ class FireEventsTest extends TestCase
                 }
             );
 
-        $this->spyShouldHaveReceived($deletingListener)
+        self::spyShouldHaveReceived($deletingListener)
             ->twice()
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
@@ -179,7 +171,7 @@ class FireEventsTest extends TestCase
                 }
             );
 
-        $this->spyShouldHaveReceived($deletingManyListener)
+        self::spyShouldHaveReceived($deletingManyListener)
             ->once()
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users, &$modelListenerUserIndex): bool {
@@ -203,7 +195,7 @@ class FireEventsTest extends TestCase
                 }
             );
 
-        $this->spyShouldHaveReceived($forceDeletingManyListener)
+        self::spyShouldHaveReceived($forceDeletingManyListener)
             ->once()
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users, &$modelListenerUserIndex): bool {
@@ -224,7 +216,6 @@ class FireEventsTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
      * @param string $forceDeleteEvent
      * @param string $deleteEvent
      * @param string $deleteManyEvent
@@ -237,24 +228,25 @@ class FireEventsTest extends TestCase
      *
      * @dataProvider modelWithoutSoftDeletingDataProvider
      */
+    #[DataProvider('modelWithoutSoftDeletingDataProvider')]
     public function testFiringDeletingWithoutSoft(
-        string $model,
         string $forceDeleteEvent,
         string $deleteEvent,
         string $deleteManyEvent,
         string $forceDeleteManyEvent,
-    ): void {
+    ): void
+    {
         // arrange
         /** @var PostCollection $posts */
-        $posts = $model::factory()->count(2)->create();
-        $sut = $model::query()->bulk();
+        $posts = Post::factory()->count(2)->create();
+        $sut = Post::query()->bulk();
 
         $forceDeletingListener = Mockery::spy(TestCallback::class);
         $deletingListener = Mockery::spy(TestCallback::class);
         $deletingManyListener = Mockery::spy(TestCallback::class);
         $forceDeletingManyListener = Mockery::spy(TestCallback::class);
 
-        $model::observe(Observer::class);
+        Post::observe(Observer::class);
         Observer::listen($forceDeleteEvent, $forceDeletingListener);
         Observer::listen($deleteEvent, $deletingListener);
         Observer::listen($deleteManyEvent, $deletingManyListener);
@@ -266,7 +258,7 @@ class FireEventsTest extends TestCase
         // assert
         $modelListenerPostIndex = 0;
 
-        $this->spyShouldHaveReceived($deletingListener)
+        self::spyShouldHaveReceived($deletingListener)
             ->twice()
             ->withArgs(
                 function (Post $post) use ($posts, &$modelListenerPostIndex): bool {
@@ -280,7 +272,7 @@ class FireEventsTest extends TestCase
                 }
             );
 
-        $this->spyShouldHaveReceived($deletingManyListener)
+        self::spyShouldHaveReceived($deletingManyListener)
             ->once()
             ->withArgs(
                 function (PostCollection $actualPosts, BulkRows $bulkRows) use ($posts, &$modelListenerPostIndex): bool {
@@ -299,36 +291,20 @@ class FireEventsTest extends TestCase
                 }
             );
 
-        $this->spyShouldNotHaveReceived($forceDeletingListener);
-        $this->spyShouldNotHaveReceived($forceDeletingManyListener);
+        self::spyShouldNotHaveReceived($forceDeletingListener);
+        self::spyShouldNotHaveReceived($forceDeletingManyListener);
     }
 
-    public function modelWithSoftDeletingDataProvider(): array
+    public static function modelWithSoftDeletingDataProvider(): array
     {
         return [
-            'mysql + -ing events' => [
-                MySqlUser::class,
+            '-ing events' => [
                 BulkEventEnum::FORCE_DELETING,
                 BulkEventEnum::DELETING,
                 BulkEventEnum::DELETING_MANY,
                 BulkEventEnum::FORCE_DELETING_MANY,
             ],
-            'mysql + -ed events' => [
-                MySqlUser::class,
-                BulkEventEnum::FORCE_DELETED,
-                BulkEventEnum::DELETED,
-                BulkEventEnum::DELETED_MANY,
-                BulkEventEnum::FORCE_DELETED_MANY,
-            ],
-            'pgsql + -ing events' => [
-                PostgreSqlUser::class,
-                BulkEventEnum::FORCE_DELETING,
-                BulkEventEnum::DELETING,
-                BulkEventEnum::DELETING_MANY,
-                BulkEventEnum::FORCE_DELETING_MANY,
-            ],
-            'pgsql + -ed events' => [
-                PostgreSqlUser::class,
+            '-ed events' => [
                 BulkEventEnum::FORCE_DELETED,
                 BulkEventEnum::DELETED,
                 BulkEventEnum::DELETED_MANY,
@@ -337,46 +313,16 @@ class FireEventsTest extends TestCase
         ];
     }
 
-    public function modelWithoutSoftDeletingDataProvider(): array
+    public static function modelWithoutSoftDeletingDataProvider(): array
     {
         return [
-            'mysql + -ing events' => [
-                MySqlPost::class,
+            '-ing events' => [
                 BulkEventEnum::FORCE_DELETING,
                 BulkEventEnum::DELETING,
                 BulkEventEnum::DELETING_MANY,
                 BulkEventEnum::FORCE_DELETING_MANY,
             ],
-            'mysql + -ed events' => [
-                MySqlPost::class,
-                BulkEventEnum::FORCE_DELETED,
-                BulkEventEnum::DELETED,
-                BulkEventEnum::DELETED_MANY,
-                BulkEventEnum::FORCE_DELETED_MANY,
-            ],
-            'pgsql + -ing events' => [
-                PostgreSqlPost::class,
-                BulkEventEnum::FORCE_DELETING,
-                BulkEventEnum::DELETING,
-                BulkEventEnum::DELETING_MANY,
-                BulkEventEnum::FORCE_DELETING_MANY,
-            ],
-            'pgsql + -ed events' => [
-                PostgreSqlPost::class,
-                BulkEventEnum::FORCE_DELETED,
-                BulkEventEnum::DELETED,
-                BulkEventEnum::DELETED_MANY,
-                BulkEventEnum::FORCE_DELETED_MANY,
-            ],
-            'sqlite + -ing events' => [
-                SqLitePost::class,
-                BulkEventEnum::FORCE_DELETING,
-                BulkEventEnum::DELETING,
-                BulkEventEnum::DELETING_MANY,
-                BulkEventEnum::FORCE_DELETING_MANY,
-            ],
-            'sqlite + -ed events' => [
-                SqLitePost::class,
+            '-ed events' => [
                 BulkEventEnum::FORCE_DELETED,
                 BulkEventEnum::DELETED,
                 BulkEventEnum::DELETED_MANY,

@@ -1,46 +1,35 @@
 <?php
 
-namespace Lapaliv\BulkUpsert\Tests\Unit\Bulk\Delete;
+namespace Tests\Unit\Bulk\Delete;
 
 use Carbon\Carbon;
 use JsonException;
 use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\MySqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\Post;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlPost;
-use Lapaliv\BulkUpsert\Tests\App\Models\PostgreSqlUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLitePost;
-use Lapaliv\BulkUpsert\Tests\App\Models\SqLiteUser;
-use Lapaliv\BulkUpsert\Tests\App\Models\User;
-use Lapaliv\BulkUpsert\Tests\TestCase;
-use Lapaliv\BulkUpsert\Tests\Unit\UserTestTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\App\Models\Post;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+use Tests\Unit\UserTestTrait;
 
 /**
  * @internal
  */
-class DatabaseTest extends TestCase
+class DatabaseTest extends TestCaseWrapper
 {
     use UserTestTrait;
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testDeleteWithSoftDeleting(string $model): void
+    public function testDeleteWithSoftDeleting(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -68,22 +57,16 @@ class DatabaseTest extends TestCase
     }
 
     /**
-     * @param class-string<User> $model
-     *
      * @return void
      *
      * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider userModelsDataProvider
      */
-    public function testForceDeleteWithSoftDeleting(string $model): void
+    public function testForceDeleteWithSoftDeleting(): void
     {
         // arrange
-        $users = $this->userGenerator
-            ->setModel($model)
-            ->createCollection(2);
-        $sut = $model::query()
+        $users = $this->userGenerator->createCollection(2);
+        $sut = User::query()
             ->bulk()
             ->uniqueBy(['email']);
 
@@ -111,7 +94,6 @@ class DatabaseTest extends TestCase
     }
 
     /**
-     * @param class-string<Post> $model
      * @param string $method
      *
      * @return void
@@ -122,11 +104,12 @@ class DatabaseTest extends TestCase
      *
      * @dataProvider postModelsDataProvider
      */
-    public function testDeleteWithoutSoftDeleting(string $model, string $method): void
+    #[DataProvider('postModelsDataProvider')]
+    public function testDeleteWithoutSoftDeleting(string $method): void
     {
         // arrange
-        $posts = $model::factory()->count(2)->create();
-        $sut = $model::query()->bulk();
+        $posts = Post::factory()->count(2)->create();
+        $sut = Post::query()->bulk();
 
         // act
         $sut->{$method}($posts);
@@ -139,42 +122,11 @@ class DatabaseTest extends TestCase
         }
     }
 
-    public function userModelsDataProvider(): array
+    public static function postModelsDataProvider(): array
     {
         return [
-            'mysql' => [MySqlUser::class],
-            'pgsql' => [PostgreSqlUser::class],
-            'sqlite' => [SqliteUser::class],
-        ];
-    }
-
-    public function postModelsDataProvider(): array
-    {
-        return [
-            'mysql, delete' => [
-                MySqlPost::class,
-                'delete',
-            ],
-            'mysql, forceDelete' => [
-                MySqlPost::class,
-                'forceDelete',
-            ],
-            'pgsql, delete' => [
-                PostgreSqlPost::class,
-                'delete',
-            ],
-            'pgsql, forceDelete' => [
-                PostgreSqlPost::class,
-                'forceDelete',
-            ],
-            'sqlite, delete' => [
-                SqlitePost::class,
-                'delete',
-            ],
-            'sqlite, forceDelete' => [
-                SqlitePost::class,
-                'forceDelete',
-            ],
+            'delete' => ['delete'],
+            'forceDelete' => ['forceDelete'],
         ];
     }
 }

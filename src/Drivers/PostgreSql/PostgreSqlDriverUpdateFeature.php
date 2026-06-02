@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Drivers\PostgreSql;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Lapaliv\BulkUpsert\Grammars\PostgreSqlGrammar;
@@ -19,7 +20,10 @@ class PostgreSqlDriverUpdateFeature
 
     public function handle(ConnectionInterface $connection, UpdateBulkBuilder $builder): int
     {
-        $grammar = new PostgreSqlGrammar($this->mixedValueToSqlConverter);
+        $grammar = new PostgreSqlGrammar(
+            $this->mixedValueToSqlConverter,
+            new PostgresGrammar($connection)
+        );
 
         $result = $connection->update($grammar->update($builder), $grammar->getBindings());
 

@@ -5,6 +5,7 @@
 namespace Lapaliv\BulkUpsert\Converters;
 
 use Illuminate\Database\Query\Expression;
+use Illuminate\Database\Query\Grammars\Grammar;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
 
 /**
@@ -20,21 +21,16 @@ class MixedValueToSqlConverter
     }
 
     /**
+     * @param Grammar $grammar
      * @param mixed $value
      * @param mixed[] $bindings
      *
      * @return string
      */
-    public function handle(mixed $value, array &$bindings): string
+    public function handle(Grammar $grammar, mixed $value, array &$bindings): string
     {
         if ($value instanceof Expression) {
-            $value = $value->getValue();
-
-            if (is_bool($value) || is_int($value) || $value === null) {
-                return $this->handle($value, $bindings);
-            }
-
-            return $value;
+            $value = $value->getValue($grammar);
         }
 
         if ($value instanceof BuilderRawExpression) {
@@ -42,7 +38,7 @@ class MixedValueToSqlConverter
         }
 
         if (is_int($value) || is_float($value)) {
-            return (string) $value;
+            return (string)$value;
         }
 
         if (is_bool($value)) {

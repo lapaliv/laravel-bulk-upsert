@@ -30,11 +30,11 @@ class GetUniqueKeyFeature
 
         foreach ($attributes as $attribute) {
             if ($row instanceof Model) {
-                $key .= $this->mixedValueToScalarConverter->handle(
+                $key .= (string)$this->mixedValueToScalarConverter->handle(
                     $row->getAttribute($attribute)
                 );
             } else {
-                $key .= $row[$attribute];
+                $key .= (string)$row[$attribute];
             }
 
             $key .= ':';

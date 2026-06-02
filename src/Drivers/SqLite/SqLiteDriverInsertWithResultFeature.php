@@ -35,7 +35,10 @@ class SqLiteDriverInsertWithResultFeature
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $grammar = new SqLiteGrammar($this->mixedValueToSqlConverter);
+        $grammar = new SqLiteGrammar(
+            $this->mixedValueToSqlConverter,
+            new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection),
+        );
         $sql = $grammar->insert($builder);
         $bindings = $grammar->getBindings();
         $connection->insert($sql, $bindings);

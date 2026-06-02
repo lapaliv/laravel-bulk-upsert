@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Carbon\Carbon;
 use DateTime;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
@@ -91,6 +92,7 @@ class DeleteScenario
         ?string $deletedAtColumn,
         bool $force
     ): void {
+        /** @var Collection<int, Model> $collection */
         $collection = $eloquent->newCollection();
         $bulkRows = new BulkRows();
 
@@ -148,6 +150,7 @@ class DeleteScenario
         bool $force,
         DateTime $deletedAt
     ): void {
+        /** @var Collection<int, Model> $collection */
         $collection = $eloquent->newCollection();
         $bulkRows = new BulkRows();
 

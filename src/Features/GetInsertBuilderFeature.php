@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Features;
 
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
@@ -55,10 +56,10 @@ class GetInsertBuilderFeature
         if ($eloquent->usesTimestamps()) {
             $now = Carbon::now();
             $this->createdAt = $now->format(
-                $dateFields[$this->createdAtColumn] ?? 'Y-m-d H:i:s'
+                Arr::get($dateFields, $this->createdAtColumn) ?? 'Y-m-d H:i:s'
             );
             $this->updatedAt = $now->format(
-                $dateFields[$this->updatedAtColumn] ?? 'Y-m-d H:i:s'
+                Arr::get($dateFields, $this->updatedAtColumn) ?? 'Y-m-d H:i:s'
             );
         }
 
