@@ -17,8 +17,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Lapaliv\\BulkUpsert\\Tests\\": "tests",
-            "Lapaliv\\BulkUpsert\\Tests\\App\\": "tests/app"
+            "Tests\\": "tests"
         }
     },
     "authors": [
@@ -30,9 +29,9 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "nesbot/carbon": "^2.0|^3.0",
-        "illuminate/database": "^8.19|^9.0|^10.0|^11.0|^12.0|^13.0"
+        "illuminate/database": "^11.0|^12.0|^13.0"
     },
     "require-dev": {
         "ext-pdo": "*",
