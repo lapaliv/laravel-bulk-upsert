@@ -37,8 +37,6 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider modelDataProvider
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseSometimes(Closure $data, string $event, array $dependencies): void
@@ -106,8 +104,6 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider modelDataProvider
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseAlways(Closure $data, string $event, array $dependencies): void
@@ -159,8 +155,6 @@ final class CreateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider collectionDataProvider
      */
     #[DataProvider('collectionDataProvider')]
     public function testCollectionEventReturnsFalse(Closure $data, string $event, array $dependencies): void

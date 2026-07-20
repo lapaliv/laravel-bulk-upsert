@@ -23,7 +23,6 @@ final class UpdateAndReturnTest extends TestCaseWrapper
      * @return void
      *
      *
-     * @dataProvider dataProvider
      *
      * @throws BulkException
      */
@@ -54,7 +53,6 @@ final class UpdateAndReturnTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider dataProvider
      *
      * @throws BulkException
      */
@@ -89,7 +87,6 @@ final class UpdateAndReturnTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider dataProvider
      *
      * @throws BulkException
      */

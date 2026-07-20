@@ -30,7 +30,6 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider dataProvider
      *
      * @throws BulkException
      */
@@ -64,7 +63,6 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider dataProvider
      *
      * @throws BulkException
      */

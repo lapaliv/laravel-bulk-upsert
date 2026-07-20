@@ -83,8 +83,6 @@ class UpdateEventsTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider eventsDataProvider
      */
     #[DataProvider('eventsDataProvider')]
     public function testDisableSomeEvents(string $disabledEvent): void
@@ -118,8 +116,6 @@ class UpdateEventsTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider eventsDataProvider
      */
     #[DataProvider('eventsDataProvider')]
     public function testDisableOneEvent(string $disabledEvent): void
@@ -183,8 +179,6 @@ class UpdateEventsTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider eventsDataProvider
      */
     #[DataProvider('eventsDataProvider')]
     public function testEnableSomeDisabledEvents(string $enabledEvent): void
@@ -215,8 +209,6 @@ class UpdateEventsTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider eventsDataProvider
      */
     #[DataProvider('eventsDataProvider')]
     public function testEnableSomeEvents(string $enabledEvent): void
@@ -249,8 +241,6 @@ class UpdateEventsTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider eventsDataProvider
      */
     #[DataProvider('eventsDataProvider')]
     public function testEnableOneEvent(string $enabledEvent): void

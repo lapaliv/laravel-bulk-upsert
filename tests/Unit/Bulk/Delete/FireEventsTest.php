@@ -34,8 +34,6 @@ class FireEventsTest extends TestCaseWrapper
      *
      * @throws BulkBindingResolution
      * @throws BulkException
-     *
-     * @dataProvider modelWithSoftDeletingDataProvider
      */
     #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringSoftDelete(
@@ -111,8 +109,6 @@ class FireEventsTest extends TestCaseWrapper
      *
      * @throws BulkBindingResolution
      * @throws BulkException
-     *
-     * @dataProvider modelWithSoftDeletingDataProvider
      */
     #[DataProvider('modelWithSoftDeletingDataProvider')]
     public function testFiringForceDeleting(
@@ -225,8 +221,6 @@ class FireEventsTest extends TestCaseWrapper
      *
      * @throws BulkBindingResolution
      * @throws BulkException
-     *
-     * @dataProvider modelWithoutSoftDeletingDataProvider
      */
     #[DataProvider('modelWithoutSoftDeletingDataProvider')]
     public function testFiringDeletingWithoutSoft(

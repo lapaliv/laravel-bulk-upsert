@@ -3,58 +3,58 @@
 namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
 use Tests\Unit\ModelListenerTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The `deleted` event fired while creating already soft-deleted rows,
+ * verified through the public bulk API.
+ *
  * @internal
  */
-class DeletedEventTest extends CreateScenarioTestCase
+final class DeletedEventTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
     use ModelListenerTestTrait;
 
     /**
-     * If the model has a listener for the 'deleted' event, then this listener should be called.
+     * A row created with a filled `deleted_at` triggers `deleted` for each model.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETED, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::DELETED);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)->times($users->count());
     }
 
     /**
-     * The listener for the 'deleted' event should receive only one argument, which must be the model.
+     * The listener receives a single argument: the model that was deleted.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETED, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::DELETED);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)

@@ -28,7 +28,6 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider modelDataProvider
      *
      * @throws BulkException
      */
@@ -77,7 +76,6 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
      *
      * @return void
      *
-     * @dataProvider collectionDataProvider
      *
      * @throws BulkException
      */

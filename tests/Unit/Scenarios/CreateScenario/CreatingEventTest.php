@@ -2,89 +2,79 @@
 
 namespace Tests\Unit\Scenarios\CreateScenario;
 
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
 use Tests\Unit\ModelListenerTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The `creating` event fired while creating, verified through the public bulk API.
+ *
  * @internal
  */
-class CreatingEventTest extends CreateScenarioTestCase
+final class CreatingEventTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
     use ModelListenerTestTrait;
 
     /**
-     * If the model has a listener for the 'creating' event, then this listener should be called.
+     * The listener is invoked once per created model.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::CREATING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)->times($users->count());
     }
 
     /**
-     * If the previous listener returns false, then the listener for the 'creating' event must not be called.
+     * When an earlier event cancels the save, `creating` is never reached.
      *
-     * @param string $previousEventName
-     *
-     * @return void
-     *
-     * @dataProvider notTriggeringWhenPreviousListenerReturnedFalseDataProvider
+     * @throws BulkException
      */
-    #[DataProvider('notTriggeringWhenPreviousListenerReturnedFalseDataProvider')]
-    public function testNotTriggeringWhenSavingReturnedFalse(string $previousEventName): void
+    #[DataProvider('cancellingEventDataProvider')]
+    public function testNotTriggeringWhenPreviousEventReturnedFalse(string $cancellingEvent): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $this->makeModelListenerWithReturningValue(
-            $previousEventName,
-            $eventDispatcher,
-            [false, false]
-        );
-        $creatingListener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
+        User::observe(Observer::class);
+        $this->listenEventReturning($cancellingEvent, [false, false]);
+        $listener = $this->listenEvent(BulkEventEnum::CREATING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
-        self::spyShouldNotHaveReceived($creatingListener);
+        self::spyShouldNotHaveReceived($listener);
     }
 
     /**
-     * The listener for the 'creating' event should receive only one argument, which must be the model.
+     * The listener receives a single argument: the model being created.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::CREATING, $eventDispatcher);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::CREATING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)
@@ -94,11 +84,11 @@ class CreatingEventTest extends CreateScenarioTestCase
     }
 
     /**
-     * The data for the test 'testNotTriggeringWhenSavingReturnedFalse'.
+     * Events that run before `creating` and can cancel the save.
      *
-     * @return array[]
+     * @return array<string, array{string}>
      */
-    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function cancellingEventDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],

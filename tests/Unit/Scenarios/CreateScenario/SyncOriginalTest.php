@@ -2,47 +2,47 @@
 
 namespace Tests\Unit\Scenarios\CreateScenario;
 
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
-use Tests\Unit\ModelListenerTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * After a create, the resulting models must be "clean" (their original state synced).
+ *
  * @internal
  */
-class SyncOriginalTest extends CreateScenarioTestCase
+final class SyncOriginalTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
-    use ModelListenerTestTrait;
 
     /**
-     * After creation, the model should be clear, without any changes.
+     * The models handed to the `savedMany` listener carry no pending changes.
      *
-     * @return void
+     * @throws BulkException
      */
     public function test(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
         $usersFromEvent = null;
-        $eventDispatcher->listen(
+        User::observe(Observer::class);
+        Observer::listen(
             BulkEventEnum::SAVED_MANY,
-            function (UserCollection $users) use (&$usersFromEvent) {
+            function (UserCollection $users) use (&$usersFromEvent): void {
                 $usersFromEvent = $users;
             }
         );
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
+        self::assertNotNull($usersFromEvent);
+
         foreach ($usersFromEvent as $user) {
             self::assertFalse($user->isDirty());
             self::assertEmpty($user->getChanges());

@@ -69,8 +69,6 @@ class DeleteAccumulatedTest extends TestCaseWrapper
      *
      * @throws BulkException
      * @throws JsonException
-     *
-     * @dataProvider postModelsDataProvider
      */
     #[DataProvider('postModelsDataProvider')]
     public function testDeleteAccumulatedWithoutSoftDeleting(string $accumulateMethod, string $deleteMethod): void

@@ -5,12 +5,19 @@ namespace Tests\Unit;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
+use Tests\App\Observers\Observer;
 use Tests\App\Support\TestCallback;
 use Mockery;
 use Mockery\LegacyMockInterface;
 use Mockery\MockInterface;
 
+/**
+ * Black-box helpers for asserting model/collection lifecycle events.
+ *
+ * Listeners are attached through the public {@see Observer} (the same way a
+ * consumer of the package would register an observer via `Model::observe()`),
+ * so the tests never reach into the package's internal event dispatcher.
+ */
 trait ModelListenerTestTrait
 {
     /**
@@ -25,30 +32,32 @@ trait ModelListenerTestTrait
         Mockery::close();
     }
 
-    protected function makeSimpleModelListener(
-        string $event,
-        BulkEventDispatcher $eventDispatcher,
-    ): LegacyMockInterface|MockInterface
+    /**
+     * Register a spying listener for the given event on the observer.
+     */
+    protected function listenEvent(string $event): LegacyMockInterface|MockInterface
     {
-        $result = Mockery::spy(TestCallback::class);
-        $eventDispatcher->listen($event, $result);
+        $spy = Mockery::spy(TestCallback::class);
+        Observer::listen($event, $spy);
 
-        return $result;
+        return $spy;
     }
 
-    protected function makeModelListenerWithReturningValue(
-        string $event,
-        BulkEventDispatcher $eventDispatcher,
-        mixed $returningValue,
-    ): LegacyMockInterface|MockInterface
+    /**
+     * Register a listener that returns the given sequence of values.
+     *
+     * Handy for emulating a listener that cancels the operation by returning
+     * `false`, so we can observe how the following events behave.
+     */
+    protected function listenEventReturning(string $event, mixed $returningValues): LegacyMockInterface|MockInterface
     {
-        $result = Mockery::spy(TestCallback::class);
-        $result->expects('__invoke')
+        $spy = Mockery::spy(TestCallback::class);
+        $spy->expects('__invoke')
             ->zeroOrMoreTimes()
-            ->andReturnValues($returningValue);
-        $eventDispatcher->listen($event, $result);
+            ->andReturnValues($returningValues);
+        Observer::listen($event, $spy);
 
-        return $result;
+        return $spy;
     }
 
     protected function assertModelListenerArguments(Collection $expectedModels, ...$args): bool

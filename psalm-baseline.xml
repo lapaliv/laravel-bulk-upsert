@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+<files psalm-version="6.16.1@f1f5de594dc76faf8784e02d3dc4716c91c6f6ac">
   <file src="src/Builders/Clauses/BuilderWhere.php">
     <MoreSpecificImplementedParamType>
       <code><![CDATA[$values]]></code>
@@ -72,70 +72,70 @@
     </LessSpecificImplementedReturnType>
   </file>
   <file src="src/Drivers/MySql/MySqlDriverDeleteFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/MySql/MySqlDriverInsertWithResultFeature.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
     <PossiblyNullArgument>
       <code><![CDATA[$builder->getInto()]]></code>
     </PossiblyNullArgument>
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
-    </TooManyArguments>
   </file>
   <file src="src/Drivers/MySql/MySqlDriverQuietInsertFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/MySql/MySqlDriverUpdateFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\MySqlGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/PostgreSql/PostgreSqlDriverDeleteFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new PostgresGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/PostgreSql/PostgreSqlDriverInsertWithResultFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new PostgresGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/PostgreSql/PostgreSqlDriverQuietInsertFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new PostgresGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/PostgreSql/PostgreSqlDriverUpdateFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new PostgresGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/SqLite/SqLiteDriverForceDeleteFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/SqLite/SqLiteDriverInsertWithResultFeature.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
     <PossiblyNullArgument>
       <code><![CDATA[$builder->getInto()]]></code>
     </PossiblyNullArgument>
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
-    </TooManyArguments>
   </file>
   <file src="src/Drivers/SqLite/SqLiteDriverQuietInsertFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Drivers/SqLite/SqLiteDriverUpdateFeature.php">
-    <TooManyArguments>
-      <code><![CDATA[new \Illuminate\Database\Query\Grammars\SQLiteGrammar($connection)]]></code>
-    </TooManyArguments>
+    <ArgumentTypeCoercion>
+      <code><![CDATA[$connection]]></code>
+    </ArgumentTypeCoercion>
   </file>
   <file src="src/Entities/BulkAccumulationEntity.php">
     <InvalidArgument>
@@ -146,11 +146,6 @@
                     new BulkRow($row->getModel(), $row->getOriginal(), $this->getUniqueBy())
                 )]]></code>
     </InvalidTemplateParam>
-  </file>
-  <file src="src/Features/AddWhereClauseToBuilderFeature.php">
-    <InvalidArgument>
-      <code><![CDATA[$rows]]></code>
-    </InvalidArgument>
   </file>
   <file src="src/Features/DispatchDeletingEventsFeature.php">
     <PossiblyNullArgument>
@@ -163,6 +158,11 @@
     </PossiblyNullArgument>
     <PossiblyNullArrayOffset>
       <code><![CDATA[$dataFields]]></code>
+    </PossiblyNullArrayOffset>
+  </file>
+  <file src="src/Features/GetDateFieldsFeature.php">
+    <PossiblyNullArrayOffset>
+      <code><![CDATA[$result]]></code>
     </PossiblyNullArrayOffset>
   </file>
   <file src="src/Features/GetDeleteBuilderFeature.php">

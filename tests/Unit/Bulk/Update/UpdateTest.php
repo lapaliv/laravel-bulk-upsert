@@ -23,8 +23,6 @@ final class UpdateTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testBase(array|string|callable $uniqBy): void
@@ -51,7 +49,6 @@ final class UpdateTest extends TestCaseWrapper
      *
      * @throws BulkException
      * @throws RandomException
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testWithTimestamps(array|string|callable $uniqBy): void

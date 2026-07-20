@@ -26,8 +26,6 @@ final class UpdateDifferentUniqueByTest extends TestCaseWrapper
      *
      * @throws JsonException
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function test(string|array $uniqueBy, string|array $orUniqueBy): void
