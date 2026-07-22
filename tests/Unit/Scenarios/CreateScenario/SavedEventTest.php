@@ -2,58 +2,57 @@
 
 namespace Tests\Unit\Scenarios\CreateScenario;
 
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
 use Tests\Unit\ModelListenerTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The `saved` event fired while creating, verified through the public bulk API.
+ *
  * @internal
  */
-class SavedEventTest extends CreateScenarioTestCase
+final class SavedEventTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
     use ModelListenerTestTrait;
 
     /**
-     * If the model has a listener for the 'saved' event, then this listener should be called.
+     * The listener is invoked once per created model.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVED, $eventDispatcher);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::SAVED);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)->times($users->count());
     }
 
     /**
-     * The listener for the 'saved' event should receive only one argument, which must be the model.
+     * The listener receives a single argument: the model that was saved.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::SAVED, $eventDispatcher);
-        $users = User::factory()->count(2)->make();
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::SAVED);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)

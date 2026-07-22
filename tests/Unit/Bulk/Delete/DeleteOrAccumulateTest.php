@@ -108,8 +108,6 @@ class DeleteOrAccumulateTest extends TestCaseWrapper
      *
      * @throws BulkException
      * @throws JsonException
-     *
-     * @dataProvider postModelsDataProvider
      */
     #[DataProvider('postModelsDataProvider')]
     public function testDeleteWithoutSoftDeletingSmallChunk(string $method): void
@@ -135,8 +133,6 @@ class DeleteOrAccumulateTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider postModelsDataProvider
      */
     #[DataProvider('postModelsDataProvider')]
     public function testDeleteWithoutSoftDeletingBigChunk(string $method): void

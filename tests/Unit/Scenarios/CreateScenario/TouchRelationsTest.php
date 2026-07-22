@@ -3,26 +3,26 @@
 namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Models\Article;
 use Tests\App\Models\Comment;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
+use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * Creating rows recursively touches the configured related models.
+ *
  * @internal
  */
-class TouchRelationsTest extends CreateScenarioTestCase
+final class TouchRelationsTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
 
     /**
-     * After creation, all touch relations should be recursively touched.
+     * Creating comments touches their user, and the user in turn touches its articles.
      *
-     * @return void
+     * @throws BulkException
      */
     public function test(): void
     {
@@ -37,17 +37,18 @@ class TouchRelationsTest extends CreateScenarioTestCase
             'created_at' => Carbon::parse('2020-01-02 03:04:05')->toDateTimeString(),
             'updated_at' => Carbon::parse('2020-01-02 03:04:05')->toDateTimeString(),
         ]);
-        $eventDispatcher = new BulkEventDispatcher(Comment::class);
         $comments = Comment::factory()->count(2)->make([
             'user_id' => $user->id,
         ]);
-        $data = $this->getBulkAccumulationEntityFromCollection($comments, ['user_id', 'text']);
 
         Comment::setGlobalTouchedRelations(['user']);
         User::setGlobalTouchedRelations(['articles']);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher);
+        Comment::query()
+            ->bulk()
+            ->uniqueBy(['user_id', 'text'])
+            ->create($comments);
 
         // assert
         $this->assertDatabaseHas(

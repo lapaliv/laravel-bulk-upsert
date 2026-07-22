@@ -3,109 +3,99 @@
 namespace Tests\Unit\Scenarios\CreateScenario;
 
 use Carbon\Carbon;
+use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
-use Tests\Unit\BulkAccumulationEntityTestTrait;
+use Tests\App\Observers\Observer;
+use Tests\TestCaseWrapper;
 use Tests\Unit\ModelListenerTestTrait;
-use Tests\Unit\Scenarios\CreateScenarioTestCase;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The `deleting` event fired while creating already soft-deleted rows,
+ * verified through the public bulk API.
+ *
  * @internal
  */
-class DeletingEventTest extends CreateScenarioTestCase
+final class DeletingEventTest extends TestCaseWrapper
 {
-    use BulkAccumulationEntityTestTrait;
     use UserTestTrait;
     use ModelListenerTestTrait;
 
     /**
-     * If the model has a listener for the 'deleting' event, then this listener should be called.
+     * A row created with a filled `deleted_at` triggers `deleting` for each model.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testTriggering(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::DELETING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)->times($users->count());
     }
 
     /**
-     * If the model has a listener for the 'deleting' event, but 'deleted_at' is not filled in, then this listener should not be invoked.
+     * When `deleted_at` is empty, the row is not deleted and `deleting` never fires.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testNotTriggeringWhenDeletedAtIsNull(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => null]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => null]);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::DELETING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldNotHaveReceived($listener);
     }
 
     /**
-     * If the previous listener returns false, then the listener for the 'deleting' event must not be called.
+     * When an earlier event cancels the save, `deleting` is never reached.
      *
-     * @param string $previousEventName
-     *
-     * @return void
-     *
-     * @dataProvider notTriggeringWhenPreviousListenerReturnedFalseDataProvider
+     * @throws BulkException
      */
-    #[DataProvider('notTriggeringWhenPreviousListenerReturnedFalseDataProvider')]
-    public function testNotTriggeringWhenSavingReturnedFalse(string $previousEventName): void
+    #[DataProvider('cancellingEventDataProvider')]
+    public function testNotTriggeringWhenPreviousEventReturnedFalse(string $cancellingEvent): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $this->makeModelListenerWithReturningValue(
-            $previousEventName,
-            $eventDispatcher,
-            [false, false]
-        );
-        $deletingListener = $this->makeSimpleModelListener(BulkEventEnum::DELETING, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $this->listenEventReturning($cancellingEvent, [false, false]);
+        $listener = $this->listenEvent(BulkEventEnum::DELETING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
-        self::spyShouldNotHaveReceived($deletingListener);
+        self::spyShouldNotHaveReceived($listener);
     }
 
     /**
-     * The listener for the 'deleting' event should receive only one argument, which must be the model.
+     * The listener receives a single argument: the model being deleted.
      *
-     * @return void
+     * @throws BulkException
      */
     public function testListenerArguments(): void
     {
         // arrange
-        $eventDispatcher = new BulkEventDispatcher(User::class);
-        $listener = $this->makeSimpleModelListener(BulkEventEnum::DELETING, $eventDispatcher);
-        $users = User::factory()->count(2)->make(['deleted_at' => Carbon::now()]);
-        $data = $this->getBulkAccumulationEntityFromCollection($users, ['email']);
+        $users = $this->userGenerator->makeCollection(2, ['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $listener = $this->listenEvent(BulkEventEnum::DELETING);
 
         // act
-        $this->handleCreateScenario($data, $eventDispatcher, deletedAtColumn: 'deleted_at');
+        User::query()->bulk()->uniqueBy(['email'])->create($users);
 
         // assert
         self::spyShouldHaveReceived($listener)
@@ -115,11 +105,11 @@ class DeletingEventTest extends CreateScenarioTestCase
     }
 
     /**
-     * The data for the test 'testNotTriggeringWhenSavingReturnedFalse'.
+     * Events that run before `deleting` and can cancel the save.
      *
-     * @return array[]
+     * @return array<string, array{string}>
      */
-    public static function notTriggeringWhenPreviousListenerReturnedFalseDataProvider(): array
+    public static function cancellingEventDataProvider(): array
     {
         return [
             'saving' => [BulkEventEnum::SAVING],

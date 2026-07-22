@@ -31,8 +31,6 @@ final class UpdateBuilderCallbacksTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testModel(string $method, Closure $callback): void
@@ -63,8 +61,6 @@ final class UpdateBuilderCallbacksTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testCollection(string $method, Closure $callback): void

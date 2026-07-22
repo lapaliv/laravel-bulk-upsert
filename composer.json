@@ -37,9 +37,9 @@
         "ext-pdo": "*",
         "fakerphp/faker": "^1.9",
         "friendsofphp/php-cs-fixer": "^3.13",
-        "orchestra/testbench": "^7.0|^8.0|^9.0",
-        "phpunit/phpunit": "^9.0|^10.0",
-        "vimeo/psalm": "^5.26",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^11.5",
+        "vimeo/psalm": "^6.0",
         "vlucas/phpdotenv": "^5.6"
     },
     "extra": {

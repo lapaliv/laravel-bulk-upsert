@@ -47,6 +47,9 @@ jobs:
           extensions: mbstring, pdo, mysql, pgsql
           coverage: none
 
+      - name: Allow Composer to install advisory-flagged packages
+        run: composer config --global policy.advisories.block false || true
+
       - name: Wait for MySQL
         run: |
           echo "Waiting for MySQL..."
@@ -136,6 +139,9 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mbstring, pdo, mysql, pgsql
           coverage: none
+
+      - name: Allow Composer to install advisory-flagged packages
+        run: composer config --global policy.advisories.block false || true
 
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -239,6 +245,9 @@ jobs:
           php-version: ${{ env.php_version }}
           ini-values: "memory_limit=-1"
           coverage: none
+
+      - name: Allow Composer to install advisory-flagged packages
+        run: composer config --global policy.advisories.block false || true
 
       - name: Checkout target branch
         uses: actions/checkout@v4

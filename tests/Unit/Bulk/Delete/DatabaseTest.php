@@ -101,8 +101,6 @@ class DatabaseTest extends TestCaseWrapper
      * @throws BulkException
      * @throws JsonException
      * @throws BulkBindingResolution
-     *
-     * @dataProvider postModelsDataProvider
      */
     #[DataProvider('postModelsDataProvider')]
     public function testDeleteWithoutSoftDeleting(string $method): void

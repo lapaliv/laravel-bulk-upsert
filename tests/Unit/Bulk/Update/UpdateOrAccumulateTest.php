@@ -43,8 +43,6 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testSmallChunkSize(string $uniqBy): void
@@ -71,8 +69,6 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testSmallChunkSizeWithExtraCount(string $uniqBy): void
@@ -100,8 +96,6 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider dataProvider
      */
     #[DataProvider('dataProvider')]
     public function testSaveAccumulated(string $uniqBy): void

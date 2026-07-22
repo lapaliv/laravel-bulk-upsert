@@ -37,8 +37,6 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider modelDataProvider
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseSometimes(
@@ -111,8 +109,6 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider modelDataProvider
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseAlways(
@@ -169,8 +165,6 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
      * @return void
      *
      * @throws BulkException
-     *
-     * @dataProvider collectionDataProvider
      */
     #[DataProvider('collectionDataProvider')]
     public function testCollectionEventReturnsFalse(
