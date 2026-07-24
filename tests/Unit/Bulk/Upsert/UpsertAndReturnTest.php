@@ -2,13 +2,14 @@
 
 namespace Tests\Unit\Bulk\Upsert;
 
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The rows which `upsertAndReturn()` writes and the models which it gives back.
+ *
  * @internal
  */
 final class UpsertAndReturnTest extends TestCaseWrapper
@@ -16,9 +17,11 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * A known row is updated and an unknown row is inserted in the same call.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDatabase(): void
     {
@@ -40,8 +43,11 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * A batch which holds only unknown rows is inserted.
+     *
      * @return void
-     * @throws BulkException
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDatabaseCreateOnly(): void
     {
@@ -59,9 +65,11 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * A batch which holds only known rows is updated.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDatabaseUpdateOnly(): void
     {
@@ -79,8 +87,13 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * The result holds both rows, and only the inserted one is marked as recently created.
+     *
+     * The inserted models come first, so the updated row is the second one in the result.
+     *
      * @return void
-     * @throws BulkException
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testResult(): void
     {
@@ -94,7 +107,7 @@ final class UpsertAndReturnTest extends TestCaseWrapper
             ->uniqueBy(['email']);
 
         // act
-        /** @var UserCollection $result */
+        /** @var \Tests\App\Collection\UserCollection $result */
         $result = $sut->upsertAndReturn($users);
 
         // assert
@@ -108,8 +121,11 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * A batch of unknown rows comes back as models which are marked as recently created.
+     *
      * @return void
-     * @throws BulkException
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testResultCreateOnly(): void
     {
@@ -122,7 +138,7 @@ final class UpsertAndReturnTest extends TestCaseWrapper
             ->uniqueBy(['email']);
 
         // act
-        /** @var UserCollection $result */
+        /** @var \Tests\App\Collection\UserCollection $result */
         $result = $sut->upsertAndReturn($users);
 
         // assert
@@ -134,8 +150,11 @@ final class UpsertAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * A batch of known rows comes back with the same keys and the new attributes.
+     *
      * @return void
-     * @throws BulkException
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testResultUpdateOnly(): void
     {
@@ -148,7 +167,7 @@ final class UpsertAndReturnTest extends TestCaseWrapper
             ->uniqueBy(['email']);
 
         // act
-        /** @var UserCollection $result */
+        /** @var \Tests\App\Collection\UserCollection $result */
         $result = $sut->upsertAndReturn($users);
 
         // assert

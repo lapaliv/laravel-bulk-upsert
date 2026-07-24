@@ -6,8 +6,7 @@ use BadMethodCallException;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Features\UserGenerator;
@@ -18,6 +17,8 @@ use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
+ * The listeners which the builder registers with its `on*()` methods during `create()`.
+ *
  * @internal
  */
 final class CreateBuilderCallbacksTest extends TestCaseWrapper
@@ -25,13 +26,14 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * A listener registered with an `on*()` method is called once with the created model.
+     *
      * @param string $method
-     * @param Closure $callback
+     * @param \Closure $callback
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testModel(string $method, Closure $callback): void
@@ -58,19 +60,21 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
     }
 
     /**
+     * A listener registered with an `on*Many()` method is called once with the whole collection
+     * and with the matching bulk rows.
+     *
      * @param string $method
-     * @param Closure $callback
+     * @param \Closure $callback
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testCollection(string $method, Closure $callback): void
     {
         // arrange
-        /** @var UserCollection $users */
+        /** @var \Tests\App\Collection\UserCollection $users */
         $users = $callback();
         $spy = Mockery::spy(TestCallback::class, $method);
         $sut = User::query()
@@ -85,20 +89,22 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
         self::spyShouldHaveReceived($spy)
             ->once()
             ->withArgs(
-                function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
+                function (UserCollection $actualUsers, BulkRowCollection $bulkRows) use ($users): bool {
                     return $actualUsers->count() === $users->count()
                         && $actualUsers->get(0)->email === $users->get(0)->email
                         && $bulkRows->count() === $users->count()
-                        && $bulkRows->get(0)->model->email === $users->get(0)->email
-                        && $bulkRows->get(0)->original === $users->get(0);
+                        && $bulkRows->get(0)->getModel()->email === $users->get(0)->email
+                        && $bulkRows->get(0)->getOriginal() === $users->get(0);
                 }
             );
     }
 
     /**
+     * Calling an unknown `on*()` method on the builder throws a bad method call exception.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testCallUndefinedListener(): void
     {
@@ -112,6 +118,11 @@ final class CreateBuilderCallbacksTest extends TestCaseWrapper
         $sut->onFake();
     }
 
+    /**
+     * The listener methods of the builder, with the rows which make their event run.
+     *
+     * @return array<string, array{string, \Closure}>
+     */
     public static function dataProvider(): array
     {
         return [

@@ -2,26 +2,27 @@
 
 namespace Lapaliv\BulkUpsert;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection as SupportCollection;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
-use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
+use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Support\ModelMetadata;
 
 /**
- * @template TCollection of Collection
- * @template TModel of Model
+ * Gives a query builder the bulk methods of the package.
+ *
+ * @template TCollection of \Illuminate\Database\Eloquent\Collection
+ * @template TModel of \Illuminate\Database\Eloquent\Model
  */
 trait BulkBuilderTrait
 {
     /**
-     * @return Bulk<TCollection, TModel>
+     * Create a new bulk instance for the model of the builder.
      *
-     * @throws BulkException
+     * @return \Lapaliv\BulkUpsert\Bulk<TCollection, TModel>
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function bulk(): Bulk
     {
@@ -29,7 +30,10 @@ trait BulkBuilderTrait
     }
 
     /**
-     * Selects a chunk of rows, fill in the values and update these rows.
+     * Select the rows chunk by chunk, fill in the values and update these rows.
+     *
+     * When the model has no listener of the package events, the method runs a plain
+     * update query instead and returns the number of the affected rows.
      *
      * @param array<string, mixed> $values
      * @param string|string[]|null $unique
@@ -37,15 +41,16 @@ trait BulkBuilderTrait
      *
      * @return int
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      *
      * @psalm-api
      */
     public function selectAndUpdateMany(
         array $values,
-        string|array $unique = null,
+        string|array|null $unique = null,
         int $chunk = 100
-    ): int {
+    ): int
+    {
         $model = $this->getModel();
         $eventDispatcher = new BulkEventDispatcher($model);
 
@@ -54,27 +59,26 @@ trait BulkBuilderTrait
             && !$eventDispatcher->hasListeners(BulkEventEnum::collection())
         ) {
             $converter = new AttributesToScalarArrayConverter();
-            $getDeletedAtColumnFeature = new GetDeletedAtColumnFeature();
-            $getDateFieldsFeature = new GetDateFieldsFeature();
+            $modelMetadata = new ModelMetadata();
 
             $result = $this->update(
                 $converter->handle(
                     $model,
                     $values,
-                    $getDateFieldsFeature->handle(
+                    $modelMetadata->dateFields(
                         $model,
-                        $getDeletedAtColumnFeature->handle($model)
+                        $modelMetadata->deletedAtColumn($model)
                     )
                 )
             );
 
-            unset($converter, $getDeletedAtColumnFeature, $getDateFieldsFeature);
+            unset($converter, $modelMetadata);
 
             return $result;
         }
 
         $unique ??= [$model->getKeyName()];
-        $unique = (array) $unique;
+        $unique = (array)$unique;
         $bulk = $this->bulk()
             ->chunk($chunk)
             ->uniqueBy($unique);
@@ -86,6 +90,7 @@ trait BulkBuilderTrait
                 function (SupportCollection $collection) use ($bulk, $values, &$result): void {
                     $collection->each(
                         function (Model $model) use ($values): void {
+                            /** @psalm-suppress MixedAssignment  */
                             foreach ($values as $attribute => $value) {
                                 $model->setAttribute($attribute, $value);
                             }
@@ -101,7 +106,9 @@ trait BulkBuilderTrait
             $offset = 0;
             $this->limit($chunk);
 
-            if (empty($this->getQuery()->orders)) {
+            $orders = $this->getQuery()->orders;
+
+            if ($orders === null || $orders === []) {
                 foreach ($unique as $field) {
                     $this->orderBy($field);
                 }
@@ -118,6 +125,7 @@ trait BulkBuilderTrait
 
                 $collection->each(
                     function (Model $model) use ($values) {
+                        /** @psalm-suppress MixedAssignment */
                         foreach ($values as $attribute => $value) {
                             $model->setAttribute($attribute, $value);
                         }

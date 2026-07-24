@@ -10,6 +10,8 @@ use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The moment when `createOrAccumulate()` flushes the accumulated rows to the table.
+ *
  * @internal
  */
 final class CreateOrAccumulateTest extends TestCaseWrapper
@@ -17,9 +19,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Nothing is inserted while the number of the rows stays below the chunk size.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testBigChunkSize(): void
     {
@@ -42,9 +46,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * The rows are inserted as soon as they reach the chunk size.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testSmallChunkSize(): void
     {
@@ -65,9 +71,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * Only a full chunk is inserted, and the rest of the rows stays in the accumulation.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testSmallChunkSizeWithExtraCount(): void
     {
@@ -89,9 +97,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * `saveAccumulated()` inserts the rows which are still waiting in the accumulation.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testSaveAccumulation(): void
     {
@@ -112,9 +122,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * Accumulating without unique attributes throws when the model has an observer.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testCreatingWithoutUniqueAttributesWithEvents(): void
     {
@@ -131,9 +143,11 @@ final class CreateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * Without unique attributes and without events the rows are still inserted.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testCreatingWithoutUniqueAttributesWithoutEvents(): void
     {

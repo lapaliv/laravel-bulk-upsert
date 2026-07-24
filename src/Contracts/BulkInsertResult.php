@@ -2,19 +2,27 @@
 
 namespace Lapaliv\BulkUpsert\Contracts;
 
+/**
+ * The result of an insert query which helps to find the inserted rows again.
+ *
+ * Every dialect gives back what it can: the rows themselves or the biggest
+ * primary key which the table had before inserting.
+ */
 interface BulkInsertResult
 {
     /**
-     * Returns all inserted rows if it's possible.
-     * If it's not possible then it should return `null`.
+     * Get all the inserted rows.
+     *
+     * The method returns `null` when the dialect cannot give the rows back.
      *
      * @return array|null
      */
     public function getRows(): ?array;
 
     /**
-     * Returns the max primary key which the table has before inserting.
-     * If the table doesn't have single primary then it should return `null`.
+     * Get the biggest primary key which the table had before inserting.
+     *
+     * The method returns `null` when the table does not have a single primary key.
      *
      * @return int|string|null
      */

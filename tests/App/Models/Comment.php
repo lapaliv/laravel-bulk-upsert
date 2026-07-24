@@ -2,7 +2,6 @@
 
 namespace Tests\App\Models;
 
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,19 +13,24 @@ use Tests\App\Factories\CommentFactory;
 use Tests\App\Traits\GlobalTouches;
 
 /**
+ * A test model which belongs to a user and to a post.
+ *
+ * The tests use the comment mostly to check that the package touches the related
+ * models. The comment has no soft deletes.
+ *
  * @internal
  *
  * @property int $id
  * @property int $user_id
  * @property string $text
- * @property CarbonInterface $created_at
- * @property CarbonInterface $updated_at
+ * @property \Carbon\CarbonInterface $created_at
+ * @property \Carbon\CarbonInterface $updated_at
  *
- * @property-read User $user
- * @property-read Post $post
+ * @property-read \Tests\App\Models\User $user
+ * @property-read \Tests\App\Models\Post $post
  *
- * @method static CommentFactory factory($count = null, $state = [])
- * @method static CommentBuilder query()
+ * @method static \Tests\App\Factories\CommentFactory factory($count = null, $state = [])
+ * @method static \Tests\App\Builders\CommentBuilder query()
  */
 class Comment extends Model
 {
@@ -51,6 +55,14 @@ class Comment extends Model
         'text',
     ];
 
+    /**
+     * Create the table of the model for the tests.
+     *
+     * The user id and the post id both point to their tables. They cascade on update
+     * and do nothing on delete.
+     *
+     * @return void
+     */
     public static function createTable(): void
     {
         self::getSchema()->create(self::table(), function (Blueprint $table): void {
@@ -75,26 +87,55 @@ class Comment extends Model
         });
     }
 
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param \Illuminate\Database\Query\Builder $query
+     *
+     * @return \Tests\App\Builders\CommentBuilder
+     */
     public function newEloquentBuilder($query): CommentBuilder
     {
         return new CommentBuilder($query);
     }
 
+    /**
+     * Create a new Eloquent Collection instance.
+     *
+     * @param \Tests\App\Models\Comment[] $models
+     *
+     * @return \Tests\App\Collection\CommentCollection
+     */
     public function newCollection(array $models = []): CommentCollection
     {
         return new CommentCollection($models);
     }
 
+    /**
+     * Get the user who has written the comment.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo|\Tests\App\Builders\UserBuilder
+     */
     public function user(): BelongsTo|UserBuilder
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /**
+     * Get the post which the comment belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo|\Tests\App\Builders\PostBuilder
+     */
     public function post(): BelongsTo|PostBuilder
     {
         return $this->belongsTo(Post::class, 'post_id', 'id');
     }
 
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Tests\App\Factories\CommentFactory
+     */
     public static function newFactory(): CommentFactory
     {
         return new CommentFactory();

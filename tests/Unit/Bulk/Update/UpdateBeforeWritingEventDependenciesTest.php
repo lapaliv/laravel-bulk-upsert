@@ -5,8 +5,7 @@ namespace Tests\Unit\Bulk\Update;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Collection\UserCollection;
@@ -17,10 +16,10 @@ use Tests\App\Support\TestCallback;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 use Mockery;
-use Mockery\LegacyMockInterface;
-use Mockery\MockInterface;
 
 /**
+ * The events which `update()` skips when an event running before the writing returns false.
+ *
  * @internal
  */
 final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
@@ -28,40 +27,41 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
-     * When one of model events sometimes returns false then its dependencies have not been called.
+     * A row whose model event returns false is dropped, and the dependent events see only the
+     * other row.
      *
-     * @param Closure $data
-     * @param string $event
-     * @param array $dependencies
+     * @param \Closure $data
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $event
+     * @param array<string, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]> $dependencies
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseSometimes(
         Closure $data,
-        string $event,
+        BulkEventEnum $event,
         array $dependencies
     ): void
     {
         // arrange
         $users = $data();
         User::observe(Observer::class);
-        /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
+        /** @var array<string, callable|\Mockery\LegacyMockInterface|\Mockery\MockInterface> $spies */
         $spies = [
-            $event => Mockery::mock(TestCallback::class),
+            $event->value => Mockery::mock(TestCallback::class),
         ];
-        $spies[$event]
+        $spies[$event->value]
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnValues([false, true]);
-        Observer::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event->value]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
-                $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                Observer::listen($dependency, $spies[$dependency]);
+                $spies[$dependency->value] = Mockery::spy(TestCallback::class, $dependency->value);
+                Observer::listen($dependency, $spies[$dependency->value]);
             }
         }
 
@@ -75,7 +75,7 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
-            self::spyShouldHaveReceived($spies[$dependency])
+            self::spyShouldHaveReceived($spies[$dependency->value])
                 ->once()
                 ->withArgs(
                     static function (User $user) use ($users): bool {
@@ -85,55 +85,55 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         }
 
         foreach ($dependencies['collection'] as $dependency) {
-            self::spyShouldHaveReceived($spies[$dependency])
+            self::spyShouldHaveReceived($spies[$dependency->value])
                 ->once()
                 ->withArgs(
-                    static function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
+                    static function (UserCollection $actualUsers, BulkRowCollection $bulkRows) use ($users): bool {
                         return $actualUsers->count() === 1
                             && $bulkRows->count() === 1
                             && $actualUsers->get(0)->id === $users[1]['id']
-                            && $bulkRows->get(0)->original === $users[1]
-                            && $bulkRows->get(0)->model->id === $users[1]['id'];
+                            && $bulkRows->get(0)->getOriginal() === $users[1]
+                            && $bulkRows->get(0)->getModel()->id === $users[1]['id'];
                     }
                 );
         }
     }
 
     /**
-     * If one of model events always returns false then its dependencies have not been called.
+     * When a model event returns false for every row, none of the dependent events is called.
      *
-     * @param Closure $data
-     * @param string $event
-     * @param array $dependencies
+     * @param \Closure $data
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $event
+     * @param array<string, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]> $dependencies
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('modelDataProvider')]
     public function testModelEventReturnsFalseAlways(
         Closure $data,
-        string $event,
+        BulkEventEnum $event,
         array $dependencies
     ): void
     {
         // arrange
         $users = $data();
         User::observe(Observer::class);
-        /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
+        /** @var array<string, callable|\Mockery\LegacyMockInterface|\Mockery\MockInterface> $spies */
         $spies = [
-            $event => Mockery::mock(TestCallback::class),
+            $event->value => Mockery::mock(TestCallback::class),
         ];
-        $spies[$event]
+        $spies[$event->value]
             ->expects('__invoke')
             ->times(count($users))
             ->andReturnFalse();
-        Observer::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event->value]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
-                $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                Observer::listen($dependency, $spies[$dependency]);
+                $spies[$dependency->value] = Mockery::spy(TestCallback::class, $dependency->value);
+                Observer::listen($dependency, $spies[$dependency->value]);
             }
         }
 
@@ -147,49 +147,49 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
-            self::spyShouldNotHaveReceived($spies[$dependency]);
+            self::spyShouldNotHaveReceived($spies[$dependency->value]);
         }
 
         foreach ($dependencies['collection'] as $dependency) {
-            self::spyShouldNotHaveReceived($spies[$dependency]);
+            self::spyShouldNotHaveReceived($spies[$dependency->value]);
         }
     }
 
     /**
-     * When one of collection events returns false then its dependencies have not been called.
+     * When a collection event returns false, none of the dependent events is called.
      *
-     * @param Closure $data
-     * @param string $event
-     * @param array $dependencies
+     * @param \Closure $data
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $event
+     * @param array<string, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]> $dependencies
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('collectionDataProvider')]
     public function testCollectionEventReturnsFalse(
         Closure $data,
-        string $event,
+        BulkEventEnum $event,
         array $dependencies,
     ): void
     {
         // arrange
         $users = $data();
         User::observe(Observer::class);
-        /** @var array<string, callable|LegacyMockInterface|MockInterface> $spies */
+        /** @var array<string, callable|\Mockery\LegacyMockInterface|\Mockery\MockInterface> $spies */
         $spies = [
-            $event => Mockery::mock(TestCallback::class),
+            $event->value => Mockery::mock(TestCallback::class),
         ];
-        $spies[$event]
+        $spies[$event->value]
             ->expects('__invoke')
             ->once()
             ->andReturnFalse();
-        Observer::listen($event, $spies[$event]);
+        Observer::listen($event, $spies[$event->value]);
 
         foreach ($dependencies as $dependencyList) {
             foreach ($dependencyList as $dependency) {
-                $spies[$dependency] = Mockery::spy(TestCallback::class, $dependency);
-                Observer::listen($dependency, $spies[$dependency]);
+                $spies[$dependency->value] = Mockery::spy(TestCallback::class, $dependency->value);
+                Observer::listen($dependency, $spies[$dependency->value]);
             }
         }
 
@@ -203,18 +203,20 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
 
         // assert
         foreach ($dependencies['model'] as $dependency) {
-            self::spyShouldNotHaveReceived($spies[$dependency]);
+            self::spyShouldNotHaveReceived($spies[$dependency->value]);
         }
 
         foreach ($dependencies['collection'] as $dependency) {
-            self::spyShouldNotHaveReceived($spies[$dependency]);
+            self::spyShouldNotHaveReceived($spies[$dependency->value]);
         }
     }
 
     /**
+     * A model which is not dirty fires the saving events but no updating event.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDoNotFireUpdatingIfTheModelIsNotDirty(): void
     {
@@ -226,10 +228,10 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         $updatingSpy = Mockery::spy(TestCallback::class);
         $updatingManySpy = Mockery::spy(TestCallback::class);
 
-        Observer::listen(BulkEventEnum::SAVING, $savingSpy);
-        Observer::listen(BulkEventEnum::SAVING_MANY, $savingManySpy);
-        Observer::listen(BulkEventEnum::UPDATING, $updatingSpy);
-        Observer::listen(BulkEventEnum::UPDATING_MANY, $updatingManySpy);
+        Observer::listen(BulkEventEnum::Saving, $savingSpy);
+        Observer::listen(BulkEventEnum::SavingMany, $savingManySpy);
+        Observer::listen(BulkEventEnum::Updating, $updatingSpy);
+        Observer::listen(BulkEventEnum::UpdatingMany, $updatingManySpy);
 
         $sut = User::query()
             ->bulk()
@@ -245,6 +247,11 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($updatingManySpy);
     }
 
+    /**
+     * The model events which run before the writing, with the events which depend on them.
+     *
+     * @return array<string, array{\Closure, \Lapaliv\BulkUpsert\Enums\BulkEventEnum, array<string, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]>}>
+     */
     public static function modelDataProvider(): array
     {
         return [
@@ -254,17 +261,17 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         ->createCollectionAndDirty(2)
                         ->toArray();
                 },
-                BulkEventEnum::SAVING,
+                BulkEventEnum::Saving,
                 [
                     'model' => [
-                        BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::Saved,
+                        BulkEventEnum::Updating,
+                        BulkEventEnum::Updated,
                     ],
                     'collection' => [
-                        BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::SavedMany,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
                     ],
                 ],
             ],
@@ -274,14 +281,14 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         ->createCollectionAndDirty(2)
                         ->toArray();
                 },
-                BulkEventEnum::UPDATING,
+                BulkEventEnum::Updating,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::Updated,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
                     ],
                 ],
             ],
@@ -291,21 +298,21 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
-                BulkEventEnum::SAVING,
+                BulkEventEnum::Saving,
                 [
                     'model' => [
-                        BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
-                        BulkEventEnum::DELETING,
-                        BulkEventEnum::DELETED,
+                        BulkEventEnum::Saved,
+                        BulkEventEnum::Updating,
+                        BulkEventEnum::Updated,
+                        BulkEventEnum::Deleting,
+                        BulkEventEnum::Deleted,
                     ],
                     'collection' => [
-                        BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
-                        BulkEventEnum::DELETING_MANY,
-                        BulkEventEnum::DELETED_MANY,
+                        BulkEventEnum::SavedMany,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
+                        BulkEventEnum::DeletingMany,
+                        BulkEventEnum::DeletedMany,
                     ],
                 ],
             ],
@@ -315,14 +322,14 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         ->createCollectionAndDirty(2, [], ['deleted_at' => Carbon::now()])
                         ->toArray();
                 },
-                BulkEventEnum::UPDATING,
+                BulkEventEnum::Updating,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::Updated,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
                     ],
                 ],
             ],
@@ -336,21 +343,21 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::SAVING,
+                BulkEventEnum::Saving,
                 [
                     'model' => [
-                        BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
-                        BulkEventEnum::RESTORING,
-                        BulkEventEnum::RESTORED,
+                        BulkEventEnum::Saved,
+                        BulkEventEnum::Updating,
+                        BulkEventEnum::Updated,
+                        BulkEventEnum::Restoring,
+                        BulkEventEnum::Restored,
                     ],
                     'collection' => [
-                        BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
+                        BulkEventEnum::SavedMany,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
+                        BulkEventEnum::RestoringMany,
+                        BulkEventEnum::RestoredMany,
                     ],
                 ],
             ],
@@ -364,14 +371,14 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::UPDATING,
+                BulkEventEnum::Updating,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::Updated,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
                     ],
                 ],
             ],
@@ -386,14 +393,14 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::DELETING,
+                BulkEventEnum::Deleting,
                 [
                     'model' => [
-                        BulkEventEnum::DELETED,
+                        BulkEventEnum::Deleted,
                     ],
                     'collection' => [
-                        BulkEventEnum::DELETING_MANY,
-                        BulkEventEnum::DELETED_MANY,
+                        BulkEventEnum::DeletingMany,
+                        BulkEventEnum::DeletedMany,
                     ],
                 ],
             ],
@@ -408,20 +415,25 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::RESTORING,
+                BulkEventEnum::Restoring,
                 [
                     'model' => [
-                        BulkEventEnum::RESTORED,
+                        BulkEventEnum::Restored,
                     ],
                     'collection' => [
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
+                        BulkEventEnum::RestoringMany,
+                        BulkEventEnum::RestoredMany,
                     ],
                 ],
             ],
         ];
     }
 
+    /**
+     * The collection events which run before the writing, with the events which depend on them.
+     *
+     * @return array<string, array{\Closure, \Lapaliv\BulkUpsert\Enums\BulkEventEnum, array<string, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]>}>
+     */
     public static function collectionDataProvider(): array
     {
         return [
@@ -444,25 +456,25 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         $thirdUser->toArray(),
                     ];
                 },
-                BulkEventEnum::SAVING_MANY,
+                BulkEventEnum::SavingMany,
                 [
                     'model' => [
-                        BulkEventEnum::SAVED,
-                        BulkEventEnum::UPDATING,
-                        BulkEventEnum::UPDATED,
-                        BulkEventEnum::DELETING,
-                        BulkEventEnum::DELETED,
-                        BulkEventEnum::RESTORING,
-                        BulkEventEnum::RESTORED,
+                        BulkEventEnum::Saved,
+                        BulkEventEnum::Updating,
+                        BulkEventEnum::Updated,
+                        BulkEventEnum::Deleting,
+                        BulkEventEnum::Deleted,
+                        BulkEventEnum::Restoring,
+                        BulkEventEnum::Restored,
                     ],
                     'collection' => [
-                        BulkEventEnum::SAVED_MANY,
-                        BulkEventEnum::UPDATING_MANY,
-                        BulkEventEnum::UPDATED_MANY,
-                        BulkEventEnum::DELETING_MANY,
-                        BulkEventEnum::DELETED_MANY,
-                        BulkEventEnum::RESTORING_MANY,
-                        BulkEventEnum::RESTORED_MANY,
+                        BulkEventEnum::SavedMany,
+                        BulkEventEnum::UpdatingMany,
+                        BulkEventEnum::UpdatedMany,
+                        BulkEventEnum::DeletingMany,
+                        BulkEventEnum::DeletedMany,
+                        BulkEventEnum::RestoringMany,
+                        BulkEventEnum::RestoredMany,
                     ],
                 ],
             ],
@@ -485,13 +497,13 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         $thirdUser->toArray(),
                     ];
                 },
-                BulkEventEnum::UPDATING_MANY,
+                BulkEventEnum::UpdatingMany,
                 [
                     'model' => [
-                        BulkEventEnum::UPDATED,
+                        BulkEventEnum::Updated,
                     ],
                     'collection' => [
-                        BulkEventEnum::UPDATED_MANY,
+                        BulkEventEnum::UpdatedMany,
                     ],
                 ],
             ],
@@ -505,13 +517,13 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::DELETING_MANY,
+                BulkEventEnum::DeletingMany,
                 [
                     'model' => [
-                        BulkEventEnum::DELETED,
+                        BulkEventEnum::Deleted,
                     ],
                     'collection' => [
-                        BulkEventEnum::DELETED_MANY,
+                        BulkEventEnum::DeletedMany,
                     ],
                 ],
             ],
@@ -525,13 +537,13 @@ final class UpdateBeforeWritingEventDependenciesTest extends TestCaseWrapper
                         )
                         ->toArray();
                 },
-                BulkEventEnum::RESTORING_MANY,
+                BulkEventEnum::RestoringMany,
                 [
                     'model' => [
-                        BulkEventEnum::RESTORED,
+                        BulkEventEnum::Restored,
                     ],
                     'collection' => [
-                        BulkEventEnum::RESTORED_MANY,
+                        BulkEventEnum::RestoredMany,
                     ],
                 ],
             ],

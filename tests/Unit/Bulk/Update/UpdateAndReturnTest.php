@@ -3,7 +3,6 @@
 namespace Tests\Unit\Bulk\Update;
 
 use Illuminate\Support\Arr;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
@@ -11,6 +10,8 @@ use Tests\Unit\UserTestTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
+ * The rows which `updateAndReturn()` writes and the models which it gives back.
+ *
  * @internal
  */
 final class UpdateAndReturnTest extends TestCaseWrapper
@@ -18,13 +19,13 @@ final class UpdateAndReturnTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Every given model is written to the table, whichever unique attribute is used.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testDatabase(string $uniqBy): void
@@ -49,12 +50,13 @@ final class UpdateAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * The result is the model collection of the class and holds every given model once.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testResult(string $uniqBy): void
@@ -83,12 +85,13 @@ final class UpdateAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * The returned models carry only the selected columns and `updated_at`.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testSelectColumns(string $uniqBy): void
@@ -132,6 +135,11 @@ final class UpdateAndReturnTest extends TestCaseWrapper
         }
     }
 
+    /**
+     * The attributes which can be used as the unique one.
+     *
+     * @return array<string, array{string}>
+     */
     public static function dataProvider(): array
     {
         return [

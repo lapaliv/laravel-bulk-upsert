@@ -2,40 +2,68 @@
 
 namespace Lapaliv\BulkUpsert\Builders;
 
-use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
-use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
+use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhereClause;
+use Lapaliv\BulkUpsert\Builders\Clauses\BulkBuilderWhereClause;
 
 /**
+ * Collects the parts of a DELETE statement.
+ *
  * @internal
  */
 class DeleteBulkBuilder implements BulkBuilderWhereClause
 {
-    use BuilderWhere;
+    use BuilderWhereClause;
 
-    private string $from;
-    private int $limit;
+    /**
+     * The name of the table which the rows are deleted from.
+     *
+     * @var string
+     */
+    private string $table = '';
 
-    public function from(string $table): static
+    /**
+     * The maximum number of the rows which can be deleted.
+     *
+     * @var int
+     */
+    private int $limit = 0;
+
+    /**
+     * Set the table which the rows are deleted from.
+     *
+     * @param string $table
+     *
+     * @return $this
+     */
+    public function setTable(string $table): static
     {
-        $this->from = $table;
+        $this->table = $table;
 
         return $this;
     }
 
-    public function getFrom(): string
+    public function getTable(): string
     {
-        return $this->from;
+        return $this->table;
     }
 
-    public function limit(int $limit): static
+    /**
+     * Set the maximum number of the rows which can be deleted.
+     *
+     * @param int $limit
+     *
+     * @return $this
+     */
+    public function setLimit(int $limit): static
     {
         $this->limit = $limit;
 
         return $this;
     }
 
-    public function getLimit(): ?int
+    public function getLimit(): int
     {
         return $this->limit;
     }
+
 }

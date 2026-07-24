@@ -3,33 +3,68 @@
 namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Carbon\Carbon;
-use DateTime;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
-use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
-use Lapaliv\BulkUpsert\Entities\BulkRow;
-use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\GetDeleteBuilderFeature;
-use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
+use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Scenarios\Delete\DeleteRowsStep;
+use Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletedEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletingEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
 
 /**
+ * Deletes the rows from the database.
+ *
+ * The short algorithm contains the next steps:
+ *
+ * - Mark the rows that do not exist in the database as skipped;
+ * - Fire the 'forceDeleting' event for each model when the rows are being force deleted;
+ * - Fire the 'deleting' event for each model after the 'forceDeleting' event;
+ * - Fire the 'forceDeletingMany' and 'deletingMany' events for all models
+ *   after the 'deleting' event;
+ * - Soft delete the rows by filling in their $deletedAtColumn,
+ *   or delete them for real when either the model does not support soft deleting
+ *   or the deletion is forced;
+ * - Exit the algorithm if a certain condition is met, indicating that there was
+ *   nothing to delete at all;
+ * - Fire the 'deleted' event for each deleted model;
+ * - Fire the 'forceDeleted' event for each model which has been force deleted;
+ * - Fire the 'deletedMany' event for all models after the 'deleted' event;
+ * - Fire the 'forceDeletedMany' event for all models after the 'deletedMany' event.
+ *
  * @internal
  */
-class DeleteScenario
+readonly class DeleteScenario
 {
+    /**
+     * Create a new deleting scenario instance.
+     *
+     * @param \Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep $markNonexistentRowsAsSkipped
+     * @param \Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletingEventsStep $dispatchDeletingEventsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Delete\DeleteRowsStep $deleteRowsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletedEventsStep $dispatchDeletedEventsStep
+     */
     public function __construct(
-        private MarkNonexistentRowsAsSkippedFeature $markNonexistentRowsAsSkipped,
-        private GetDeleteBuilderFeature $getDeleteBuilderFeature,
-        private BulkDriverManager $driverManager,
-    ) {
+        private MarkNonexistentRowsAsSkippedStep $markNonexistentRowsAsSkipped,
+        private DispatchDeletingEventsStep $dispatchDeletingEventsStep,
+        private DeleteRowsStep $deleteRowsStep,
+        private DispatchDeletedEventsStep $dispatchDeletedEventsStep,
+    )
+    {
         //
     }
 
+    /**
+     * Run the scenario.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $eloquent
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     * @param \Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher $eventDispatcher
+     * @param string[] $dateFields
+     * @param string|null $deletedAtColumn
+     * @param bool $force
+     *
+     * @return void
+     */
     public function handle(
         Model $eloquent,
         BulkAccumulationEntity $data,
@@ -37,19 +72,28 @@ class DeleteScenario
         array $dateFields,
         ?string $deletedAtColumn,
         bool $force,
-    ): void {
-        if (empty($data->rows)) {
+    ): void
+    {
+        if (!$data->hasRows()) {
             return;
         }
 
-        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $data->uniqueBy, $deletedAtColumn, true);
+        // The rows that are absent in the database cannot be deleted,
+        // so they are marked as skipped before anything else happens.
+        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $data->getUniqueBy(), $deletedAtColumn, true);
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::delete($force))) {
-            $this->dispatchDeletingEvents($eloquent, $data, $eventDispatcher, $deletedAtColumn, $force);
-        }
+        // Before deleting, it needs to define the final list of models that need to be deleted.
+        // For this purpose, it uses events such as
+        // 'forceDeleting', 'deleting', 'forceDeletingMany', 'deletingMany'.
+        $this->dispatchDeletingEventsStep->handle($eloquent, $data, $eventDispatcher, $deletedAtColumn, $force);
 
+        // The date is shared between the query and the events:
+        // the listeners have to see the very value which has been written to the database.
         $deletedAt = Carbon::now();
-        $builder = $this->getDeleteBuilderFeature->handle(
+
+        // Delete rows from the database.
+        // There is nothing to report when every row has been skipped.
+        $deleted = $this->deleteRowsStep->handle(
             $eloquent,
             $data,
             $dateFields,
@@ -57,130 +101,20 @@ class DeleteScenario
             $force,
             $deletedAt,
         );
-        $driver = $this->driverManager->getForModel($eloquent);
 
-        if ($builder instanceof UpdateBulkBuilder) {
-            $driver->update($eloquent->getConnection(), $builder);
-        } elseif ($builder instanceof DeleteBulkBuilder) {
-            $driver->forceDelete($eloquent->getConnection(), $builder);
-        } else {
-            unset($builder, $driver);
-
+        if (!$deleted) {
             return;
         }
 
-        unset($builder);
-
-        $hasEndListeners = $eventDispatcher->hasListeners(BulkEventEnum::deleted($force));
-
-        if ($hasEndListeners) {
-            $this->dispatchDeletedEvents(
-                $eloquent,
-                $data,
-                $eventDispatcher,
-                $deletedAtColumn,
-                $force,
-                $deletedAt,
-            );
-        }
-    }
-
-    private function dispatchDeletingEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-        ?string $deletedAtColumn,
-        bool $force
-    ): void {
-        /** @var Collection<int, Model> $collection */
-        $collection = $eloquent->newCollection();
-        $bulkRows = new BulkRows();
-
-        foreach ($data->rows as $row) {
-            if ($row->skipDeleting) {
-                continue;
-            }
-
-            if ($deletedAtColumn !== null
-                && $force
-                && $eventDispatcher->dispatch(BulkEventEnum::FORCE_DELETING, $row->model) === false
-            ) {
-                $row->skipDeleting = true;
-
-                continue;
-            }
-
-            if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $row->model) === false) {
-                $row->skipDeleting = true;
-
-                continue;
-            }
-
-            $collection->push($row->model);
-            $bulkRows->push(
-                new BulkRow($row->model, $row->row, $data->uniqueBy)
-            );
-        }
-
-        if ($deletedAtColumn !== null
-            && $force
-            && $eventDispatcher->dispatch(BulkEventEnum::FORCE_DELETING_MANY, $collection, $bulkRows) === false
-        ) {
-            foreach ($data->rows as $row) {
-                $row->skipDeleting = true;
-            }
-
-            return;
-        }
-
-        if ($eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $collection, $bulkRows) === false) {
-            foreach ($data->rows as $row) {
-                $row->skipDeleting = true;
-            }
-        }
-
-        unset($collection, $bulkRows);
-    }
-
-    private function dispatchDeletedEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-        ?string $deletedAtColumn,
-        bool $force,
-        DateTime $deletedAt
-    ): void {
-        /** @var Collection<int, Model> $collection */
-        $collection = $eloquent->newCollection();
-        $bulkRows = new BulkRows();
-
-        foreach ($data->rows as $row) {
-            if ($row->skipDeleting) {
-                continue;
-            }
-
-            if ($deletedAtColumn) {
-                $row->model->setAttribute($deletedAtColumn, $deletedAt);
-            }
-
-            $eventDispatcher->dispatch(BulkEventEnum::DELETED, $row->model);
-
-            if ($deletedAtColumn !== null && $force) {
-                $eventDispatcher->dispatch(BulkEventEnum::FORCE_DELETED, $row->model);
-            }
-
-            $collection->push($row->model);
-            $bulkRows->push(
-                new BulkRow($row->model, $row->row, $data->uniqueBy)
-            );
-        }
-
-        $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $collection, $bulkRows);
-
-        if ($deletedAtColumn !== null && $force) {
-            $eventDispatcher->dispatch(BulkEventEnum::FORCE_DELETED_MANY, $collection, $bulkRows);
-        }
-
-        unset($collection, $bulkRows);
+        // After deleting, it needs to fire events ending with '-ed' such as
+        // 'deleted', 'forceDeleted', 'deletedMany', 'forceDeletedMany'.
+        $this->dispatchDeletedEventsStep->handle(
+            $eloquent,
+            $data,
+            $eventDispatcher,
+            $deletedAtColumn,
+            $force,
+            $deletedAt,
+        );
     }
 }

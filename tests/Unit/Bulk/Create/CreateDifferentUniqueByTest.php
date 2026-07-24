@@ -4,12 +4,13 @@ namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * Creating rows when the builder knows more than one set of unique attributes.
+ *
  * @internal
  */
 final class CreateDifferentUniqueByTest extends TestCaseWrapper
@@ -17,9 +18,12 @@ final class CreateDifferentUniqueByTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Each row is inserted through the unique attribute set which it really has.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function test(): void
     {

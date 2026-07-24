@@ -2,13 +2,17 @@
 
 namespace Tests\Unit\BulkBuilderTrait;
 
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Models\User;
 use Tests\App\Observers\Observer;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The `selectAndUpdateMany()` method of the builder, verified through the public bulk API.
+ *
+ * The method takes an Eloquent query and a set of values, selects the rows which match the
+ * query and writes the values to every one of them.
+ *
  * @internal
  */
 class SelectAndUpdateManyTest extends TestCaseWrapper
@@ -16,9 +20,11 @@ class SelectAndUpdateManyTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Every row matched by the query gets the new values when no observer is registered.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testWithoutEvents(): void
     {
@@ -66,9 +72,11 @@ class SelectAndUpdateManyTest extends TestCaseWrapper
     }
 
     /**
+     * Every matched row gets the new values when an observer is registered.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testWithEventsById(): void
     {
@@ -117,9 +125,12 @@ class SelectAndUpdateManyTest extends TestCaseWrapper
     }
 
     /**
+     * Every matched row is still updated when the unique key is `email` and the chunk
+     * size is smaller than the number of rows.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testWithEventsByEmail(): void
     {

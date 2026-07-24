@@ -35,7 +35,7 @@ but with a few queries to the database per chunk.
   - `updating` / `updated`, 
   - `saving` / `saved`,
   - `deleting` / `deleted`,
-  - `restoring` / `restoried`;
+  - `restoring` / `restored`;
   - `forceDeleting` / `forceDeleted`;
   
   and some new events:
@@ -45,8 +45,8 @@ but with a few queries to the database per chunk.
   - `deletingMany` / `deletedMany`,
   - `restoringMany` / `restoredMany`;
   - `forceDeletingMany` / `forceDeletedMany`;
-- Automatically align transmitted fields before save them to the database event if you don't use eloquent events.
-- Select inserted rows from the database
+- Automatically aligning the transmitted fields before saving them to the database, even if you don't use eloquent events.
+- Selecting the inserted rows back from the database
 
 ### Documentation for version 1.x
 The documentation for version 1.x you can see [here](https://github.com/lapaliv/laravel-bulk-upsert/blob/feature/v1/README.md)
@@ -57,8 +57,8 @@ The documentation for version 1.x you can see [here](https://github.com/lapaliv/
   - MySQL: __5.7+__
   - PostgreSQL __9.6+__
   - SQLite __3.32+__
-- PHP: __8.0+__
-- Laravel: __8.0+__
+- PHP: __8.4+__
+- Laravel: __11.0+__
 
 ## Installation
 
@@ -291,26 +291,54 @@ $bulk->deleteAccumulated();
 ### Listeners
 
 #### The order of events
-The order of calling callbacks is:
-- `onSaving`
-- `onCreating` or `onUpdating`
-- `onDeleting`
-- `onForceDeleting`
-- `onRestoring`
-- `onSavingMany`
-- `onCreatingMany` or `onUpdatingMany`
-- `onDeletingMany`
-- `onForceDeletingMany`
-- `onRestoringMany`
-- `onCreated` or `onUpdated`
-- `onDeleted`
-- `onForceDeleted`
-- `onRestored`
-- `onCreatedMany` or `onUpdatedMany`
-- `onDeletedMany`
-- `onForceDeletedMany`
-- `onRestoredMany`
-- `onSavedMany`
+
+The library works chunk by chunk. It fills a chunk first, then runs the whole set of events
+for that chunk, writes the rows, and only after that starts collecting the next one. So the
+events of two chunks never mix. The chunk size is set by `chunk()` and defaults to 100.
+
+How to read the chains below. An event without `Many` in its name is fired for every model
+of the chunk. When two of them stand next to each other, they are fired model by model:
+`created → deleted → saved` means the first model gets all three, then the second one does.
+A `-Many` event is fired once, right after the group it closes. And when a listener returns
+`false`, its row drops out of every step to the right of it.
+
+Creating:
+
+```
+saving → savingMany → creating → creatingMany → deleting → deletingMany
+    → INSERT
+    → created → deleted → saved → createdMany → deletedMany → savedMany
+```
+
+Updating:
+
+```
+saving → savingMany → updating → updatingMany → deleting → restoring → deletingMany → restoringMany
+    → UPDATE
+    → updated → deleted → restored → saved → updatedMany → deletedMany → restoredMany → savedMany
+```
+
+Upserting: the creating chain for the rows which are absent in the database, then the
+updating chain for the whole chunk. Mind that `saving` and `savingMany` run a second time in
+the updating chain, for every row of the chunk, including the ones which have just been
+created. `updating`, `updated` and `saved` skip those rows, so a created row sees `saving`
+twice but `saved` only once.
+
+Deleting:
+
+```
+forceDeleting → deleting → forceDeletingMany → deletingMany
+    → DELETE, or UPDATE of deleted_at when the row is soft deleted
+    → deleted → forceDeleted → deletedMany → forceDeletedMany
+```
+
+The `forceDeleting` and `forceDeleted` events belong to `forceDelete()` on a model which
+supports soft deleting. For a model without `SoftDeletes`, `delete()` is already a real
+`DELETE` and these two do not fire.
+
+The `deleting` and `deleted` events take part in creating and updating as well, because both
+of them can write the `deleted_at` column: creating a row with a filled `deleted_at` soft
+deletes it right away, and an update which fills that column in soft deletes the row.
 
 #### How listen to events
 
@@ -320,7 +348,7 @@ There are three ways how you can listen events from the library:
 
 ```php
 use App\Models\User;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 
 $bulk
     // The callback runs before creating.
@@ -362,47 +390,47 @@ $bulk
 
     // Runs before creating.
     // If the callback returns `false` then these models won't be created.
-    ->onCreatingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onCreatingMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after creating.
-    ->onCreatedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onCreatedMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs before updating.
     // If the callback returns `false` then these models won't be updated.
-    ->onUpdatingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onUpdatingMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after updating.
-    ->onUpdatedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onUpdatedMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs before deleting.
     // If the callback returns `false` then these models won't be deleted,
     // but it doesn't affect the upserting.
-    ->onDeletingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onDeletingMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs before force deleting.
     // If the callback returns `false` then these models won't be deleted.
-    ->onForceDeletingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onForceDeletingMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after deleting.
-    ->onDeletedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onDeletedMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after force deleting.
-    ->onForceDeletedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onForceDeletedMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs before restoring.
     // If the callback returns `false` then these models won't be restored,
     // but it doesn't affect the upserting.
-    ->onRestoringMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onRestoringMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after restoring.
-    ->onRestoredMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onRestoredMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs before upserting.
     // If the callback returns `false` then these models won't be upserting,
-    ->onSavingMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onSavingMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 
     // Runs after upserting.
-    ->onSavedMany(fn(Collection $users, BulkRows $bulkRows) => /* .. */)
+    ->onSavedMany(fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */)
 ```
 
 #### How listen to events: Model Callbacks
@@ -412,11 +440,11 @@ For example:
 
 ```php
 use App\Models\User;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 
 User::saving(fn(User $user) => /* .. */);
 User::savingMany(
-    fn(Collection $users, BulkRows $bulkRows) => /* .. */
+    fn(Collection $users, BulkRowCollection $bulkRows) => /* .. */
 );
 ```
 
@@ -428,14 +456,14 @@ You also can use observers. For example:
 namespace App\Observers;
 
 use App\Models\User;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 
 class UserObserver {
     public function creating(User $user) {
         // ..
     }
     
-    public function creatingMany(Collection $users, BulkRows $bulkRows) {
+    public function creatingMany(Collection $users, BulkRowCollection $bulkRows) {
         // ..
     }
 }
@@ -443,8 +471,8 @@ class UserObserver {
 
 #### Example
 
-You can observe the process. The library supports the base eloquent's events and
-some extra which are give you the access to the collection of models.
+You can observe the process. The library supports the base eloquent events and
+some extra ones which give you access to the whole collection of models.
 Listeners with collections accept extra parameter with type `BulkRows`.
 This is a collection of class `Lapaliv\BulkUpsert\Entities\BulkRow` which
 contains your original data (the property `original`), the model (the property `model`)
@@ -475,19 +503,19 @@ class User extends Model {
 namespace App\Observers;
 
 use Illuminate\Database\Eloquent\Collection;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 use Lapaliv\BulkUpsert\Entities\BulkRow;
 
 class UserObserver {
-    public function savedMany(Collection $users, BulkRows $bulkRows): void {
+    public function savedMany(Collection $users, BulkRowCollection $bulkRows): void {
         $rawComments = [];
         
         $bulkRows->each(
             function(BulkRow $bulkRow) use(&$rawComments): void {
-                $bulkRow->original['user_id'] = $bulkRow->model->id;
-                $rawComments[] = $bulkRow->original;
+                $bulkRow->original['user_id'] = $bulkRow->getModel()->id;
+                $rawComments[] = $bulkRow->getOriginal();
             }
-        )
+        );
         
         Comment::query()
             ->bulk()
@@ -511,12 +539,72 @@ $data = [
 ];
 
 User::query()
+    ->bulk()
     ->uniqueBy(['email'])
     ->upsert($data);
 ```
 
 In this example you have a chain. After upserting the user, the library will run
 `UserObserver::savedMany()` where the code will prepare comments and will upsert them.
+
+## Transactions
+
+The library never opens a transaction on its own. Every operation sends its queries straight
+to the connection of your model.
+
+This is a deliberate decision, not something which was forgotten. Only you know how a bulk
+operation fits into the rest of your work, so only you can decide what has to be atomic. Any
+default the library could pick would be wrong for somebody: a transaction which is too wide
+holds locks for a long time and blocks other writers, and a transaction which is too narrow
+protects nothing.
+
+So the choice is yours. Below are the three usual options.
+
+No transaction at all. Every chunk is written on its own, and if something fails in the
+middle, the chunks which were already written stay in the database. This is often good enough
+for imports which you can simply run again.
+
+```php
+$bulk->uniqueBy('email')->create($data);
+```
+
+One transaction per chunk. A failed chunk is rolled back completely, the previous chunks stay.
+Locks are held only while one chunk is being written, so other writers are not blocked for
+long. This is a good default for large imports.
+
+```php
+foreach ($rows as $row) {
+    DB::transaction(
+        fn () => $bulk->createOrAccumulate([$row])
+    );
+}
+
+DB::transaction(
+    fn () => $bulk->createAccumulated()
+);
+```
+
+One transaction around everything. Either all the rows are written or none of them are. Keep
+in mind that the longer the transaction is, the longer the locks are held, and a very large
+transaction may hit the limits of your database.
+
+```php
+DB::transaction(
+    fn () => $bulk->uniqueBy('email')->create($data)
+);
+```
+
+Two things are worth remembering whichever option you pick.
+
+Your listeners run inside the same transaction as the queries which fired them. If a listener
+writes to the database, that write is a part of your transaction and will be rolled back with
+it. If a listener talks to something outside the database, such as a queue or an HTTP API,
+that call will not be rolled back, so dispatch it after the transaction has been committed.
+
+The library reads rows back from the database between the queries, for example to fill in the
+models before the events ending with `-ed`. Inside a transaction these reads see your own
+uncommitted changes, which is usually what you want, but it also means that the isolation
+level of your connection affects what your listeners see.
 
 ## API
 
@@ -560,23 +648,23 @@ class Bulk {
      * Disables the specified events or the all if `$events` equals `null`.
      * @param string[]|null $events
      */
-    public function disableEvents(array $events = null): static;
+    public function disableEvents(?array $events = null): static;
     
     /**
      * Disables the specified event.
      */
-    public function disableEvent(string $event): static;
+    public function disableEvent(string|BulkEventEnum $event): static;
     
     /**
      * Enables the specified events or the all if `$events` is empty.
      * @param string[]|null $events
      */
-    public function enableEvents(array $events = null): static;
+    public function enableEvents(?array $events = null): static;
     
     /**
      * Enables the specified event.
      */
-    public function enableEvent(string $event): static;
+    public function enableEvent(string|BulkEventEnum $event): static;
     
     /**
      * Sets the list of attribute names which should update.
@@ -746,21 +834,30 @@ namespace Lapaliv\BulkUpsert\Entities;
 class BulkRow {
     /**
      * The upserting/upserted model.
-     * @var Model 
+     * @return Model
      */
-    public Model $model;
-    
+    public function getModel(): Model
+    {
+        return $this->model;
+    }
+
     /**
-     * The original item from `iterable rows`. 
-     * @var array|object|stdClass|Model 
+     * The original item from `iterable rows`.
+     * @return array|object|stdClass|Model
      */
-    public mixed $original;
-    
+    public function getOriginal(): mixed
+    {
+        return $this->original;
+    }
+
     /**
      * Unique fields which were used for upserting.
-     * @var string[] 
+     * @return string[]
      */
-    public array $unique;
+    public function getUnique(): array
+    {
+        return $this->unique;
+    }
 }
 ```
 
@@ -772,7 +869,7 @@ class BulkRow {
 * Support a custom database driver
 * Update rows and return the number of updated ones
 
-### Tests
+### Testing
 
 You can check the [actions](https://github.com/lapaliv/laravel-bulk-upsert/actions?query=branch%3Amaster) or run it on your laptop: 
 

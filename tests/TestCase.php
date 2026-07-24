@@ -9,12 +9,30 @@ use PDO;
 use RuntimeException;
 
 /**
+ * The base test case of the suite.
+ *
+ * It reads the environment file, builds the database manager with the mysql, pgsql and
+ * sqlite connections and registers the service provider of the package for every test.
+ *
  * @internal
  */
 abstract class TestCase extends \Orchestra\Testbench\TestCase
 {
+    /**
+     * The database manager which every test of the suite shares.
+     *
+     * @var \Illuminate\Database\Capsule\Manager
+     */
     private static Manager $manager;
 
+    /**
+     * Set the database up before the first test of the class.
+     *
+     * The environment file is read and the manager is built only once for the whole
+     * run. Every later call leaves the ready manager alone.
+     *
+     * @return void
+     */
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -45,6 +63,19 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $this->app->register(BulkUpsertServiceProvider::class);
     }
 
+    /**
+     * Build the database manager and all of its connections.
+     *
+     * The manager gets a mysql, a pgsql and a sqlite connection. The connection which
+     * `DB_CONNECTION` names becomes the default one.
+     *
+     * For sqlite the method also removes the old database file and creates an empty
+     * one, so every run starts with a clean file.
+     *
+     * @return void
+     *
+     * @throws \RuntimeException
+     */
     private static function configureManager(): void
     {
         $manager = new Manager();
@@ -115,6 +146,11 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         }
     }
 
+    /**
+     * Get the path of the sqlite database file of the tests.
+     *
+     * @return string
+     */
     private static function getSqLitePath(): string
     {
         return __DIR__ . '/Database/database.sqlite';

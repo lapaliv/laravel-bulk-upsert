@@ -4,7 +4,6 @@ namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Tests\App\Models\User;
 use Tests\App\Observers\Observer;
@@ -12,6 +11,8 @@ use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The rows which `create()` writes into the table.
+ *
  * @internal
  */
 final class CreateTest extends TestCaseWrapper
@@ -19,9 +20,11 @@ final class CreateTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Every given model is inserted with all of its attributes and with the current timestamps.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testBase(): void
     {
@@ -55,10 +58,12 @@ final class CreateTest extends TestCaseWrapper
     }
 
     /**
+     * The timestamps which the model already carries are kept instead of the current time.
+     *
      * @return void
      *
-     * @throws BulkException
-     * @throws RandomException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     * @throws \Random\RandomException
      */
     public function testWithTimestamps(): void
     {
@@ -85,7 +90,7 @@ final class CreateTest extends TestCaseWrapper
         $sut->create($users);
 
         // assert
-        /** @var User $user */
+        /** @var \Tests\App\Models\User $user */
         foreach ($users as $user) {
             $this->assertDatabaseHas($user->getTable(), [
                 'email' => $user->email,
@@ -96,9 +101,11 @@ final class CreateTest extends TestCaseWrapper
     }
 
     /**
+     * A row given as a plain object is inserted like an array or a model.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testStdRow(): void
     {
@@ -116,9 +123,11 @@ final class CreateTest extends TestCaseWrapper
     }
 
     /**
+     * A row given as an object with a `toArray()` method is inserted from that array.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testObjectRowWithMethodToArray(): void
     {
@@ -146,9 +155,11 @@ final class CreateTest extends TestCaseWrapper
     }
 
     /**
+     * Creating without unique attributes throws when the model has an observer.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testCreatingWithoutUniqueAttributesWithEvents(): void
     {
@@ -165,9 +176,11 @@ final class CreateTest extends TestCaseWrapper
     }
 
     /**
+     * Without unique attributes and without events the rows are still inserted.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testCreatingWithoutUniqueAttributesWithoutEvents(): void
     {
