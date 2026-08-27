@@ -1013,7 +1013,11 @@ class Bulk
     private function convertRowToModel(mixed $row): Model
     {
         if ($row instanceof Model) {
-            return $row;
+            if ($row instanceof $this->model) {
+                return $row;
+            }
+
+            throw new BulkValueTypeIsNotSupported($row);
         }
 
         if ($row instanceof stdClass) {
