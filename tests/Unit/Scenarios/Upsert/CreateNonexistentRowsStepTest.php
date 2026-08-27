@@ -144,4 +144,26 @@ final class CreateNonexistentRowsStepTest extends TestCaseWrapper
             'name' => 'name from the upsert',
         ], $user->getConnectionName());
     }
+
+    /**
+     * A nonexistent row may be created already soft deleted.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testNonexistentSoftDeletedRowIsCreated(): void
+    {
+        // arrange
+        $user = $this->userGenerator->makeOne(['deleted_at' => Carbon::now()]);
+        User::observe(Observer::class);
+        $deleted = $this->listenEvent(BulkEventEnum::Deleted);
+
+        // act
+        User::query()->bulk()->uniqueBy(['email'])->upsert([$user]);
+
+        // assert
+        self::spyShouldHaveReceived($deleted)->once();
+        $this->userWasCreated($user);
+    }
 }
