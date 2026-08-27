@@ -104,6 +104,10 @@ class DispatchDeletingEventsStep
         bool $isForcing,
     ): void
     {
+        if ($collection->isEmpty()) {
+            return;
+        }
+
         if ($isForcing
             && $eventDispatcher->dispatch(BulkEventEnum::ForceDeletingMany, $collection, $bulkRows) === false
         ) {

@@ -51,6 +51,30 @@ final class DispatchDeletingEventsStepTest extends TestCaseWrapper
     }
 
     /**
+     * `deletingMany` is not fired when every row has been vetoed by `deleting`.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testDeletingManyIsNotTriggeredWithEmptyCollection(): void
+    {
+        // arrange
+        $users = $this->userGenerator->createCollection(2);
+        User::observe(Observer::class);
+        $this->listenEventReturning(BulkEventEnum::Deleting, [false, false]);
+        $listener = $this->listenEvent(BulkEventEnum::DeletingMany);
+
+        // act
+        User::query()->bulk()->delete($users);
+
+        // assert
+        self::spyShouldNotHaveReceived($listener);
+        $this->userWasNotDeleted($users->get(0));
+        $this->userWasNotDeleted($users->get(1));
+    }
+
+    /**
      * `deletingMany` returning false keeps every row of the chunk.
      *
      * @return void
