@@ -34,9 +34,7 @@ class BulkEventDispatcher
     /**
      * The events which are allowed to be dispatched, or `null` when all are allowed.
      *
-     * The list holds {@see \Lapaliv\BulkUpsert\Enums\BulkEventEnum} cases or their values.
-     *
-     * @var array<array-key, string|\Lapaliv\BulkUpsert\Enums\BulkEventEnum>|null
+     * @var \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]|null
      */
     private ?array $enabledEvents = null;
 
@@ -57,8 +55,6 @@ class BulkEventDispatcher
     /**
      * Create a new event dispatcher for the given model.
      *
-     * The class name is resolved through the container.
-     *
      * @param \Illuminate\Database\Eloquent\Model|string $model
      *
      * @return void
@@ -76,7 +72,6 @@ class BulkEventDispatcher
 
     /**
      * Add an own listener for the given event.
-     *
      * The method returns the key of the listener, which can be given to `forget()`, or
      * `null` when the listener is `null`.
      *
@@ -142,14 +137,13 @@ class BulkEventDispatcher
     /**
      * Dispatch the given event to the Eloquent listeners and to the own listeners.
      *
-     * The `once` listeners are removed right after they are called. For a halt event the
-     * method returns `false` as soon as a listener returns `false`, otherwise it returns
-     * `null`.
-     *
      * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $event
      * @param mixed ...$payload
      *
      * @return mixed
+     *
+     * @example dispatch(BulkEventEnum::creating, $model)
+     * @example dispatch(BulkEventEnum::creatingMany, $collection)
      */
     public function dispatch(BulkEventEnum $event, ...$payload): mixed
     {
@@ -191,9 +185,6 @@ class BulkEventDispatcher
 
     /**
      * Determine whether at least one of the given events has a listener.
-     *
-     * The list holds {@see \Lapaliv\BulkUpsert\Enums\BulkEventEnum} cases. The events which are not enabled by
-     * `restrict()` are skipped.
      *
      * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum[] $events
      *
@@ -241,15 +232,22 @@ class BulkEventDispatcher
     /**
      * Allow only the given events to be dispatched.
      *
-     * The list holds {@see \Lapaliv\BulkUpsert\Enums\BulkEventEnum} cases or their values.
-     *
      * @param array<array-key, string|\Lapaliv\BulkUpsert\Enums\BulkEventEnum> $events
-     *
      * @return $this
+     *
+     * @throws \ValueError When one of the given values does not name an event.
+     * @example restrict(\Lapaliv\BulkUpsert\Enums\BulkEventEnum::creating)
+     * @example restrict('creating')
+     *
      */
     public function restrict(array $events): static
     {
-        $this->enabledEvents = $events;
+        $this->enabledEvents = array_map(
+            static fn(BulkEventEnum|string $event): BulkEventEnum => is_string($event)
+                ? BulkEventEnum::from($event)
+                : $event,
+            array_values($events)
+        );
 
         return $this;
     }
@@ -257,7 +255,7 @@ class BulkEventDispatcher
     /**
      * Get the events which are allowed to be dispatched.
      *
-     * @return array<array-key, string|\Lapaliv\BulkUpsert\Enums\BulkEventEnum>|null
+     * @return \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]|null
      */
     public function getEnabledEvents(): ?array
     {

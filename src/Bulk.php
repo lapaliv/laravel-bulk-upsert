@@ -328,6 +328,8 @@ class Bulk
      * @param string[]|\Lapaliv\BulkUpsert\Enums\BulkEventEnum[] $events
      *
      * @return $this
+     *
+     * @throws \ValueError When one of the given names does not belong to an event.
      */
     public function setEvents(array $events): static
     {
@@ -354,14 +356,11 @@ class Bulk
      */
     public function disableModelEndEvents(): static
     {
-        $enabledEvents = $this->normalizeEvents($this->getEventDispatcher()->getEnabledEvents() ?? []);
-
-        if ($enabledEvents === []) {
-            $enabledEvents = BulkEventEnum::cases();
-        }
-
         return $this->setEvents(
-            array_filter($enabledEvents, fn(BulkEventEnum $event) => !in_array($event, BulkEventEnum::modelEnd(), true))
+            array_filter(
+                $this->resolveEnabledEvents(),
+                fn(BulkEventEnum $event) => !in_array($event, BulkEventEnum::modelEnd(), true)
+            )
         );
     }
 
@@ -379,14 +378,12 @@ class Bulk
         }
 
         $events = $this->normalizeEvents($events);
-        $enabledEvents = $this->normalizeEvents($this->getEventDispatcher()->getEnabledEvents() ?? []);
-
-        if ($enabledEvents === []) {
-            $enabledEvents = BulkEventEnum::cases();
-        }
 
         return $this->setEvents(
-            array_filter($enabledEvents, fn(BulkEventEnum $event) => !in_array($event, $events, true))
+            array_filter(
+                $this->resolveEnabledEvents(),
+                fn(BulkEventEnum $event) => !in_array($event, $events, true)
+            )
         );
     }
 
@@ -1391,5 +1388,15 @@ class Bulk
         }
 
         return $this->eventDispatcher;
+    }
+
+    /**
+     * Get the events which are enabled right now as a concrete list.
+     *
+     * @return \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]
+     */
+    private function resolveEnabledEvents(): array
+    {
+        return $this->getEventDispatcher()->getEnabledEvents() ?? BulkEventEnum::cases();
     }
 }
