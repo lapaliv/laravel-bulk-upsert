@@ -408,6 +408,8 @@ class Bulk
     /**
      * Enable the given events, or all of them when `$events` is empty.
      *
+     * The method only ever adds, so it does nothing while nothing has been disabled yet.
+     *
      * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]|string[]|null $events
      *
      * @return $this
@@ -418,10 +420,10 @@ class Bulk
             return $this->setEvents(BulkEventEnum::cases());
         }
 
-        $enabledEvents = $this->getEventDispatcher()->getEnabledEvents() ?? [];
+        $enabledEvents = $this->getEventDispatcher()->getEnabledEvents();
 
-        if ($enabledEvents === []) {
-            return $this->setEvents($events);
+        if ($enabledEvents === null) {
+            return $this;
         }
 
         $merged = [];
