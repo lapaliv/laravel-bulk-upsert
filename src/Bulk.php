@@ -1349,9 +1349,10 @@ class Bulk
 
         $createdAtColumn = $this->model->getCreatedAtColumn();
 
-        if ($this->model->getIncrementing()) {
-            $columns[] = $this->model->getKeyName();
-        } elseif ($this->model->usesTimestamps() && $createdAtColumn !== null) {
+        // The primary key is always selected: the rows are updated and deleted by it.
+        $columns[] = $this->model->getKeyName();
+
+        if (!$this->model->getIncrementing() && $this->model->usesTimestamps() && $createdAtColumn !== null) {
             $columns[] = $createdAtColumn;
         }
 

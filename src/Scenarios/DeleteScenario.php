@@ -80,7 +80,22 @@ readonly class DeleteScenario
 
         // The rows that are absent in the database cannot be deleted,
         // so they are marked as skipped before anything else happens.
-        $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $data->getUniqueBy(), $deletedAtColumn, true);
+        // The primary key is selected as well: the rows are deleted by it.
+        $this->markNonexistentRowsAsSkipped->handle(
+            $eloquent,
+            $data,
+            array_values(array_unique([...$data->getUniqueBy(), $eloquent->getKeyName()])),
+            $deletedAtColumn,
+            true,
+        );
+
+        // The rows which have not been found are not deleted, so neither the deleting
+        // nor the deleted events are dispatched for them.
+        foreach ($data->getRows() as $row) {
+            if (!$row->getModel()->exists) {
+                $row->setSkipDeleting(true);
+            }
+        }
 
         // Before deleting, it needs to define the final list of models that need to be deleted.
         // For this purpose, it uses events such as

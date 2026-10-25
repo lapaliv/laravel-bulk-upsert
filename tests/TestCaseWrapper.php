@@ -10,6 +10,7 @@ use Mockery\VerificationDirector;
 use stdClass;
 use Tests\App\Models\Article;
 use Tests\App\Models\Comment;
+use Tests\App\Models\Member;
 use Tests\App\Models\Post;
 use Tests\App\Models\Story;
 use Tests\App\Models\User;
@@ -46,6 +47,7 @@ abstract class TestCaseWrapper extends TestCase
             Post::dropTable();
             Story::dropTable();
             Article::dropTable();
+            Member::dropTable();
             User::dropTable();
 
             User::createTable();
@@ -53,6 +55,7 @@ abstract class TestCaseWrapper extends TestCase
             Comment::createTable();
             Story::createTable();
             Article::createTable();
+            Member::createTable();
 
             self::$schemaIsRefreshed = true;
         }

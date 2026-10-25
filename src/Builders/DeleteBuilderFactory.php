@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Builders;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Support\WriteKeyResolver;
 
 /**
  * Builds either a DELETE statement (force delete) or an UPDATE statement
@@ -18,9 +19,11 @@ readonly class DeleteBuilderFactory
      * Create a new factory instance.
      *
      * @param \Lapaliv\BulkUpsert\Builders\WhereClauseApplier $whereClauseApplier
+     * @param \Lapaliv\BulkUpsert\Support\WriteKeyResolver $writeKeyResolver
      */
     public function __construct(
         private WhereClauseApplier $whereClauseApplier,
+        private WriteKeyResolver $writeKeyResolver,
     )
     {
         //
@@ -71,17 +74,19 @@ readonly class DeleteBuilderFactory
         BulkAccumulationEntity $data
     ): ?DeleteBulkBuilder
     {
-        $models = $data->getNotSkippedDeletingModels();
+        // Only the found rows are deleted, by their primary keys, so the statement
+        // cannot reach the rows which the global scopes of the model hide.
+        $target = $this->writeKeyResolver->resolve($eloquent, $data->getNotSkippedDeletingModels());
 
-        if ($models->isEmpty()) {
+        if ($target['filters'] === []) {
             return null;
         }
 
         $result = new DeleteBulkBuilder();
         $result->setTable($eloquent->getTable());
-        $this->whereClauseApplier->handle($result, $data->getUniqueBy(), $models);
+        $this->whereClauseApplier->handle($result, $target['columns'], $target['filters']);
 
-        return $result->setLimit($models->count());
+        return $result->setLimit(count($target['filters']));
     }
 
     /**
@@ -103,9 +108,9 @@ readonly class DeleteBuilderFactory
         DateTimeInterface $deletedAt,
     ): ?UpdateBulkBuilder
     {
-        $models = $data->getNotSkippedDeletingModels();
+        $target = $this->writeKeyResolver->resolve($eloquent, $data->getNotSkippedDeletingModels());
 
-        if ($models->isEmpty()) {
+        if ($target['filters'] === []) {
             return null;
         }
 
@@ -120,8 +125,8 @@ readonly class DeleteBuilderFactory
             $deletedAt->format(is_string($deletedAtFormat) ? $deletedAtFormat : 'Y-m-d H:i:s')
         );
 
-        $this->whereClauseApplier->handle($result, $data->getUniqueBy(), $models);
+        $this->whereClauseApplier->handle($result, $target['columns'], $target['filters']);
 
-        return $result->setLimit($models->count());
+        return $result->setLimit(count($target['filters']));
     }
 }

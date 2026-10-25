@@ -8,6 +8,8 @@ use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Support\ValueHasher;
+use Lapaliv\BulkUpsert\Support\WriteKeyResolver;
+use SplObjectStorage;
 
 /**
  * Builds the UPDATE statement for the given models.
@@ -25,11 +27,13 @@ readonly class UpdateBuilderFactory
      * @param \Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter $attributesToScalarArrayConverter
      * @param \Lapaliv\BulkUpsert\Builders\WhereClauseApplier $whereClauseApplier
      * @param \Lapaliv\BulkUpsert\Support\ValueHasher $valueHasher
+     * @param \Lapaliv\BulkUpsert\Support\WriteKeyResolver $writeKeyResolver
      */
     public function __construct(
         private AttributesToScalarArrayConverter $attributesToScalarArrayConverter,
         private WhereClauseApplier $whereClauseApplier,
         private ValueHasher $valueHasher,
+        private WriteKeyResolver $writeKeyResolver,
     )
     {
         //
@@ -66,14 +70,25 @@ readonly class UpdateBuilderFactory
             );
         }
 
+        // The statement is written by the primary keys of the found rows, so it cannot reach
+        // the rows which the global scopes of the model hide.
+        $target = $this->writeKeyResolver->resolve($eloquent, $data->getNotSkippedUpdatingModels());
+        /** @var SplObjectStorage<\Illuminate\Database\Eloquent\Model, array<string, scalar>> $filters */
+        $filters = new SplObjectStorage();
+
+        foreach ($target['models'] as $index => $model) {
+            $filters[$model] = $target['filters'][$index];
+        }
+
         foreach ($data->getRows() as $row) {
             // `skipSaving` is set by a `saving`/`savingMany` listener that returned false. It has to
             // be honoured here as well, otherwise the cancelled row still ends up in the statement.
-            // Keep this in sync with `BulkAccumulationEntity::getNotSkippedUpdatingModels()`, which
-            // builds the WHERE clause from the same set of rows.
-            if ($row->isSkipSaving() || $row->isSkipUpdating()) {
+            // The rows which cannot be identified by the write key are not written either.
+            if ($row->isSkipSaving() || $row->isSkipUpdating() || !$filters->contains($row->getModel())) {
                 continue;
             }
+
+            $filter = $filters[$row->getModel()];
 
             $this->collectRowAttributes(
                 $eloquent,
@@ -84,6 +99,7 @@ readonly class UpdateBuilderFactory
                 $deletedAtColumn,
                 $updatedAtColumn,
                 $updatedAt,
+                $filter,
             );
             ++$limit;
         }
@@ -101,8 +117,8 @@ readonly class UpdateBuilderFactory
         /** @psalm-suppress InvalidArgument */
         $this->whereClauseApplier->handle(
             $result,
-            $data->getUniqueBy(),
-            $data->getNotSkippedUpdatingModels()
+            $target['columns'],
+            $target['filters']
         );
 
         return $result->setLimit($limit);
@@ -123,6 +139,7 @@ readonly class UpdateBuilderFactory
      * @param string|null $deletedAtColumn
      * @param string|null $updatedAtColumn
      * @param string|null $updatedAt
+     * @param array<string, mixed> $filter The scalar values of the columns which identify the row.
      *
      * @return void
      */
@@ -135,9 +152,10 @@ readonly class UpdateBuilderFactory
         ?string $deletedAtColumn,
         ?string $updatedAtColumn,
         ?string $updatedAt,
+        array $filter,
     ): void
     {
-        $uniqueAttributes = $this->getUniqueAttributeValues($data->getUniqueBy(), $row->getModel(), $dateFields);
+        $uniqueAttributes = $filter;
         /** @psalm-suppress MixedArgumentTypeCoercion */
         $uniqueAttributesHash = $this->valueHasher->handle(implode(',', $uniqueAttributes));
         $attributes = $this->attributesToScalarArrayConverter->handle(
@@ -151,6 +169,16 @@ readonly class UpdateBuilderFactory
         }
 
         unset($attributes[$eloquent->getKeyName()]);
+
+        // The primary key is never written, so the model has to keep the stored one.
+        // Otherwise `syncOriginal()` would remember the changed key, and the next write
+        // of the same model would reach another row.
+        $model = $row->getModel();
+        $keyName = $eloquent->getKeyName();
+
+        if ($model->exists && $keyName !== '' && $model->isDirty($keyName)) {
+            $model->setAttribute($keyName, $model->getRawOriginal($keyName));
+        }
 
         if ($deletedAtColumn !== null) {
             if ($row->isDeleting() && $row->isSkipDeleting()) {
@@ -191,27 +219,6 @@ readonly class UpdateBuilderFactory
             $groups[$key][$valueHash] ??= ['value' => $value, 'filters' => []];
             $groups[$key][$valueHash]['filters'][$uniqueAttributesHash] ??= $uniqueAttributes;
         }
-    }
-
-    /**
-     * Get the values of the unique attributes of the model as scalars.
-     *
-     * @param string[] $uniqueBy The names of the unique columns.
-     * @param \Illuminate\Database\Eloquent\Model $model
-     * @param array<string, string> $dateFields
-     *
-     * @return array<string, mixed>
-     */
-    private function getUniqueAttributeValues(array $uniqueBy, Model $model, array $dateFields): array
-    {
-        $result = [];
-
-        /** @psalm-suppress MixedAssignment */
-        foreach ($uniqueBy as $unique) {
-            $result[$unique] = $model->getAttribute($unique);
-        }
-
-        return $this->attributesToScalarArrayConverter->handle($model, $result, $dateFields);
     }
 
     /**
