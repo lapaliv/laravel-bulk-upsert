@@ -2,12 +2,10 @@
 
 namespace Lapaliv\BulkUpsert\EventDispatchers;
 
-use DateTime;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Support\ValueHasher;
 use UnexpectedValueException;
 
 /**
@@ -39,11 +37,14 @@ class BulkEventDispatcher
     private ?array $enabledEvents = null;
 
     /**
-     * The hasher which makes the keys of the own listeners.
+     * The number of the own listeners added so far, which makes their keys unique.
      *
-     * @var \Lapaliv\BulkUpsert\Support\ValueHasher
+     * A timestamp is not unique: two listeners added within the same microsecond
+     * would get the same key, and the second one would replace the first one.
+     *
+     * @var int
      */
-    private ValueHasher $valueHasher;
+    private int $listenerCounter = 0;
 
     /**
      * The model whose events are dispatched.
@@ -67,7 +68,6 @@ class BulkEventDispatcher
         }
 
         $this->model = $model;
-        $this->valueHasher = Container::getInstance()->make(ValueHasher::class);
     }
 
     /**
@@ -90,7 +90,7 @@ class BulkEventDispatcher
             return null;
         }
 
-        $key = $this->valueHasher->handle((new DateTime())->format('Y-m-d H:i:s.u'));
+        $key = 'listener_' . ++$this->listenerCounter;
         $this->listeners[$event->value] ??= [];
         $this->listeners[$event->value][$key] = [
             'once' => $once,
