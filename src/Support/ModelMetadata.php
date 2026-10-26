@@ -50,6 +50,32 @@ class ModelMetadata
     }
 
     /**
+     * Get the names of the columns which are cast to a date without the time.
+     *
+     * The casts are read as they are declared: Laravel turns `date:...` into a custom
+     * datetime cast, so `hasCast()` cannot tell a date from a datetime. The storage
+     * format of the model says nothing about it either, since it is shared by all the
+     * date columns.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
+     * @return array<string, true>
+     */
+    public function dateOnlyFields(Model $model): array
+    {
+        $result = [];
+
+        /** @psalm-suppress MixedAssignment */
+        foreach ($model->getCasts() as $key => $value) {
+            if (is_string($value) && preg_match('/^(?:immutable_)?date(?::.+)?$/', $value)) {
+                $result[(string)$key] = true;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Get the name of the soft-delete column of the model.
      *
      * The method returns `null` when the model does not support soft deleting.
