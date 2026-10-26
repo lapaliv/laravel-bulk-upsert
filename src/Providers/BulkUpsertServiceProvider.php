@@ -37,7 +37,7 @@ class BulkUpsertServiceProvider extends ServiceProvider
     {
         $mixedValueToScalarConverter = new MixedValueToScalarConverter();
         $valueHasher = new ValueHasher($mixedValueToScalarConverter);
-        $uniqueKeyGenerator = new UniqueKeyGenerator($valueHasher, $mixedValueToScalarConverter);
+        $uniqueKeyGenerator = new UniqueKeyGenerator($mixedValueToScalarConverter);
 
         $this->app->singleton(BulkDriverManager::class, fn() => new DriverManager());
         $this->app->singleton(ModelMetadata::class, fn() => new ModelMetadata());

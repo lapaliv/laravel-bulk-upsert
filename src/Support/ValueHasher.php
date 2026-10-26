@@ -5,7 +5,12 @@ namespace Lapaliv\BulkUpsert\Support;
 use Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter;
 
 /**
- * Makes a short hash from a value of any type.
+ * Makes an array key from a value of any type.
+ *
+ * The key is the whole encoded value, not a hash of it. PHP arrays accept strings of
+ * any length as keys and resolve their own hash collisions by comparing the whole
+ * strings, so two different values never get the same key. A checksum such as
+ * `crc32c` would merge different values whose sums happen to collide.
  *
  * @internal
  */
@@ -24,10 +29,12 @@ readonly class ValueHasher
     }
 
     /**
-     * Hash the given value with the `crc32c` algorithm.
+     * Make the array key of the given value.
      *
-     * The type of the value is a part of the hash, so values of different types never
-     * give the same hash.
+     * The value is turned into a scalar first, so an enum and its backing value give the
+     * same key. `serialize()` keeps the type and the length of the scalar, so `null`,
+     * `''`, `false`, `0` and `'0'` stay different, the encoding never looks like an
+     * integer (PHP would cast such an array key), and a binary string is kept as it is.
      *
      * @param mixed $value
      *
@@ -37,6 +44,6 @@ readonly class ValueHasher
      */
     public function handle(mixed $value): string
     {
-        return hash('crc32c', (string)$this->mixedValueToScalarConverter->handle($value) . ':' . gettype($value));
+        return serialize($this->mixedValueToScalarConverter->handle($value));
     }
 }

@@ -19,6 +19,7 @@ use Illuminate\Database\Schema\Blueprint;
  * @property int $tenant_id
  * @property string $email
  * @property string $name
+ * @property string|null $bio
  * @property \Carbon\CarbonInterface $created_at
  * @property \Carbon\CarbonInterface $updated_at
  * @property \Carbon\CarbonInterface|null $deleted_at
@@ -50,6 +51,7 @@ class Member extends Model
         'tenant_id',
         'email',
         'name',
+        'bio',
     ];
 
     /**
@@ -64,6 +66,7 @@ class Member extends Model
             $table->unsignedInteger('tenant_id');
             $table->string('email');
             $table->string('name');
+            $table->text('bio')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

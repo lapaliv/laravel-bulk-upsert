@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter;
 
 /**
- * Builds a scalar hash key from the unique attributes of a row, so that rows coming
+ * Builds an unambiguous key from the unique attributes of a row, so that rows coming
  * from the memory and rows coming from the database can be matched with each other.
  *
  * @internal
@@ -17,13 +17,11 @@ readonly class UniqueKeyGenerator
     /**
      * Create a new key generator instance.
      *
-     * @param \Lapaliv\BulkUpsert\Support\ValueHasher $valueHasher
      * @param \Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter $mixedValueToScalarConverter
      *
      * @return void
      */
     public function __construct(
-        private ValueHasher $valueHasher,
         private MixedValueToScalarConverter $mixedValueToScalarConverter,
     )
     {
@@ -48,22 +46,21 @@ readonly class UniqueKeyGenerator
         $key = '';
 
         foreach ($attributes as $attribute) {
-            if ($row instanceof Model) {
-                $key .= (string)$this->mixedValueToScalarConverter->handle(
-                    $row->getAttribute($attribute)
-                );
-            } else {
-                $key .= (string)$row[$attribute];
-            }
+            $value = $row instanceof Model
+                ? $this->mixedValueToScalarConverter->handle($row->getAttribute($attribute))
+                : $this->mixedValueToScalarConverter->handle($row[$attribute] ?? null);
 
-            $key .= ':';
+            // The values are compared as strings, so a row from the input still matches the
+            // same row from the database (`1` and `'1'`). `null` is kept apart from `''`.
+            // Every part is serialized on its own, which keeps the boundaries of the parts.
+            $key .= serialize($value === null ? null : (string)$value);
         }
 
-        return $this->valueHasher->handle($key);
+        return $key;
     }
 
     /**
-     * Key the given rows by the hash of their unique attributes.
+     * Key the given rows by the encoded values of their unique attributes.
      *
      * @param array<int, array<string, scalar>>|\Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $rows
      * @param string[] $attributes

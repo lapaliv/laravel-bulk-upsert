@@ -156,8 +156,8 @@ readonly class UpdateBuilderFactory
     ): void
     {
         $uniqueAttributes = $filter;
-        /** @psalm-suppress MixedArgumentTypeCoercion */
-        $uniqueAttributesHash = $this->valueHasher->handle(implode(',', $uniqueAttributes));
+        // The whole filter is serialized, so the parts of a composite key keep their boundaries.
+        $uniqueAttributesHash = serialize($uniqueAttributes);
         $attributes = $this->attributesToScalarArrayConverter->handle(
             $row->getModel(),
             $row->getModel()->getDirty(),
