@@ -34,7 +34,7 @@ final class ListenerKeysTest extends TestCaseWrapper
 
         // act
         $keys = [];
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; $i < 100; ++$i) {
             $keys[] = $sut->listen(BulkEventEnum::Saving, function () use (&$calls, $i): void {
                 $calls[] = $i;
             });
