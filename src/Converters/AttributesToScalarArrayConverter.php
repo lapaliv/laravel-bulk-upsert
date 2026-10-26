@@ -3,6 +3,7 @@
 namespace Lapaliv\BulkUpsert\Converters;
 
 use BackedEnum;
+use Carbon\Carbon;
 use DateTime;
 use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
@@ -45,8 +46,26 @@ readonly class AttributesToScalarArrayConverter
         /** @psalm-suppress MixedAssignment */
         foreach ($attributes as $key => $value) {
             if ($value !== null && array_key_exists($key, $dateFields)) {
-                $date = $value instanceof DateTime ? $value : new DateTime((string)$value);
-                $result[$key] = $date->format($dateFields[$key]);
+                if ($dateFields[$key] === 'Y-m-d') {
+                    // A date-only column keeps the date part only.
+                    // The raw value is in the storage format of the model (`setAttribute()`
+                    // runs `fromDateTime()` for the date casts), so it is read by that format.
+                    $date = $value instanceof DateTimeInterface
+                        ? $value
+                        : (Carbon::canBeCreatedFromFormat((string)$value, $model->getDateFormat())
+                            ? Carbon::createFromFormat($model->getDateFormat(), (string)$value)
+                            : new DateTime((string)$value));
+                    $result[$key] = $date?->format('Y-m-d');
+                } elseif ($value instanceof DateTimeInterface) {
+                    // A date object is turned into the storage format of the model, as
+                    // `Model::setAttribute()` does with `fromDateTime()`.
+                    $result[$key] = $model->fromDateTime($value);
+                } else {
+                    // A string is a raw attribute which Eloquent has already prepared for the
+                    // storage (or keeps as it is, like for `datetime:...` casts), so it is
+                    // written as `Model::save()` writes it.
+                    $result[$key] = $value;
+                }
 
                 continue;
             }

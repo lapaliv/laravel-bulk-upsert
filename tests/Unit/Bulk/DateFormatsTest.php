@@ -1,0 +1,286 @@
+<?php
+
+namespace Tests\Unit\Bulk;
+
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Tests\App\Enums\Gender;
+use Tests\App\Models\User;
+use Tests\TestCaseWrapper;
+
+/**
+ * A user whose `datetime` cast has a serialization format.
+ *
+ * @internal
+ */
+class SerializationFormatUser extends User
+{
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'gender' => Gender::class,
+        'posts_count' => 'integer',
+        'is_admin' => 'boolean',
+        'phones' => 'array',
+        'last_visited_at' => 'datetime:d/m/Y H:i',
+    ];
+}
+
+/**
+ * A user whose storage format keeps the microseconds.
+ *
+ * @internal
+ */
+class MicrosecondsUser extends User
+{
+    /**
+     * @var string
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+}
+
+/**
+ * A user whose date column is cast to an immutable date.
+ *
+ * @internal
+ */
+class ImmutableUser extends User
+{
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'gender' => Gender::class,
+        'posts_count' => 'integer',
+        'is_admin' => 'boolean',
+        'phones' => 'array',
+        'last_visited_at' => 'immutable_datetime',
+    ];
+}
+
+/**
+ * The dates must be stored exactly as `Model::save()` stores them.
+ *
+ * Regression test. The package formatted the dates by the suffix of the `date:...` /
+ * `datetime:...` casts, but Laravel uses that suffix for the serialization only: the
+ * database gets `Model::fromDateTime()`, which uses `getDateFormat()`. A cast such as
+ * `datetime:d/m/Y H:i` therefore stored `25/10/2026 13:45` and lost the seconds.
+ *
+ * @internal
+ */
+final class DateFormatsTest extends TestCaseWrapper
+{
+    /**
+     * Freeze the time and clean the users table.
+     *
+     * @return void
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow(Carbon::parse('2026-10-25 13:45:10.123456'));
+        DB::table(User::table())->delete();
+    }
+
+    /**
+     * Unfreeze the time, so the other tests are not affected.
+     *
+     * @return void
+     */
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
+    /**
+     * The serialization format of a cast must not become the storage format.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testSerializationFormatIsNotStored(): void
+    {
+        // act
+        $this->assertSameAsSave(SerializationFormatUser::class);
+
+        // assert
+        self::assertSame('2026-10-25 13:45:10', $this->raw('bulk@x.io')->last_visited_at);
+    }
+
+    /**
+     * The storage format of the model must be used for every date column.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testModelDateFormatIsStored(): void
+    {
+        $this->skipWithoutMicroseconds();
+
+        // act
+        $this->assertSameAsSave(MicrosecondsUser::class);
+
+        // assert
+        self::assertSame('2026-10-25 13:45:10.123456', $this->raw('bulk@x.io')->created_at);
+    }
+
+    /**
+     * An immutable date cast must be stored as a date too.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testImmutableDatetimeIsStored(): void
+    {
+        // act
+        $this->assertSameAsSave(ImmutableUser::class);
+
+        // assert
+        self::assertSame('2026-10-25 13:45:10', $this->raw('bulk@x.io')->last_visited_at);
+    }
+
+    /**
+     * `updated_at` and the updated dates must use the storage format of the model.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testUpdateUsesModelDateFormat(): void
+    {
+        $this->skipWithoutMicroseconds();
+
+        // arrange
+        DB::table(User::table())->insert($this->row('bulk@x.io'));
+
+        // act
+        MicrosecondsUser::query()->bulk()->uniqueBy('email')->update([
+            ['email' => 'bulk@x.io', 'last_visited_at' => '2026-01-02 03:04:05.000006'],
+        ]);
+
+        // assert
+        $raw = $this->raw('bulk@x.io');
+        self::assertSame('2026-10-25 13:45:10.123456', $raw->updated_at);
+        self::assertSame('2026-01-02 03:04:05.000006', $raw->last_visited_at);
+    }
+
+    /**
+     * The dates which already are in the storage format must be kept as they are.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testUpdateOfLoadedModelKeepsStoredDates(): void
+    {
+        // arrange
+        DB::table(User::table())->insert($this->row('bulk@x.io') + ['last_visited_at' => '2026-01-02 03:04:05']);
+        /** @var SerializationFormatUser $user */
+        $user = SerializationFormatUser::query()->where('email', 'bulk@x.io')->firstOrFail();
+        $user->last_visited_at = Carbon::parse('2026-03-04 05:06:07');
+
+        // act
+        SerializationFormatUser::query()->bulk()->update([$user]);
+
+        // assert
+        self::assertSame('2026-03-04 05:06:07', $this->raw('bulk@x.io')->last_visited_at);
+    }
+
+    /**
+     * `deleted_at` must use the storage format of the model.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testSoftDeleteUsesModelDateFormat(): void
+    {
+        $this->skipWithoutMicroseconds();
+
+        // arrange
+        DB::table(User::table())->insert($this->row('bulk@x.io'));
+
+        // act
+        MicrosecondsUser::query()->bulk()->uniqueBy('email')->delete([['email' => 'bulk@x.io']]);
+
+        // assert
+        self::assertSame('2026-10-25 13:45:10.123456', $this->raw('bulk@x.io')->deleted_at);
+    }
+
+    /**
+     * Skip the test on the drivers whose datetime columns drop the microseconds.
+     *
+     * The fixtures use `dateTime()` without a precision, which MySQL and PostgreSQL
+     * round to seconds, while SQLite keeps the text as it is.
+     *
+     * @return void
+     */
+    private function skipWithoutMicroseconds(): void
+    {
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            self::markTestSkipped('The datetime columns of the fixtures keep the microseconds on SQLite only.');
+        }
+    }
+
+    /**
+     * Create the same user with `save()` and with the package and compare the stored dates.
+     *
+     * @param class-string<\Tests\App\Models\User> $class
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    private function assertSameAsSave(string $class): void
+    {
+        $attributes = [
+            'name' => 'name',
+            'gender' => 'male',
+            'posts_count' => 0,
+            'is_admin' => false,
+            'last_visited_at' => '2026-10-25 13:45:10',
+        ];
+
+        (new $class())->forceFill($attributes + ['email' => 'save@x.io'])->save();
+        $class::query()->bulk()->uniqueBy('email')->create([$attributes + ['email' => 'bulk@x.io']]);
+
+        $saved = $this->raw('save@x.io');
+        $bulk = $this->raw('bulk@x.io');
+
+        foreach (['last_visited_at', 'created_at', 'updated_at'] as $column) {
+            self::assertSame($saved->{$column}, $bulk->{$column}, $column);
+        }
+    }
+
+    /**
+     * Get the raw stored row of the user.
+     *
+     * @param string $email
+     *
+     * @return object
+     */
+    private function raw(string $email): object
+    {
+        return DB::table(User::table())->where('email', $email)->first()
+            ?? self::fail('The user ' . $email . ' is not found.');
+    }
+
+    /**
+     * Build a raw row of the users table.
+     *
+     * @param string $email
+     *
+     * @return array<string, mixed>
+     */
+    private function row(string $email): array
+    {
+        return ['email' => $email, 'name' => 'name', 'gender' => 'male', 'posts_count' => 0, 'is_admin' => false];
+    }
+}

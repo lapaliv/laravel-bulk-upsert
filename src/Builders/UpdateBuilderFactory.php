@@ -65,9 +65,8 @@ readonly class UpdateBuilderFactory
         $updatedAt = null;
 
         if ($eloquent->usesTimestamps() && $updatedAtColumn !== null) {
-            $updatedAt = Carbon::now()->format(
-                $dateFields[$updatedAtColumn] ?? 'Y-m-d H:i:s'
-            );
+            // The same value and format as `Model::save()` writes.
+            $updatedAt = $eloquent->freshTimestampString();
         }
 
         // The statement is written by the primary keys of the found rows, so it cannot reach

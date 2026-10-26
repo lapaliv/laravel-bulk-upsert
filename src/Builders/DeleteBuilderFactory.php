@@ -117,13 +117,8 @@ readonly class DeleteBuilderFactory
         $result = new UpdateBulkBuilder();
         $result->setTable($eloquent->getTable());
 
-        /** @psalm-suppress MixedAssignment */
-        $deletedAtFormat = $dateFields[$deletedAtColumn] ?? null;
-
-        $result->addSimpleSet(
-            $deletedAtColumn,
-            $deletedAt->format(is_string($deletedAtFormat) ? $deletedAtFormat : 'Y-m-d H:i:s')
-        );
+        // The storage format of the model, as `SoftDeletes::runSoftDelete()` writes it.
+        $result->addSimpleSet($deletedAtColumn, (string)$eloquent->fromDateTime($deletedAt));
 
         $this->whereClauseApplier->handle($result, $target['columns'], $target['filters']);
 

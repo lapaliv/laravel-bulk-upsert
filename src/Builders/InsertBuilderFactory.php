@@ -88,15 +88,11 @@ class InsertBuilderFactory
         $this->updatedAtColumn = $eloquent->getUpdatedAtColumn();
 
         if ($eloquent->usesTimestamps()) {
-            $now = Carbon::now();
+            // The same value and format as `Model::save()` writes.
+            $now = $eloquent->freshTimestampString();
 
-            /** @psalm-suppress MixedAssignment */
-            $createdAtFormat = $this->createdAtColumn === null ? null : ($dateFields[$this->createdAtColumn] ?? null);
-            /** @psalm-suppress MixedAssignment */
-            $updatedAtFormat = $this->updatedAtColumn === null ? null : ($dateFields[$this->updatedAtColumn] ?? null);
-
-            $this->createdAt = $now->format(is_string($createdAtFormat) ? $createdAtFormat : 'Y-m-d H:i:s');
-            $this->updatedAt = $now->format(is_string($updatedAtFormat) ? $updatedAtFormat : 'Y-m-d H:i:s');
+            $this->createdAt = $now;
+            $this->updatedAt = $now;
         }
 
         foreach ($data->getRows() as $row) {

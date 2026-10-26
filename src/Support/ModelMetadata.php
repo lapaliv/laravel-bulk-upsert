@@ -39,14 +39,10 @@ class ModelMetadata
 
         /** @psalm-suppress MixedAssignment */
         foreach ($model->getCasts() as $key => $value) {
-            if (is_string($value) && preg_match('/^(date(?:time)?)(?::(.+?))?$/', $value, $matches)) {
-                $key = (string)$key;
-
-                if ($matches[1] === 'date') {
-                    $result[$key] = $matches[2] ?? 'Y-m-d';
-                } else {
-                    $result[$key] = $matches[2] ?? $model->getDateFormat();
-                }
+            // The suffix of `date:...` / `datetime:...` is the serialization format only:
+            // Laravel stores every date with `fromDateTime()`, i.e. with `getDateFormat()`.
+            if (is_string($value) && preg_match('/^(?:immutable_)?(date(?:time)?)(?::.+)?$/', $value, $matches)) {
+                $result[(string)$key] = $matches[1] === 'date' ? 'Y-m-d' : $model->getDateFormat();
             }
         }
 
