@@ -119,7 +119,7 @@ final class UserGenerator
     {
         $result = new UserCollection();
 
-        for ($i = 0; $i < $count; ++$i) {
+        for ($i = 0; $i < $count; $i++) {
             $result->push(
                 $this->createOneAndDirty($creatingAttributes, $dirtyAttributes)
             );
@@ -140,7 +140,7 @@ final class UserGenerator
     {
         $result = new UserCollection();
 
-        for ($i = 0; $i < $count; ++$i) {
+        for ($i = 0; $i < $count; $i++) {
             $result->push(
                 $this->createOne($creatingAttributes)
             );

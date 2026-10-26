@@ -100,7 +100,7 @@ readonly class UpdateBuilderFactory
                 $updatedAt,
                 $filter,
             );
-            ++$limit;
+            $limit++;
         }
 
         if ($limit === 0) {

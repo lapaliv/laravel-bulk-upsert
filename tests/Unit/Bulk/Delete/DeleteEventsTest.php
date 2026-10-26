@@ -74,7 +74,7 @@ class DeleteEventsTest extends TestCaseWrapper
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
                     if ($user->id === $users->get($modelListenerUserIndex)->id) {
-                        ++$modelListenerUserIndex;
+                        $modelListenerUserIndex++;
 
                         return $modelListenerUserIndex <= 2;
                     }
@@ -154,7 +154,7 @@ class DeleteEventsTest extends TestCaseWrapper
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
                     if ($user->id === $users->get($modelListenerUserIndex)->id) {
-                        ++$modelListenerUserIndex;
+                        $modelListenerUserIndex++;
 
                         return $modelListenerUserIndex <= 2;
                     }
@@ -168,7 +168,7 @@ class DeleteEventsTest extends TestCaseWrapper
             ->withArgs(
                 function (User $user) use ($users, &$modelListenerUserIndex): bool {
                     if ($user->id === $users->get($modelListenerUserIndex - 2)->id) {
-                        ++$modelListenerUserIndex;
+                        $modelListenerUserIndex++;
 
                         return $modelListenerUserIndex >= 3 && $modelListenerUserIndex <= 4;
                     }
@@ -182,7 +182,7 @@ class DeleteEventsTest extends TestCaseWrapper
             ->withArgs(
                 function (UserCollection $actualUsers, BulkRowCollection $bulkRows) use ($users, &$modelListenerUserIndex): bool {
                     if ($modelListenerUserIndex === 4) {
-                        ++$modelListenerUserIndex;
+                        $modelListenerUserIndex++;
                     } else {
                         return false;
                     }
@@ -269,7 +269,7 @@ class DeleteEventsTest extends TestCaseWrapper
             ->withArgs(
                 function (Post $post) use ($posts, &$modelListenerPostIndex): bool {
                     if ($post->id === $posts->get($modelListenerPostIndex)->id) {
-                        ++$modelListenerPostIndex;
+                        $modelListenerPostIndex++;
 
                         return $modelListenerPostIndex <= 2;
                     }

@@ -90,7 +90,7 @@ class BulkEventDispatcher
             return null;
         }
 
-        ++$this->listenerCounter;
+        $this->listenerCounter++;
         $key = 'listener_' . $this->listenerCounter;
         $this->listeners[$event->value] ??= [];
         $this->listeners[$event->value][$key] = [
