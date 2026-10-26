@@ -33,6 +33,20 @@ final class UnambiguousKeysTest extends TestCaseWrapper
     private const array CRC32C_COLLISION = ['u1371838@x.io', 'u2000402@x.io'];
 
     /**
+     * The emails of every row which the tests of this class write.
+     *
+     * @var string[]
+     */
+    private const array EMAILS = [
+        'u1371838@x.io',
+        'u2000402@x.io',
+        'first@x.io',
+        'second@x.io',
+        'separator-1@x.io',
+        'separator-2@x.io',
+    ];
+
+    /**
      * Clean the users table.
      *
      * @return void
@@ -41,7 +55,9 @@ final class UnambiguousKeysTest extends TestCaseWrapper
     {
         parent::setUp();
 
-        DB::table(User::table())->delete();
+        // Only the own rows are removed: the other tests leave users with comments behind,
+        // and the foreign keys of MySQL and PostgreSQL forbid deleting them.
+        DB::table(User::table())->whereIn('email', self::EMAILS)->delete();
     }
 
     /**
@@ -127,7 +143,7 @@ final class UnambiguousKeysTest extends TestCaseWrapper
         ]);
 
         // assert
-        self::assertSame(['new 1', 'new 2'], DB::table(User::table())->orderBy('id')->pluck('name')->all());
+        self::assertSame(['new 1', 'new 2'], DB::table(User::table())->whereIn('email', self::EMAILS)->orderBy('id')->pluck('name')->all());
     }
 
     /**
@@ -141,8 +157,8 @@ final class UnambiguousKeysTest extends TestCaseWrapper
     {
         // arrange
         DB::table(User::table())->insert([
-            $this->user(['name' => 'x:y', 'avatar' => 'z']),
-            $this->user(['name' => 'x', 'avatar' => 'y:z']),
+            $this->user(['name' => 'x:y', 'avatar' => 'z', 'email' => 'separator-1@x.io']),
+            $this->user(['name' => 'x', 'avatar' => 'y:z', 'email' => 'separator-2@x.io']),
         ]);
 
         // act
@@ -154,7 +170,7 @@ final class UnambiguousKeysTest extends TestCaseWrapper
         // assert
         self::assertSame(
             [1, 2],
-            DB::table(User::table())->orderBy('id')->pluck('posts_count')->map(fn ($v) => (int) $v)->all()
+            DB::table(User::table())->whereIn('email', self::EMAILS)->orderBy('id')->pluck('posts_count')->map(fn ($v) => (int) $v)->all()
         );
     }
 
@@ -180,7 +196,7 @@ final class UnambiguousKeysTest extends TestCaseWrapper
         ]);
 
         // assert
-        self::assertSame(self::CRC32C_COLLISION, DB::table(User::table())->orderBy('id')->pluck('name')->all());
+        self::assertSame(self::CRC32C_COLLISION, DB::table(User::table())->whereIn('email', self::EMAILS)->orderBy('id')->pluck('name')->all());
     }
 
     /**

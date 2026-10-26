@@ -170,7 +170,9 @@ final class DateFormatsTest extends TestCaseWrapper
         parent::setUp();
 
         Carbon::setTestNow(Carbon::parse('2026-10-25 13:45:10.123456'));
-        DB::table(User::table())->delete();
+        // Only the own rows are removed: the other tests leave users with comments behind,
+        // and the foreign keys of MySQL and PostgreSQL forbid deleting them.
+        DB::table(User::table())->whereIn('email', ['bulk@x.io', 'save@x.io'])->delete();
     }
 
     /**
