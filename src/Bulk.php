@@ -16,6 +16,7 @@ use Lapaliv\BulkUpsert\Exceptions\BulkBadMethodCall;
 use Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution;
 use Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind;
 use Lapaliv\BulkUpsert\Exceptions\BulkTransmittedClassIsNotAModel;
+use Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch;
 use Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
 use Lapaliv\BulkUpsert\Scenarios\DeleteScenario;
@@ -968,13 +969,26 @@ class Bulk
      */
     private function accumulate(string $storageKey, iterable $rows, bool $uniqueAttributesAreRequired = true): void
     {
+        // Every row of the call is converted and checked first, and only then added: a row which
+        // is rejected must not leave the rows given before it in the storage, where the next
+        // flush would write them. The rows accumulated by earlier calls stay as they are.
+        $prepared = [];
+
         foreach ($rows as $row) {
             $model = $this->convertRowToModel($row);
+            $this->assertSameTarget($model);
+            // The rows are grouped by the attributes which really identify them, so a callback
+            // which gives different attributes for different rows makes different groups.
+            $uniqueAttributes = $uniqueAttributesAreRequired
+                ? $this->getUniqueAttributesForModel($row, $model)
+                : null;
+            // A `uniqueBy()` callback may have rebound the model meanwhile.
+            $this->assertSameTarget($model);
+            $prepared[] = [$row, $model, $uniqueAttributes];
+        }
 
-            if ($uniqueAttributesAreRequired) {
-                $uniqueAttributes = $this->getUniqueAttributesForModel($row, $model);
-                // The rows are grouped by the attributes which really identify them, so a callback
-                // which gives different attributes for different rows makes different groups.
+        foreach ($prepared as [$row, $model, $uniqueAttributes]) {
+            if ($uniqueAttributes !== null) {
                 $groupKey = 'unique:' . serialize($uniqueAttributes);
 
                 $this->storage[$storageKey][$groupKey] ??= new BulkAccumulationEntity(uniqueBy: $uniqueAttributes);
@@ -1053,6 +1067,47 @@ class Bulk
         }
 
         throw new BulkValueTypeIsNotSupported($row);
+    }
+
+    /**
+     * Make sure the given model is bound to the table and the connection of the bulk.
+     *
+     * Every statement is built from the bulk's model, so a model of another table or
+     * connection would be written into the bulk's table. The connections are compared by
+     * their names, the default one resolved, without connecting to the database.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch
+     */
+    private function assertSameTarget(Model $model): void
+    {
+        $expectedConnection = $this->resolveConnectionName($this->model);
+        $actualConnection = $this->resolveConnectionName($model);
+
+        if ($model->getTable() !== $this->model->getTable() || $actualConnection !== $expectedConnection) {
+            throw new BulkModelDoesNotMatch(
+                $model,
+                $this->model->getTable(),
+                $expectedConnection,
+                $model->getTable(),
+                $actualConnection,
+            );
+        }
+    }
+
+    /**
+     * Get the name of the connection of the model, the default one resolved.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
+     * @return string|null
+     */
+    private function resolveConnectionName(Model $model): ?string
+    {
+        return $model->getConnectionName() ?? Model::getConnectionResolver()?->getDefaultConnection();
     }
 
     /**
