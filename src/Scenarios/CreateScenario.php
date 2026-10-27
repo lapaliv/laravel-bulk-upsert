@@ -82,6 +82,7 @@ readonly class CreateScenario
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
+     * @param bool $readBack Whether the inserted rows have to be read back even without listeners.
      *
      * @return void
      */
@@ -93,6 +94,7 @@ readonly class CreateScenario
         array $selectColumns,
         ?string $deletedAtColumn,
         ?ReturnedModels $returned = null,
+        bool $readBack = false,
     ): void
     {
         if (!$data->hasRows()) {
@@ -115,7 +117,7 @@ readonly class CreateScenario
             $dateFields,
             $selectColumns,
             $deletedAtColumn,
-            $returned !== null,
+            $readBack || $returned !== null,
         );
 
         // The rows left in the data are the ones which took part in the insert: the same set

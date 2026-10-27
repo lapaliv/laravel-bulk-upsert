@@ -86,6 +86,10 @@ readonly class CreateNonexistentRowsStep
                 selectColumns: $selectColumns,
                 deletedAtColumn: $deletedAtColumn,
                 returned: $returned,
+                // The update below has to know which rows this insert has created, whether or
+                // not the result is asked for: otherwise `upsert()` would update a created row
+                // with the input once more, while `upsertAndReturn()` would not.
+                readBack: true,
             );
         } catch (Throwable $exception) {
             // The insert alone does not complete an upsert: the library cannot tell reliably
