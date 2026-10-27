@@ -56,7 +56,7 @@ readonly class SqLiteBulkDriver implements BulkDriver
         ?string $primaryKeyName,
     ): BulkInsertResult
     {
-        $laravelGrammar = new LaravelSqLiteGrammar($this->laravelConnection($connection));
+        $laravelGrammar = $this->laravelGrammar($connection);
         $lastPrimaryBeforeInserting = null;
 
         // SQLite cannot return the inserted rows, so the driver remembers the last
@@ -239,7 +239,7 @@ readonly class SqLiteBulkDriver implements BulkDriver
     {
         return new SqLiteBulkGrammar(
             $this->mixedValueToSqlConverter,
-            new LaravelSqLiteGrammar($this->laravelConnection($connection))
+            $this->laravelGrammar($connection)
         );
     }
 
@@ -264,5 +264,37 @@ readonly class SqLiteBulkDriver implements BulkDriver
         throw new LogicException(
             sprintf('Expected an instance of %s, got %s.', Connection::class, $connection::class)
         );
+    }
+
+    /**
+     * Get the query grammar of the connection, configured as the connection uses it.
+     *
+     * The configured grammar of the connection is cloned rather than a new one created: on
+     * Laravel 11 a new grammar does not get the table prefix of the connection (it is set by
+     * `setTablePrefix()`), so the statements would go to the table without the prefix.
+     *
+     * @throws \LogicException When the connection uses a grammar of another kind.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     *
+     * @return LaravelSqLiteGrammar
+     */
+    private function laravelGrammar(ConnectionInterface $connection): LaravelSqLiteGrammar
+    {
+        $laravelConnection = $this->laravelConnection($connection);
+        $grammar = $laravelConnection->getQueryGrammar();
+
+        if ($grammar instanceof LaravelSqLiteGrammar) {
+            return clone $grammar;
+        }
+
+        // A new grammar would lose the configuration of the connection (on Laravel 11, the
+        // table prefix), so an unexpected grammar is refused rather than replaced.
+        throw new LogicException(sprintf(
+            'The connection "%s" uses the query grammar %s, which is not a %s.',
+            (string) $laravelConnection->getName(),
+            get_debug_type($grammar),
+            LaravelSqLiteGrammar::class,
+        ));
     }
 }

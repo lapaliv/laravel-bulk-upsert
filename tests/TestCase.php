@@ -64,6 +64,32 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
     }
 
     /**
+     * Register a connection which the tests build at runtime (e.g. with a table prefix).
+     *
+     * @param array<string, mixed> $config
+     * @param string $name
+     *
+     * @return void
+     */
+    protected static function addTestConnection(array $config, string $name): void
+    {
+        self::$manager->addConnection($config, $name);
+        self::$manager->getDatabaseManager()->purge($name);
+    }
+
+    /**
+     * Drop a connection which a test has registered.
+     *
+     * @param string $name
+     *
+     * @return void
+     */
+    protected static function removeTestConnection(string $name): void
+    {
+        self::$manager->getDatabaseManager()->purge($name);
+    }
+
+    /**
      * Build the database manager and all of its connections.
      *
      * The manager gets a mysql, a pgsql and a sqlite connection. The connection which
