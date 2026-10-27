@@ -45,6 +45,11 @@ class DispatchSavingEventsStep
         /** @var \Lapaliv\BulkUpsert\Collections\BulkRowCollection<\Illuminate\Database\Eloquent\Model, mixed> $bulkRows */
         $bulkRows = new BulkRowCollection();
 
+        // The rows whose "nothing to update" is decided here, after all the saving listeners:
+        // a row skipped for another reason before this step keeps that decision.
+        /** @var list<\Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity> $decided */
+        $decided = [];
+
         // Firstly, it needs to fire the 'saving' event for each row.
         // If the event dispatcher returns false, the row won't be saved at all.
         foreach ($data->getRows() as $row) {
@@ -60,10 +65,8 @@ class DispatchSavingEventsStep
                 continue;
             }
 
-            // The listener could revert all the changes of the model.
-            // In this case, there is nothing to update.
-            if (!$row->getModel()->isDirty()) {
-                $row->setSkipUpdating(true);
+            if (!$row->isSkipUpdating()) {
+                $decided[] = $row;
             }
 
             $models->push($row->getModel());
@@ -78,7 +81,15 @@ class DispatchSavingEventsStep
             $this->processAllRows($data, $eventDispatcher, $models, $bulkRows);
         }
 
-        unset($models, $bulkRows);
+        // Only now, after `saving` and `savingMany`, it is known whether a row has anything to
+        // update: either listener may change a clean model or revert all the changes.
+        foreach ($decided as $row) {
+            if (!$row->isSkipSaving()) {
+                $row->setSkipUpdating(!$row->getModel()->isDirty());
+            }
+        }
+
+        unset($models, $bulkRows, $decided);
     }
 
     /**
