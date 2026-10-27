@@ -166,6 +166,14 @@ readonly class CreateNonexistentRowsStep
                 continue;
             }
 
+            // A listener has cancelled the creation: the row is not written at all, neither
+            // by the insert nor by the update, even if it exists by now.
+            if ($row->isSkipCreating()) {
+                $row->setSkipSaving(true);
+
+                continue;
+            }
+
             // The driver's answer, recorded before any listener; the public flag (a guess, and
             // changeable by a `created` listener) only when the driver does not know.
             if ($row->isCreatedByInsert() ?? $row->getModel()->wasRecentlyCreated) {

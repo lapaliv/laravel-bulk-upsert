@@ -209,6 +209,18 @@ class BulkAccumulationItemEntity
     }
 
     /**
+     * Remember that a `saving`/`creating` listener has cancelled the creation of the row.
+     *
+     * @param bool $skipCreating
+     *
+     * @return void
+     */
+    public function setSkipCreating(bool $skipCreating): void
+    {
+        $this->skipCreating = $skipCreating;
+    }
+
+    /**
      * Determine whether the row must be skipped by the updating process.
      *
      * @return bool

@@ -89,6 +89,8 @@ class DispatchCreatingEventsStep
             $dispatchingResult = $eventDispatcher->dispatch(BulkEventEnum::Creating, $row->getModel());
 
             if ($dispatchingResult === false) {
+                // Recorded on the row itself: an upsert must not write it by its update either.
+                $row->setSkipCreating(true);
                 $data->unsetRow((int) $key);
             }
         }
@@ -119,6 +121,12 @@ class DispatchCreatingEventsStep
         );
 
         if ($dispatchingResult === false) {
+            foreach ($data->getRows() as $row) {
+                if ($filter($row->getModel())) {
+                    $row->setSkipCreating(true);
+                }
+            }
+
             $data->setRows([]);
         }
     }

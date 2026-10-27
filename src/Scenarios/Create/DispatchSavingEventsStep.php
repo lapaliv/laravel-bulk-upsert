@@ -62,6 +62,8 @@ class DispatchSavingEventsStep
             );
 
             if ($dispatchingResult === false) {
+                // Recorded on the row itself: an upsert must not write it by its update either.
+                $accumulatedRow->setSkipCreating(true);
                 $data->unsetRow((int) $key);
             }
         }
@@ -88,6 +90,10 @@ class DispatchSavingEventsStep
         );
 
         if ($dispatchingResult === false) {
+            foreach ($data->getRows() as $row) {
+                $row->setSkipCreating(true);
+            }
+
             $data->setRows([]);
         }
     }
