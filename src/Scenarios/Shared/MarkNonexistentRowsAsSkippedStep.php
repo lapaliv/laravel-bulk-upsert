@@ -118,6 +118,8 @@ readonly class MarkNonexistentRowsAsSkippedStep
                     array_replace($selected->getAttributes(), $row->getModel()->getAttributes())
                 );
                 $row->setModel($selected);
+                // Recorded before any listener, which may change `exists` later.
+                $row->markMatchedInDatabase();
             } else {
                 $row->setSkipUpdating(true);
             }

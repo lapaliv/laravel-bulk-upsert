@@ -241,12 +241,18 @@ key, a too long value) reach the caller instead of being hidden:
   transactional tables (InnoDB), including the tables which triggers change; the triggers
   of the rows which the first statement had processed before it stopped may run again,
   and the auto-increment counter may skip values. A duplicate key raised by a trigger in
-  another table is not told apart from a duplicate of the row yet. MySQL without the strict mode may still
+  another table is not told apart from a duplicate of the row: such a row is reported as
+  described below. MySQL without the strict mode may still
   convert invalid values by itself: the library no longer hides errors, but it does not
   add a validation of its own.
 
-A duplicate key of another unique index than the one given to `uniqueBy()` is skipped as
-well; the upsert then does not find such a row by `uniqueBy()` and does not update it.
+A new row which the insert has sent, but which is then neither read back nor found by
+`uniqueBy()` (e.g. a duplicate key of another unique index skipped it), is reported with
+`Lapaliv\BulkUpsert\Exceptions\BulkRowsWereNotSaved` after the other rows of the chunk
+have been saved; `getRows()` gives its models. Such a row stays in the accumulated storage. Its result is not
+known for sure (a trigger or a collation may have stored it under another key), so check the
+database before you fix the model and flush again: a retry may insert it once more. The check is the library's own record of
+reading the row back, so a listener which changes `exists` afterwards does not affect it.
 
 `create($rows, ignoreConflicts: true)` keeps `INSERT IGNORE` / `INSERT OR IGNORE` /
 `ON CONFLICT DO NOTHING`, as before.

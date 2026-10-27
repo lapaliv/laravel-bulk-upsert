@@ -108,6 +108,17 @@ class BulkAccumulationItemEntity
     private bool $written = false;
 
     /**
+     * Whether the current attempt has matched the row with a row read from the database.
+     *
+     * It is recorded by the library when the row is read back or found, before any listener
+     * runs, so a listener which changes `exists` does not change it. It says that the row was
+     * found, not that its update succeeded.
+     *
+     * @var bool
+     */
+    private bool $matchedInDatabase = false;
+
+    /**
      * Create a new accumulated row.
      *
      * @param mixed $original
@@ -391,5 +402,26 @@ class BulkAccumulationItemEntity
         $this->restoring = false;
         $this->plannedUpdate = null;
         $this->writtenUpdate = null;
+        $this->matchedInDatabase = false;
+    }
+
+    /**
+     * Determine whether the current attempt has matched the row with a database row.
+     *
+     * @return bool
+     */
+    public function isMatchedInDatabase(): bool
+    {
+        return $this->matchedInDatabase;
+    }
+
+    /**
+     * Remember that the current attempt has matched the row with a database row.
+     *
+     * @return void
+     */
+    public function markMatchedInDatabase(): void
+    {
+        $this->matchedInDatabase = true;
     }
 }

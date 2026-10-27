@@ -44,7 +44,7 @@ readonly class CreateNonexistentRowsStep
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      *
-     * @return void
+     * @return list<\Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity> The rows which the insert has sent.
      */
     public function handle(
         BulkAccumulationEntity $data,
@@ -53,12 +53,12 @@ readonly class CreateNonexistentRowsStep
         array $selectColumns,
         ?string $deletedAtColumn,
         ?ReturnedModels $returned = null,
-    ): void
+    ): array
     {
         $nonexistent = $this->collect($data);
 
         if (!$nonexistent->hasRows()) {
-            return;
+            return [];
         }
 
         // The rows and their models are taken now: a quiet insert empties the data, and the
@@ -109,11 +109,21 @@ readonly class CreateNonexistentRowsStep
             throw $exception;
         }
 
+        // The rows which the insert has sent (the cancelled ones were not): each of them has to
+        // be either created or found by the update below.
+        $sent = [];
+
         foreach ($rows as $row) {
+            if ($row->isWritten()) {
+                $sent[] = $row;
+            }
+
             $row->forgetWritten();
         }
 
         $this->markCreatedRows($data, $models);
+
+        return $sent;
     }
 
     /**

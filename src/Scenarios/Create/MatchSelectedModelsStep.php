@@ -51,6 +51,8 @@ readonly class MatchSelectedModelsStep
 
             if ($existingRow !== null) {
                 $row->setModel($existingRow);
+                // Recorded before any listener, which may change `exists` later.
+                $row->markMatchedInDatabase();
             } else {
                 $data->unsetRow((int) $index);
             }

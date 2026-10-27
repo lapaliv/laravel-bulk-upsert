@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Scenarios;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Exceptions\BulkRowsWereNotSaved;
 use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
 use Lapaliv\BulkUpsert\Scenarios\Upsert\CreateNonexistentRowsStep;
 use Lapaliv\BulkUpsert\Support\ReturnedModels;
@@ -76,7 +77,7 @@ readonly class UpsertScenario
         // so they are marked as skipped and handed over to the creating scenario.
         $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn, $withTrashed);
 
-        $this->createNonexistentRowsStep->handle(
+        $sent = $this->createNonexistentRowsStep->handle(
             $data,
             $eventDispatcher,
             $dateFields,
@@ -97,5 +98,22 @@ readonly class UpsertScenario
             $withTrashed,
             $returned,
         );
+
+        // A sent row which has been neither created nor found by the update is not confirmed as
+        // saved (e.g. a duplicate key of another unique index skipped it). The caller has to
+        // know instead of losing it silently. The row stays in the storage: once the input or
+        // the data is fixed, the next flush saves it; otherwise it reports it again.
+        $lost = [];
+
+        foreach ($sent as $row) {
+            // The library's own record, not `exists`, which a listener may change.
+            if (!$row->isMatchedInDatabase()) {
+                $lost[] = $row->getModel();
+            }
+        }
+
+        if ($lost !== []) {
+            throw new BulkRowsWereNotSaved($lost);
+        }
     }
 }

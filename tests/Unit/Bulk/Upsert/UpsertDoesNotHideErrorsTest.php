@@ -4,6 +4,7 @@ namespace Tests\Unit\Bulk\Upsert;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Lapaliv\BulkUpsert\Exceptions\BulkRowsWereNotSaved;
 use Tests\App\Models\Comment;
 use Tests\App\Models\Member;
 use Tests\App\Models\Post;
@@ -264,6 +265,187 @@ final class UpsertDoesNotHideErrorsTest extends TestCaseWrapper
         // assert
         self::assertTrue($failed);
         self::assertSame(0, DB::table(Comment::table())->where('text', $text)->count());
+    }
+
+    /**
+     * A new row skipped because of another unique index than `uniqueBy()` is reported.
+     *
+     * The insert skips a duplicate key, but the upsert then cannot find the row by its
+     * `uniqueBy()` attributes either: before, it was lost without a word.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testRowSkippedByAnotherUniqueIndexIsReported(): void
+    {
+        // arrange
+        DB::table(Member::table())->insert(['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'old']);
+
+        $sut = Member::query()->bulk()->uniqueBy('name');
+
+        // act
+        try {
+            $sut->upsert([
+                ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'new'],
+                ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'b@x', 'name' => 'b'],
+            ]);
+            $exception = null;
+        } catch (BulkRowsWereNotSaved $caught) {
+            $exception = $caught;
+        }
+
+        // The row stays in the storage: a retry without a fix reports it again...
+        try {
+            $sut->upsertAccumulated();
+            $again = false;
+        } catch (BulkRowsWereNotSaved) {
+            $again = true;
+        }
+
+        // ...and once the conflicting value is fixed, the retry saves it, without repeating `b`.
+        self::assertNotNull($exception);
+        $unsaved = $exception->getRows();
+        self::assertCount(1, $unsaved);
+        // The model given by the exception is the one kept in the storage.
+        $unsaved[0]->setAttribute('email', 'c@x');
+        $sut->upsertAccumulated();
+
+        // assert
+        self::assertTrue($again);
+        self::assertSame(
+            ['a@x' => 'old', 'b@x' => 'b', 'c@x' => 'new'],
+            DB::table(Member::table())->orderBy('email')->pluck('name', 'email')->all()
+        );
+    }
+
+    /**
+     * A duplicate key raised by a trigger in another table is not taken for a lost race.
+     *
+     * The trigger writes the same key into an audit table, so the second new row fails with
+     * 1062 although it does not conflict with any member.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testDuplicateKeyOfTriggerIsNotHidden(): void
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            self::markTestSkipped('The duplicate key fallback runs on MySQL only.');
+        }
+
+        // arrange
+        DB::unprepared('DROP TRIGGER IF EXISTS members_audit');
+        DB::unprepared('DROP TABLE IF EXISTS members_audit');
+        DB::unprepared('CREATE TABLE members_audit (code VARCHAR(10) PRIMARY KEY)');
+        DB::unprepared("CREATE TRIGGER members_audit BEFORE INSERT ON members FOR EACH ROW INSERT INTO members_audit (code) VALUES ('same')");
+
+        try {
+            // act
+            try {
+                Member::query()->bulk()->uniqueBy('email')->upsert([
+                    ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'a'],
+                    ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'b@x', 'name' => 'b'],
+                ]);
+                $failed = false;
+            } catch (BulkRowsWereNotSaved) {
+                $failed = true;
+            }
+
+            // assert
+            self::assertTrue($failed, 'stored: ' . json_encode(DB::table(Member::table())->pluck('email')->all()));
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS members_audit');
+            DB::unprepared('DROP TABLE IF EXISTS members_audit');
+        }
+    }
+
+    /**
+     * A listener which changes `exists` after the row has been confirmed does not make it "unsaved".
+     *
+     * The confirmation is recorded when the row is read back, before the `created` listeners.
+     *
+     * @param string $method
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('upsertMethods')]
+    public function testListenerChangingExistsAfterTheInsertIsNotReported(string $method): void
+    {
+        // arrange
+        $sut = Member::query()->bulk()->uniqueBy('email')
+            ->onCreated(function (Member $member): void {
+                $member->exists = false;
+            });
+
+        // act
+        $sut->{$method}([['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'new']]);
+        $sut->upsertAccumulated();
+
+        // assert
+        self::assertSame(['a@x'], DB::table(Member::table())->pluck('email')->all());
+    }
+
+    /**
+     * The upsert methods.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function upsertMethods(): array
+    {
+        return ['upsert' => ['upsert'], 'upsertAndReturn' => ['upsertAndReturn']];
+    }
+
+    /**
+     * A row cancelled by `creating` was never sent, so it is not reported.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testRowCancelledByCreatingIsNotReported(): void
+    {
+        // act
+        Member::query()->bulk()->uniqueBy('email')
+            ->onCreating(fn (Member $member) => $member->email === 'a@x' ? false : null)
+            ->upsert([
+                ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'new'],
+                ['tenant_id' => Member::CURRENT_TENANT, 'email' => 'b@x', 'name' => 'new'],
+            ]);
+
+        // assert
+        self::assertSame(['b@x'], DB::table(Member::table())->pluck('email')->all());
+    }
+
+    /**
+     * A row which lost the race and whose update is then cancelled by `updating` is not reported:
+     * it has been found, the cancellation is the listener's decision.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testRaceLoserWithCancelledUpdateIsNotReported(): void
+    {
+        // arrange
+        $sut = Member::query()->bulk()->uniqueBy('email')
+            ->onCreating(function (Member $member): void {
+                if (DB::table(Member::table())->where('email', $member->email)->doesntExist()) {
+                    DB::table(Member::table())->insert(
+                        ['tenant_id' => Member::CURRENT_TENANT, 'email' => $member->email, 'name' => 'old']
+                    );
+                }
+            })
+            ->onUpdating(fn () => false);
+
+        // act
+        $sut->upsert([['tenant_id' => Member::CURRENT_TENANT, 'email' => 'a@x', 'name' => 'new']]);
+
+        // assert
+        self::assertSame(['old'], DB::table(Member::table())->pluck('name')->all());
     }
 
     /**
