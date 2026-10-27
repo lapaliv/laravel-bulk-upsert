@@ -117,8 +117,15 @@ readonly class DeleteBuilderFactory
         $result = new UpdateBulkBuilder();
         $result->setTable($eloquent->getTable());
 
-        // The storage format of the model, as `SoftDeletes::runSoftDelete()` writes it.
+        // The storage format of the model, as `SoftDeletes::runSoftDelete()` writes it; like
+        // there, the update time is written as well when the model has the column.
         $result->addSimpleSet($deletedAtColumn, (string)$eloquent->fromDateTime($deletedAt));
+
+        $updatedAtColumn = $eloquent->getUpdatedAtColumn();
+
+        if ($eloquent->usesTimestamps() && $updatedAtColumn !== null) {
+            $result->addSimpleSet($updatedAtColumn, (string)$eloquent->fromDateTime($deletedAt));
+        }
 
         $this->whereClauseApplier->handle($result, $target['columns'], $target['filters']);
 

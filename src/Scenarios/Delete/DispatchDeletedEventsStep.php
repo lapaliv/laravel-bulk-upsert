@@ -2,7 +2,6 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios\Delete;
 
-use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
@@ -23,15 +22,14 @@ class DispatchDeletedEventsStep
      * When the rows have been force deleted, the 'forceDeleted' and 'forceDeletedMany'
      * events are dispatched as well.
      *
-     * The query does not bring the models back from the database, so the models are
-     * given the $deletedAt value the query has written, and only then do the listeners see them.
+     * The models already describe what the statement has written (the scenario has synced
+     * them), so the listeners see the final state.
      *
      * @param \Illuminate\Database\Eloquent\Model $eloquent
      * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
      * @param \Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher $eventDispatcher
      * @param string|null $deletedAtColumn
      * @param bool $force
-     * @param \DateTimeInterface $deletedAt
      *
      * @return void
      */
@@ -41,7 +39,6 @@ class DispatchDeletedEventsStep
         BulkEventDispatcher $eventDispatcher,
         ?string $deletedAtColumn,
         bool $force,
-        DateTimeInterface $deletedAt,
     ): void
     {
         if (!$eventDispatcher->hasListeners(BulkEventEnum::deleted($force))) {
@@ -59,10 +56,6 @@ class DispatchDeletedEventsStep
         foreach ($data->getRows() as $row) {
             if ($row->isSkipDeleting()) {
                 continue;
-            }
-
-            if ($deletedAtColumn !== null) {
-                $row->getModel()->setAttribute($deletedAtColumn, $deletedAt);
             }
 
             $eventDispatcher->dispatch(BulkEventEnum::Deleted, $row->getModel());

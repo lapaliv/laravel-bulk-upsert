@@ -10,6 +10,7 @@ use Lapaliv\BulkUpsert\Scenarios\Delete\DeleteRowsStep;
 use Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletedEventsStep;
 use Lapaliv\BulkUpsert\Scenarios\Delete\DispatchDeletingEventsStep;
 use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
+use Lapaliv\BulkUpsert\Support\ModelState;
 
 /**
  * Deletes the rows from the database.
@@ -121,6 +122,10 @@ readonly class DeleteScenario
             return;
         }
 
+        // The models describe the stored rows whether there are listeners or not, and the
+        // listeners see that state already.
+        $this->syncDeletedModels($eloquent, $data, $deletedAtColumn, $force, $deletedAt);
+
         // After deleting, it needs to fire events ending with '-ed' such as
         // 'deleted', 'forceDeleted', 'deletedMany', 'forceDeletedMany'.
         $this->dispatchDeletedEventsStep->handle(
@@ -129,7 +134,60 @@ readonly class DeleteScenario
             $eventDispatcher,
             $deletedAtColumn,
             $force,
-            $deletedAt,
         );
+    }
+
+    /**
+     * Make the models of the deleted rows describe what the statement has written.
+     *
+     * As `Model::delete()`: a removed row's model does not exist any more; a soft-deleted
+     * model gets the written `deleted_at` (and `updated_at`) as its original values, while
+     * its other changes, which have not been written, stay changes.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $eloquent
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     * @param string|null $deletedAtColumn
+     * @param bool $force
+     * @param \DateTimeInterface $deletedAt
+     *
+     * @return void
+     */
+    private function syncDeletedModels(
+        Model $eloquent,
+        BulkAccumulationEntity $data,
+        ?string $deletedAtColumn,
+        bool $force,
+        \DateTimeInterface $deletedAt,
+    ): void
+    {
+        $soft = $deletedAtColumn !== null && !$force;
+        $written = [];
+
+        if ($soft) {
+            $value = $eloquent->fromDateTime($deletedAt);
+            $written[$deletedAtColumn] = $value;
+            $updatedAtColumn = $eloquent->getUpdatedAtColumn();
+
+            if ($eloquent->usesTimestamps() && $updatedAtColumn !== null) {
+                $written[$updatedAtColumn] = $value;
+            }
+        }
+
+        foreach ($data->getRows() as $row) {
+            // Only the rows of the statement: not the skipped ones, not the missing ones.
+            if ($row->isSkipDeleting() || !$row->isWritten()) {
+                continue;
+            }
+
+            if (!$soft) {
+                $row->getModel()->exists = false;
+
+                continue;
+            }
+
+            foreach ($written as $column => $value) {
+                ModelState::setStored($row->getModel(), $column, $value);
+            }
+        }
     }
 }
