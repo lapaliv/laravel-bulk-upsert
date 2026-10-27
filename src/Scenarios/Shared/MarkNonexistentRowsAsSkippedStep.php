@@ -108,13 +108,16 @@ readonly class MarkNonexistentRowsAsSkippedStep
             $key = $this->uniqueKeyGenerator->handle($row->getModel(), $nonExistent->getUniqueBy());
 
             if (array_key_exists($key, $keyedSelected)) {
-                foreach (array_keys($row->getModel()->getAttributes()) as $attribute) {
-                    $keyedSelected[$key]->setAttribute(
-                        $attribute,
-                        $row->getModel()->getAttribute($attribute)
-                    );
-                }
-                $row->setModel($keyedSelected[$key]);
+                // The given values have already been through the mutators and the casts when
+                // the input was turned into a model, so they are copied as raw attributes.
+                // `setAttribute()` would run the mutators a second time (e.g. `new` → `new!!`).
+                // The original attributes of the selected model are kept: they describe the
+                // stored row, so the changes and the stored key are resolved against them.
+                $selected = $keyedSelected[$key];
+                $selected->setRawAttributes(
+                    array_replace($selected->getAttributes(), $row->getModel()->getAttributes())
+                );
+                $row->setModel($selected);
             } else {
                 $row->setSkipUpdating(true);
             }
