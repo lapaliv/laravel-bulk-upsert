@@ -136,7 +136,7 @@ readonly class CreateNonexistentRowsStep
      */
     private function collect(BulkAccumulationEntity $data): BulkAccumulationEntity
     {
-        $result = new BulkAccumulationEntity(uniqueBy: $data->getUniqueBy());
+        $result = (new BulkAccumulationEntity(uniqueBy: $data->getUniqueBy()))->setTarget($data->getTarget());
 
         foreach ($data->getRows() as $row) {
             if ($row->isSkipUpdating()) {

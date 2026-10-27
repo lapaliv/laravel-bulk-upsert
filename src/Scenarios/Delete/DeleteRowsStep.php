@@ -56,6 +56,9 @@ readonly class DeleteRowsStep
         DateTimeInterface $deletedAt,
     ): bool
     {
+        // The listeners have run: the statement is built from `$eloquent` for these rows.
+        $data->assertTarget([$eloquent, ...$data->getNotSkippedDeletingModels()]);
+
         $builder = $this->deleteBuilderFactory->handle(
             $eloquent,
             $data,

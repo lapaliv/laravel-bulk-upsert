@@ -73,6 +73,9 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
      */
     protected static function addTestConnection(array $config, string $name): void
     {
+        // A config copied from another connection carries its `name`, which the factory keeps:
+        // the connection would then report the wrong name to the models it hydrates.
+        $config['name'] = $name;
         self::$manager->addConnection($config, $name);
         self::$manager->getDatabaseManager()->purge($name);
     }

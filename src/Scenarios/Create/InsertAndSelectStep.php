@@ -71,6 +71,12 @@ readonly class InsertAndSelectStep
             return null;
         }
 
+        // The listeners have run: the rows which are still to be inserted must still be bound
+        // to the table and the connection of the bulk, the first one gives the statement.
+        /** @var \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $pending */
+        $pending = $data->getModels();
+        $data->assertTarget($pending);
+
         $eloquent = $data->getFirstModel();
         // The models which are given back need their keys, so they are read back as well.
         $needToSelect = $returnModels || $this->doNeedToSelect($eloquent, $data, $eventDispatcher, $deletedAtColumn);

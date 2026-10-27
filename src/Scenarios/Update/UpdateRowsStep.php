@@ -46,6 +46,9 @@ readonly class UpdateRowsStep
         ?string $deletedAtColumn,
     ): void
     {
+        // The listeners have run: the statement is built from `$eloquent` for these rows.
+        $data->assertTarget([$eloquent, ...$data->getNotSkippedUpdatingModels()]);
+
         $builder = $this->updateBuilderFactory->handle($eloquent, $data, $dateFields, $deletedAtColumn);
         $driver = $this->driverManager->getForModel($eloquent);
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
+use Lapaliv\BulkUpsert\Support\WriteTarget;
 
 /**
  * One chunk of the accumulated rows with the settings of its query.
@@ -324,5 +325,53 @@ class BulkAccumulationEntity
         $item = Arr::first($this->getRows());
 
         return $item->getModel();
+    }
+
+    /**
+     * The table and the connection which the rows have to be written into, when known.
+     *
+     * @var \Lapaliv\BulkUpsert\Support\WriteTarget|null
+     */
+    private ?WriteTarget $target = null;
+
+    /**
+     * Get the table and the connection which the rows have to be written into.
+     *
+     * @return \Lapaliv\BulkUpsert\Support\WriteTarget|null
+     */
+    public function getTarget(): ?WriteTarget
+    {
+        return $this->target;
+    }
+
+    /**
+     * Set the table and the connection which the rows have to be written into.
+     *
+     * @param \Lapaliv\BulkUpsert\Support\WriteTarget|null $target
+     *
+     * @return static
+     */
+    public function setTarget(?WriteTarget $target): static
+    {
+        $this->target = $target;
+
+        return $this;
+    }
+
+    /**
+     * Make sure the given models are still bound to the target, right before a statement.
+     *
+     * The listeners run between the checks of the bulk and the statement, and may change the
+     * table or the connection of a model.
+     *
+     * @param iterable<\Illuminate\Database\Eloquent\Model> $models
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch
+     */
+    public function assertTarget(iterable $models): void
+    {
+        $this->target?->assert($models);
     }
 }

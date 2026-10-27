@@ -25,6 +25,7 @@ use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use InvalidArgumentException;
 use Lapaliv\BulkUpsert\Support\ModelMetadata;
 use Lapaliv\BulkUpsert\Support\ReturnedModels;
+use Lapaliv\BulkUpsert\Support\WriteTarget;
 use LogicException;
 use stdClass;
 
@@ -81,6 +82,13 @@ class Bulk
      * @var \Illuminate\Database\Eloquent\Model|TModel
      */
     private Model $model;
+
+    /**
+     * The table and the connection of the bulk, taken when the bulk is made.
+     *
+     * @var \Lapaliv\BulkUpsert\Support\WriteTarget
+     */
+    private WriteTarget $target;
 
     /**
      * The number of the rows in one chunk.
@@ -204,6 +212,7 @@ class Bulk
             );
         }
 
+        $this->target = WriteTarget::of($this->model);
         $this->uniqueBy([$this->model->getKeyName()]);
     }
 
@@ -1084,30 +1093,7 @@ class Bulk
      */
     private function assertSameTarget(Model $model): void
     {
-        $expectedConnection = $this->resolveConnectionName($this->model);
-        $actualConnection = $this->resolveConnectionName($model);
-
-        if ($model->getTable() !== $this->model->getTable() || $actualConnection !== $expectedConnection) {
-            throw new BulkModelDoesNotMatch(
-                $model,
-                $this->model->getTable(),
-                $expectedConnection,
-                $model->getTable(),
-                $actualConnection,
-            );
-        }
-    }
-
-    /**
-     * Get the name of the connection of the model, the default one resolved.
-     *
-     * @param \Illuminate\Database\Eloquent\Model $model
-     *
-     * @return string|null
-     */
-    private function resolveConnectionName(Model $model): ?string
-    {
-        return $model->getConnectionName() ?? Model::getConnectionResolver()?->getDefaultConnection();
+        $this->target->assert([$model]);
     }
 
     /**
@@ -1287,6 +1273,10 @@ class Bulk
                             break;
                         }
 
+                        // The bulk's own model gives the lookups and the statements: it must not
+                        // have been rebound since the bulk was made.
+                        $this->assertSameTarget($this->model);
+
                         foreach ($chunk as $row) {
                             $row->resetAttempt();
                             // A model is mutable: its table or connection may have been changed
@@ -1296,12 +1286,12 @@ class Bulk
 
                         $current = $chunk;
 
-                        yield new BulkAccumulationEntity(
+                        yield (new BulkAccumulationEntity(
                             $chunk,
                             $uniqueBy,
                             $this->updateOnly,
                             $this->updateExcept,
-                        );
+                        ))->setTarget($this->target);
 
                         foreach ($chunk as $row) {
                             $finished[spl_object_id($row)] = true;

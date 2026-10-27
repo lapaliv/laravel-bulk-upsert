@@ -195,11 +195,11 @@ final class ReadWriteConnectionTest extends TestCaseWrapper
             ? ['database' => '/nonexistent/bulk-upsert/read.sqlite']
             : ['host' => '127.0.0.1', 'port' => 1];
 
-        DB::purge(self::CONNECTION);
-        DB::connectUsing(
-            self::CONNECTION,
+        // Registered in the manager (not by `connectUsing()`), so a reconnect after the failed
+        // reader finds the configuration of this connection.
+        self::addTestConnection(
             array_replace($config, ['read' => $read, 'write' => [], 'sticky' => $sticky]),
-            true
+            self::CONNECTION
         );
     }
 

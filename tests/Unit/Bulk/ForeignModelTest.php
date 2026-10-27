@@ -213,6 +213,156 @@ final class ForeignModelTest extends TestCaseWrapper
     }
 
     /**
+     * A listener which rebinds a model to the other table after the checks of the bulk makes
+     * the write fail before any statement, and neither table changes.
+     *
+     * @param string $method
+     * @param string $event
+     *
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('rebindingListeners')]
+    public function testModelReboundByAListenerIsRejected(string $method, string $event): void
+    {
+        // arrange
+        $rebind = static function (Member $member): void {
+            $member->setTable('members_b');
+        };
+        // `creating` runs for new rows only.
+        $rows = $method === 'create' || $event === 'creating'
+            ? [new Member(['tenant_id' => Member::CURRENT_TENANT, 'email' => 'new@x', 'name' => 'new'])]
+            : [tap(Member::query()->findOrFail($this->id), fn (Member $m) => $m->name = 'changed')];
+        $sut = Member::query()->bulk()->uniqueBy(['tenant_id', 'email']);
+        $sut = $event === 'savingMany'
+            ? $sut->onSavingMany(fn ($members) => $members->each($rebind))
+            : $sut->{'on' . ucfirst($event)}($rebind);
+
+        // act
+        try {
+            $sut->{$method}($rows);
+            $exception = null;
+        } catch (BulkModelDoesNotMatch $caught) {
+            $exception = $caught;
+        }
+
+        // assert
+        self::assertNotNull($exception);
+        self::assertSame(['A'], DB::table(Member::table())->pluck('name')->all());
+        self::assertSame(['B'], DB::table('members_b')->pluck('name')->all());
+    }
+
+    /**
+     * The writing methods with the listeners which run before their statements.
+     *
+     * @return array<string, array{string, string}>
+     */
+    public static function rebindingListeners(): array
+    {
+        return [
+            'create / saving' => ['create', 'saving'],
+            'create / creating' => ['create', 'creating'],
+            'upsert / creating' => ['upsert', 'creating'],
+            'update / updating' => ['update', 'updating'],
+            'update / savingMany' => ['update', 'savingMany'],
+            'upsert / updating' => ['upsert', 'updating'],
+            'delete / deleting' => ['delete', 'deleting'],
+            'forceDelete / deleting' => ['forceDelete', 'deleting'],
+        ];
+    }
+
+    /**
+     * A listener which moves the second (not the first) new row to another connection makes
+     * the insert fail before any statement; the unknown connection is never opened.
+     *
+     * @return void
+     */
+    public function testSecondRowMovedToAnotherConnectionIsRejected(): void
+    {
+        // arrange
+        $sut = Member::query()->bulk()->uniqueBy(['tenant_id', 'email'])
+            ->onCreating(function (Member $member): void {
+                if ($member->email === 'second@x') {
+                    $member->setConnection('bulk_never_configured');
+                }
+            });
+
+        // act
+        try {
+            $sut->create([
+                new Member(['tenant_id' => Member::CURRENT_TENANT, 'email' => 'first@x', 'name' => 'first']),
+                new Member(['tenant_id' => Member::CURRENT_TENANT, 'email' => 'second@x', 'name' => 'second']),
+            ]);
+            $exception = null;
+        } catch (BulkModelDoesNotMatch $caught) {
+            $exception = $caught;
+        }
+
+        // assert
+        self::assertNotNull($exception);
+        self::assertSame('second@x', $exception->getModel()->getAttribute('email'));
+        self::assertSame(['A'], DB::table(Member::table())->pluck('name')->all());
+    }
+
+    /**
+     * A listener which rebinds the bulk's own model makes the write fail as well.
+     *
+     * @return void
+     */
+    public function testPrototypeReboundByAListenerIsRejected(): void
+    {
+        // arrange
+        $prototype = new Member();
+        $model = Member::query()->findOrFail($this->id);
+        $model->name = 'changed';
+        $sut = (new \Lapaliv\BulkUpsert\Bulk($prototype))->onUpdating(function () use ($prototype): void {
+            $prototype->setTable('members_b');
+        });
+
+        // act
+        $this->expectException(BulkModelDoesNotMatch::class);
+
+        try {
+            $sut->update([$model]);
+        } finally {
+            self::assertSame(['A'], DB::table(Member::table())->pluck('name')->all());
+            self::assertSame(['B'], DB::table('members_b')->pluck('name')->all());
+        }
+    }
+
+    /**
+     * A prototype rebound after the rows were accumulated is rejected before any lookup.
+     *
+     * @return void
+     */
+    public function testPrototypeReboundBeforeTheFlushIsRejected(): void
+    {
+        // arrange
+        $prototype = new Member();
+        $model = Member::query()->findOrFail($this->id);
+        $model->name = 'changed';
+        $sut = (new \Lapaliv\BulkUpsert\Bulk($prototype))->chunk(100);
+        $sut->updateOrAccumulate([$model]);
+        $prototype->setTable('members_b');
+        $queries = 0;
+        DB::listen(function () use (&$queries): void {
+            $queries++;
+        });
+
+        // act
+        try {
+            $sut->updateAccumulated();
+            $failed = false;
+        } catch (BulkModelDoesNotMatch) {
+            $failed = true;
+        }
+
+        // assert
+        self::assertTrue($failed);
+        self::assertSame(0, $queries);
+        self::assertSame(['A'], DB::table(Member::table())->pluck('name')->all());
+    }
+
+    /**
      * A model of another connection is rejected even if the table is the same.
      *
      * @return void
