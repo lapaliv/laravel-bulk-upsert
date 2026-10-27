@@ -13,7 +13,11 @@ Changes which may affect your code
   too-long-value errors of new rows reach the caller.
 * A new upsert row which is sent but neither created nor found afterwards throws
   `BulkRowsWereNotSaved` (it was lost silently).
-* A model bound to another table or connection than the bulk throws `BulkModelDoesNotMatch`.
+* A model bound to another table or connection than the bulk throws `BulkModelDoesNotMatch`:
+  when it is given, before its chunk and right before each statement (after the listeners).
+  The table and the connection of the bulk are taken when the bulk is made.
+* A creation cancelled by `saving`/`creating` (or their `-Many` events) stays cancelled in
+  an upsert: the row is not written by its update part either.
 * Several stored rows equal to one unique key may throw `BulkIdentifierIsAmbiguous`.
 * A row which `update()` does not find gets no `saving`/`saved` events, is not returned and
   touches nothing; a row which `delete()` does not find gets no deleting/deleted events.

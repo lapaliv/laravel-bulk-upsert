@@ -271,8 +271,9 @@ database decides, with one extra SELECT per such row, so many such rows cost ext
 but it does not check every case (e.g. NULL in a nullable unique column).
 
 A model must be bound to the table and the connection of the bulk: otherwise
-`Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch` is thrown when the model is given and
-again before its chunk is written.
+`Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch` is thrown when the model is given, before
+its chunk and right before each statement, after the listeners. The table and the connection of
+the bulk are taken when the bulk is made, so changing its model later does not move the writes.
 
 The upsert tells which rows its insert has created from the database itself, not from the
 primary keys or the creation time: a row which another process inserts between the steps of
