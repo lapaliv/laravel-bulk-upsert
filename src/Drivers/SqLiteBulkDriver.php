@@ -68,7 +68,11 @@ readonly class SqLiteBulkDriver implements BulkDriver
                     $laravelGrammar->wrapTable(
                         $builder->getTable() ?? throw new LogicException('The insert builder must have a target table before running the query.')
                     )
-                )
+                ),
+                [],
+                // The rows inserted after this maximum are read back, so it has to come from
+                // the writer: a lagging reader would give a stale maximum.
+                false,
             );
 
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;

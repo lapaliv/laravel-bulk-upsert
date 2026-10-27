@@ -51,7 +51,10 @@ readonly class SelectExistingRowsQuery
         bool $withTrashed = false,
     ): Collection
     {
+        // The rows are looked up to decide what to write and are read back right after the
+        // writes, so they are read from the writer: a lagging reader would miss them.
         $builder = $eloquent->newQuery()
+            ->useWritePdo()
             ->select($selectColumns)
             ->limit($collection->count());
 

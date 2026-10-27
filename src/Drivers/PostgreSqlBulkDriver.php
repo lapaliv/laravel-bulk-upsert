@@ -56,8 +56,12 @@ readonly class PostgreSqlBulkDriver implements BulkDriver
     {
         $grammar = $this->grammar($connection);
 
-        // PostgreSQL returns the inserted rows right away thanks to `returning`.
-        $rows = $connection->select($grammar->insert($builder), $grammar->getBindings());
+        // PostgreSQL returns the inserted rows right away thanks to `returning`. The statement
+        // is an INSERT, so it runs on the writer (`select()` would use the reader), and the
+        // connection is marked as modified afterwards, as `insert()` does, so the sticky
+        // connections read the new rows from the writer.
+        $rows = $connection->select($grammar->insert($builder), $grammar->getBindings(), false);
+        $this->laravelConnection($connection)->recordsHaveBeenModified();
 
         return new PostgreSqlInsertResult($rows);
     }
