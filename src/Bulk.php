@@ -1289,6 +1289,9 @@ class Bulk
 
                         foreach ($chunk as $row) {
                             $row->resetAttempt();
+                            // A model is mutable: its table or connection may have been changed
+                            // after it was accumulated, so it is checked again before any SQL.
+                            $this->assertSameTarget($row->getModel());
                         }
 
                         $current = $chunk;

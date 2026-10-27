@@ -180,6 +180,39 @@ final class ForeignModelTest extends TestCaseWrapper
     }
 
     /**
+     * A model rebound to another table after it was accumulated is rejected at the flush.
+     *
+     * @return void
+     */
+    public function testModelReboundAfterAccumulationIsRejectedAtTheFlush(): void
+    {
+        // arrange
+        $model = Member::query()->findOrFail($this->id);
+        $model->name = 'changed';
+        $sut = Member::query()->bulk()->chunk(100);
+        $sut->updateOrAccumulate([$model]);
+        $model->setTable('members_b');
+
+        // act
+        try {
+            $sut->updateAccumulated();
+            $exception = null;
+        } catch (BulkModelDoesNotMatch $caught) {
+            $exception = $caught;
+        }
+
+        // assert
+        self::assertNotNull($exception);
+        self::assertSame(['A'], DB::table(Member::table())->pluck('name')->all());
+        self::assertSame(['B'], DB::table('members_b')->pluck('name')->all());
+
+        // The row stays accumulated: once the model is bound back, the next flush writes it.
+        $model->setTable(Member::table());
+        $sut->updateAccumulated();
+        self::assertSame(['changed'], DB::table(Member::table())->pluck('name')->all());
+    }
+
+    /**
      * A model of another connection is rejected even if the table is the same.
      *
      * @return void
