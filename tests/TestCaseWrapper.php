@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\DB;
 use Mockery\LegacyMockInterface;
@@ -14,6 +15,7 @@ use Tests\App\Models\Member;
 use Tests\App\Models\Post;
 use Tests\App\Models\Story;
 use Tests\App\Models\User;
+use Tests\App\Observers\Observer;
 
 /**
  * The test case which the tests of the package extend.
@@ -41,6 +43,15 @@ abstract class TestCaseWrapper extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // The listeners of the test observer are static: a listener which a previous test
+        // registered (e.g. a `deleting` returning false) must not cancel the writes of this one.
+        Observer::flush();
+        // The same for the touched relations and the frozen clock which the tests set.
+        User::setGlobalTouchedRelations(null);
+        Post::setGlobalTouchedRelations(null);
+        Comment::setGlobalTouchedRelations(null);
+        Carbon::setTestNow();
 
         if (!self::$schemaIsRefreshed) {
             Comment::dropTable();
