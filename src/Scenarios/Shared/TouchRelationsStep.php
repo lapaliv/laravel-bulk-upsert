@@ -150,10 +150,29 @@ readonly class TouchRelationsStep
             return;
         }
 
-        /** @var \Illuminate\Database\Eloquent\Model $firstRelation */
-        $firstRelation = $relations->first();
+        // A `morphTo` relation may give parents of different classes (or tables, or
+        // connections): each group is touched through its own model, in its own table.
+        // A parent shared by several children is touched once.
+        /** @var array<string, array<string, \Illuminate\Database\Eloquent\Model>> $groups */
+        $groups = [];
 
-        $this->freshUpdatedAt($firstRelation, $relations);
+        foreach ($relations as $relation) {
+            // The default connection named explicitly is the same connection.
+            $connection = $relation->getConnectionName() ?? Model::getConnectionResolver()?->getDefaultConnection();
+            $group = serialize([$relation::class, $connection, $relation->getTable()]);
+            /** @psalm-suppress MixedAssignment */
+            $key = $relation->getKey();
+            $groups[$group][is_scalar($key) ? (string) $key : (string) spl_object_id($relation)] = $relation;
+        }
+
+        foreach ($groups as $group) {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $models */
+            $models = new EloquentCollection(array_values($group));
+            /** @var \Illuminate\Database\Eloquent\Model $firstRelation */
+            $firstRelation = $models->first();
+
+            $this->freshUpdatedAt($firstRelation, $models);
+        }
     }
 
     /**
