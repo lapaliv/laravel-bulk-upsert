@@ -21,6 +21,7 @@ use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
 use Lapaliv\BulkUpsert\Scenarios\DeleteScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
+use InvalidArgumentException;
 use Lapaliv\BulkUpsert\Support\ModelMetadata;
 use Lapaliv\BulkUpsert\Support\ReturnedModels;
 use LogicException;
@@ -90,7 +91,7 @@ class Bulk
     /**
      * The lists of the unique attributes, or the callbacks which give such a list.
      *
-     * @var array<int, callable|string[]>
+     * @var list<Closure|list<string>>
      */
     private array $uniqueBy = [];
 
@@ -271,21 +272,7 @@ class Bulk
             return $this;
         }
 
-        if (is_string($attributes)) {
-            $this->uniqueBy = [[$attributes]];
-
-            return $this;
-        }
-
-        $attributes = array_values($attributes);
-
-        if (is_array($attributes[0])) {
-            /** @var list<string[]> $attributes Documented as string[]|string[][]; homogeneity is the caller's contract. */
-            $this->uniqueBy = $attributes;
-        } else {
-            /** @var string[] $attributes Documented as string[]|string[][]; homogeneity is the caller's contract. */
-            $this->uniqueBy = [$attributes];
-        }
+        $this->uniqueBy = $this->normalizeUniqueByArgument($attributes);
 
         return $this;
     }
@@ -310,21 +297,7 @@ class Bulk
             return $this;
         }
 
-        if (is_string($attributes)) {
-            $this->uniqueBy[] = [$attributes];
-
-            return $this;
-        }
-
-        $attributes = array_values($attributes);
-
-        if (is_array($attributes[0])) {
-            /** @var list<string[]> $attributes Documented as string[]|string[][]; homogeneity is the caller's contract. */
-            $this->uniqueBy = array_merge($this->uniqueBy, $attributes);
-        } else {
-            /** @var string[] $attributes Documented as string[]|string[][]; homogeneity is the caller's contract. */
-            $this->uniqueBy[] = $attributes;
-        }
+        $this->uniqueBy = array_merge($this->uniqueBy, $this->normalizeUniqueByArgument($attributes));
 
         return $this;
     }
@@ -999,10 +972,13 @@ class Bulk
             $model = $this->convertRowToModel($row);
 
             if ($uniqueAttributesAreRequired) {
-                ['index' => $uniqueAttributesIndex, 'attributes' => $uniqueAttributes] = $this->getUniqueAttributesForModel($row, $model);
+                $uniqueAttributes = $this->getUniqueAttributesForModel($row, $model);
+                // The rows are grouped by the attributes which really identify them, so a callback
+                // which gives different attributes for different rows makes different groups.
+                $groupKey = 'unique:' . serialize($uniqueAttributes);
 
-                $this->storage[$storageKey]['i' . $uniqueAttributesIndex] ??= new BulkAccumulationEntity(uniqueBy: $uniqueAttributes);
-                $this->storage[$storageKey]['i' . $uniqueAttributesIndex]->addRow(new BulkAccumulationItemEntity($row, $model));
+                $this->storage[$storageKey][$groupKey] ??= new BulkAccumulationEntity(uniqueBy: $uniqueAttributes);
+                $this->storage[$storageKey][$groupKey]->addRow(new BulkAccumulationItemEntity($row, $model));
             } else {
                 $this->storage[$storageKey]['no_unique_attributes'] ??= new BulkAccumulationEntity();
                 $this->storage[$storageKey]['no_unique_attributes']->addRow(new BulkAccumulationItemEntity($row, $model));
@@ -1080,49 +1056,110 @@ class Bulk
     }
 
     /**
-     * Get the index and the list of the unique attributes which match the given model.
+     * Get the list of the unique attributes which match the given model.
      *
-     * The first list whose attributes the model has is taken.
+     * The first list whose attributes the model has is taken. A callback applies when it
+     * names at least one attribute (a non-empty string or a list of them); otherwise the
+     * next list is tried.
      *
      * @param mixed $row
      * @param \Illuminate\Database\Eloquent\Model|TModel $model
      *
-     * @return array{index:int, attributes:string[]}
+     * @return list<string>
      *
      * @throws \Lapaliv\BulkUpsert\Exceptions\BulkIdentifierDidNotFind
      */
     private function getUniqueAttributesForModel(mixed $row, Model $model): array
     {
-        foreach ($this->uniqueBy as $index => $uniqueBy) {
+        foreach ($this->uniqueBy as $uniqueBy) {
             if ($uniqueBy instanceof Closure) {
-                /**
-                 * @psalm-suppress MixedAssignment The closure is user-supplied (via `uniqueBy()`);
-                 * its return value is only validated at runtime by the is_array()/is_string() check below.
-                 */
+                /** @psalm-suppress MixedAssignment The closure is user-supplied. */
                 $result = $uniqueBy($row);
+                $attributes = $this->normalizeUniqueAttributes($result);
 
-                if (is_array($result) || is_string($result)) {
-                    /** @var string[] $attributes The `uniqueBy()` closure contract documents a string|string[] return. */
-                    $attributes = (array)$result;
-
-                    return ['index' => $index, 'attributes' => $attributes];
+                // A callback which names no attribute, or an attribute the row does not have,
+                // does not apply to the row: the same rule as for the static lists.
+                if ($attributes === null || array_diff_key(array_flip($attributes), $model->getAttributes()) !== []) {
+                    continue;
                 }
-            }
 
-            $result = [];
+                return $attributes;
+            }
 
             foreach ($uniqueBy as $attribute) {
                 if (!array_key_exists($attribute, $model->getAttributes())) {
                     continue 2;
                 }
-
-                $result[] = $attribute;
             }
 
-            return ['index' => $index, 'attributes' => $result];
+            /** @var list<string> $uniqueBy Normalized by `uniqueBy()`/`orUniqueBy()`. */
+            return $uniqueBy;
         }
 
         throw new BulkIdentifierDidNotFind($row, $this->uniqueBy);
+    }
+
+    /**
+     * Turn the given unique attributes into a non-empty list of non-empty names.
+     *
+     * @param mixed $attributes
+     *
+     * @return list<string>|null Null when the value does not name any attribute.
+     */
+    private function normalizeUniqueAttributes(mixed $attributes): ?array
+    {
+        if (is_string($attributes)) {
+            $attributes = [$attributes];
+        }
+
+        if (!is_array($attributes) || $attributes === []) {
+            return null;
+        }
+
+        $result = [];
+
+        /** @psalm-suppress MixedAssignment */
+        foreach ($attributes as $attribute) {
+            if (!is_string($attribute) || $attribute === '') {
+                return null;
+            }
+
+            $result[] = $attribute;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Turn the argument of `uniqueBy()`/`orUniqueBy()` into lists of the unique attributes.
+     *
+     * @param string|string[]|string[][] $attributes
+     *
+     * @return list<list<string>>
+     *
+     * @throws \InvalidArgumentException When a list does not name any attribute.
+     */
+    private function normalizeUniqueByArgument(string|array $attributes): array
+    {
+        $attributes = is_string($attributes) ? [$attributes] : array_values($attributes);
+        $lists = isset($attributes[0]) && is_array($attributes[0]) ? $attributes : [$attributes];
+        $result = [];
+
+        /** @psalm-suppress MixedAssignment */
+        foreach ($lists as $list) {
+            $normalized = $this->normalizeUniqueAttributes($list);
+
+            if ($normalized === null) {
+                throw new InvalidArgumentException(
+                    'The unique attributes must be a non-empty list of non-empty attribute names.'
+                );
+            }
+
+            $result[] = $normalized;
+        }
+
+        // `$lists` is never empty, and an empty list is rejected above.
+        return $result;
     }
 
     /**
