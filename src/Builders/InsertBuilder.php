@@ -45,6 +45,16 @@ class InsertBuilder
     private bool $onConflictDoNothing = false;
 
     /**
+     * Whether only a duplicate key may be skipped, not other errors of the rows.
+     *
+     * `INSERT IGNORE` (MySQL) and `INSERT OR IGNORE` (SQLite) also suppress NOT NULL, CHECK
+     * and other errors, which the internal insert of an upsert must not hide.
+     *
+     * @var bool
+     */
+    private bool $duplicatesOnly = false;
+
+    /**
      * Get the table which the rows are inserted into.
      *
      * @return string|null
@@ -162,5 +172,44 @@ class InsertBuilder
         $this->onConflictDoNothing = $value;
 
         return $this;
+    }
+
+    /**
+     * Determine whether only a duplicate key may be skipped.
+     *
+     * @return bool
+     */
+    public function isIgnoringDuplicatesOnly(): bool
+    {
+        return $this->onConflictDoNothing && $this->duplicatesOnly;
+    }
+
+    /**
+     * Set whether only a duplicate key may be skipped.
+     *
+     * @param bool $value
+     *
+     * @return $this
+     */
+    public function ignoreDuplicatesOnly(bool $value): static
+    {
+        $this->duplicatesOnly = $value;
+
+        return $this;
+    }
+
+    /**
+     * Get a copy of the builder with the given rows.
+     *
+     * @param array<int|string, scalar[]> $values
+     *
+     * @return static
+     */
+    public function withValues(array $values): static
+    {
+        $result = clone $this;
+        $result->values = $values;
+
+        return $result;
     }
 }

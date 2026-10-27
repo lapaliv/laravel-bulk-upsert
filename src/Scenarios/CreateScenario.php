@@ -83,6 +83,7 @@ readonly class CreateScenario
      * @param string|null $deletedAtColumn
      * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
      * @param bool $readBack Whether the inserted rows have to be read back even without listeners.
+     * @param bool $duplicatesOnly Whether `$ignore` may skip a duplicate key only, not other errors.
      *
      * @return void
      */
@@ -95,6 +96,7 @@ readonly class CreateScenario
         ?string $deletedAtColumn,
         ?ReturnedModels $returned = null,
         bool $readBack = false,
+        bool $duplicatesOnly = false,
     ): void
     {
         if (!$data->hasRows()) {
@@ -118,6 +120,7 @@ readonly class CreateScenario
             $selectColumns,
             $deletedAtColumn,
             $readBack || $returned !== null,
+            $duplicatesOnly,
         );
 
         // The rows left in the data are the ones which took part in the insert: the same set
@@ -151,6 +154,7 @@ readonly class CreateScenario
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      * @param bool $returnModels Whether the rows have to be read back to be given back.
+     * @param bool $duplicatesOnly Whether `$ignore` may skip a duplicate key only, not other errors.
      *
      * @return void
      */
@@ -162,6 +166,7 @@ readonly class CreateScenario
         array $selectColumns,
         ?string $deletedAtColumn,
         bool $returnModels,
+        bool $duplicatesOnly,
     ): void
     {
         $startedAt = Carbon::now();
@@ -173,6 +178,7 @@ readonly class CreateScenario
             $selectColumns,
             $deletedAtColumn,
             $returnModels,
+            $duplicatesOnly,
         );
 
         if ($result === null) {

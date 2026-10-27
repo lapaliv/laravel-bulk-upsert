@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Drivers;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Grammars\MySqlGrammar as LaravelMySqlGrammar;
+use Illuminate\Database\QueryException;
 use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
@@ -80,8 +81,7 @@ readonly class MySqlBulkDriver implements BulkDriver
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $grammar = new MySqlBulkGrammar($this->mixedValueToSqlConverter, $laravelGrammar);
-        $connection->insert($grammar->insert($builder), $grammar->getBindings());
+        $this->runInsert($connection, $builder);
 
         return new MySqlInsertResult(
             is_numeric($lastPrimaryBeforeInserting)
@@ -102,9 +102,78 @@ readonly class MySqlBulkDriver implements BulkDriver
      */
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void
     {
-        $grammar = $this->grammar($connection);
+        $this->runInsert($connection, $builder);
+    }
 
-        $connection->insert($grammar->insert($builder), $grammar->getBindings());
+    /**
+     * Run the insert, skipping only the duplicate keys when the builder asks for that.
+     *
+     * MySQL has no `ON CONFLICT DO NOTHING`: `INSERT IGNORE` also turns NOT NULL, CHECK and
+     * foreign key errors into warnings, and `ON DUPLICATE KEY UPDATE` fires the UPDATE
+     * triggers of the conflicting rows. So the rows are inserted by a plain statement; only
+     * when it fails with a duplicate key (1062), they are inserted one by one inside a
+     * transaction, skipping the duplicates. Any other error rolls the rows of the statement
+     * back and reaches the caller.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
+     *
+     * @return void
+     *
+     * @throws \Throwable
+     */
+    private function runInsert(ConnectionInterface $connection, InsertBuilder $builder): void
+    {
+        $run = function (InsertBuilder $statement) use ($connection): void {
+            $grammar = $this->grammar($connection);
+            $connection->insert($grammar->insert($statement), $grammar->getBindings());
+        };
+
+        if (!$builder->isIgnoringDuplicatesOnly()) {
+            $run($builder);
+
+            return;
+        }
+
+        try {
+            // A single statement is atomic: when it fails, none of its rows is stored.
+            $run($builder);
+
+            return;
+        } catch (QueryException $exception) {
+            if (!$this->isDuplicateKey($exception)) {
+                throw $exception;
+            }
+        }
+
+        $connection->transaction(function () use ($builder, $run): void {
+            foreach ($builder->getValues() as $row) {
+                try {
+                    $run($builder->withValues([$row]));
+                } catch (QueryException $exception) {
+                    if (!$this->isDuplicateKey($exception)) {
+                        throw $exception;
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Determine whether the statement has failed because of a duplicate key.
+     *
+     * The native code is checked: SQLSTATE 23000 covers other integrity errors as well.
+     *
+     * @param \Illuminate\Database\QueryException $exception
+     *
+     * @return bool
+     */
+    private function isDuplicateKey(QueryException $exception): bool
+    {
+        /** @var array<int, mixed>|null $errorInfo */
+        $errorInfo = $exception->errorInfo;
+
+        return (int)($errorInfo[1] ?? 0) === 1062;
     }
 
     /**

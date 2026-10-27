@@ -36,13 +36,16 @@ class SqLiteBulkGrammar extends BaseBulkGrammar
      */
     protected function compileInsertIgnoreInfix(InsertBuilder $builder): string
     {
-        return $builder->doNothingAtConflict() ? ' or ignore' : '';
+        // `OR IGNORE` also skips NOT NULL and CHECK errors, so it is used only when every
+        // conflict may be skipped.
+        return $builder->doNothingAtConflict() && !$builder->isIgnoringDuplicatesOnly() ? ' or ignore' : '';
     }
 
     /**
      * Get the tail of the insert statement.
      *
-     * SQLite does not need any tail here, so the result is always an empty string.
+     * The tail is ` on conflict do nothing` when only a duplicate key may be skipped (the
+     * internal insert of an upsert), an empty string otherwise.
      *
      * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
      *
@@ -50,7 +53,8 @@ class SqLiteBulkGrammar extends BaseBulkGrammar
      */
     protected function compileInsertSuffix(InsertBuilder $builder): string
     {
-        return '';
+        // `ON CONFLICT DO NOTHING` skips a uniqueness conflict only (SQLite 3.24+).
+        return $builder->isIgnoringDuplicatesOnly() ? ' on conflict do nothing' : '';
     }
 
     /**

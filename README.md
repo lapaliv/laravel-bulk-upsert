@@ -229,6 +229,28 @@ This way loads the data from database and updates found rows by the query.
 
 ### Upserting (Updating & Inserting)
 
+An upsert inserts the rows which it has not found and then updates the others. A row which
+appears in the database meanwhile (a duplicate key) is skipped by the insert and updated,
+but the other errors which the database raises for a new row (NOT NULL, CHECK, a foreign
+key, a too long value) reach the caller instead of being hidden:
+
+- PostgreSQL and SQLite use `ON CONFLICT DO NOTHING`, which skips a uniqueness conflict only.
+- MySQL has no such clause (`INSERT IGNORE` also hides the other errors), so the rows are
+  inserted by a plain `INSERT`; only when it fails with a duplicate key, they are inserted
+  again one by one inside a transaction, skipping the duplicates. This relies on
+  transactional tables (InnoDB), including the tables which triggers change; the triggers
+  of the rows which the first statement had processed before it stopped may run again,
+  and the auto-increment counter may skip values. A duplicate key raised by a trigger in
+  another table is not told apart from a duplicate of the row yet. MySQL without the strict mode may still
+  convert invalid values by itself: the library no longer hides errors, but it does not
+  add a validation of its own.
+
+A duplicate key of another unique index than the one given to `uniqueBy()` is skipped as
+well; the upsert then does not find such a row by `uniqueBy()` and does not update it.
+
+`create($rows, ignoreConflicts: true)` keeps `INSERT IGNORE` / `INSERT OR IGNORE` /
+`ON CONFLICT DO NOTHING`, as before.
+
 Preparing the data
 
 ```php

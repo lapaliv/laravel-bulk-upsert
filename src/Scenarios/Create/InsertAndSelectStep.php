@@ -45,6 +45,9 @@ readonly class InsertAndSelectStep
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      *
+     * @param bool $returnModels Whether the rows have to be read back to be given back.
+     * @param bool $duplicatesOnly Whether `$ignore` may skip a duplicate key only, not other errors.
+     *
      * @return array|null
      *
      * @psalm-return null|array{
@@ -60,6 +63,7 @@ readonly class InsertAndSelectStep
         array $selectColumns,
         ?string $deletedAtColumn,
         bool $returnModels = false,
+        bool $duplicatesOnly = false,
     ): ?array
     {
         if (!$data->hasRows()) {
@@ -74,7 +78,8 @@ readonly class InsertAndSelectStep
             $data,
             $ignore,
             $dateFields,
-            $needToSelect ? $selectColumns : []
+            $needToSelect ? $selectColumns : [],
+            $duplicatesOnly,
         );
 
         if ($builder === null) {

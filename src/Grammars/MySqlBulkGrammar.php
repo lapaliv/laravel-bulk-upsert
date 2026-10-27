@@ -36,7 +36,10 @@ class MySqlBulkGrammar extends BaseBulkGrammar
      */
     protected function compileInsertIgnoreInfix(InsertBuilder $builder): string
     {
-        return $builder->doNothingAtConflict() ? ' ignore' : '';
+        // `IGNORE` also turns NOT NULL, CHECK and foreign key errors into warnings, so it is
+        // used only when every conflict may be skipped. A duplicate key alone is skipped by
+        // the driver (see MySqlBulkDriver).
+        return $builder->doNothingAtConflict() && !$builder->isIgnoringDuplicatesOnly() ? ' ignore' : '';
     }
 
     /**

@@ -63,6 +63,7 @@ class InsertBuilderFactory
      * @param bool $ignore Whether the rows with a unique conflict have to be skipped.
      * @param array $dateFields The date format of each date column.
      * @param string[] $selectColumns The columns which have to be returned by the statement.
+     * @param bool $duplicatesOnly Whether only a duplicate key may be skipped, not other errors.
      *
      * @return \Lapaliv\BulkUpsert\Builders\InsertBuilder|null
      * @throws \DateMalformedStringException
@@ -72,6 +73,7 @@ class InsertBuilderFactory
         bool $ignore,
         array $dateFields,
         array $selectColumns,
+        bool $duplicatesOnly = false,
     ): ?InsertBuilder
     {
         if (!$data->hasRows()) {
@@ -80,7 +82,9 @@ class InsertBuilderFactory
 
         $eloquent = $data->getFirstModel();
         $result = new InsertBuilder();
-        $result->setTable($eloquent->getTable())->onConflictDoNothing($ignore);
+        $result->setTable($eloquent->getTable())
+            ->onConflictDoNothing($ignore)
+            ->ignoreDuplicatesOnly($duplicatesOnly);
         $columns = [];
 
         $this->createdAtColumn = $eloquent->getCreatedAtColumn();

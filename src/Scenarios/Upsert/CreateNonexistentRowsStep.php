@@ -90,6 +90,9 @@ readonly class CreateNonexistentRowsStep
                 // not the result is asked for: otherwise `upsert()` would update a created row
                 // with the input once more, while `upsertAndReturn()` would not.
                 readBack: true,
+                // A row which has appeared meanwhile is skipped and then updated, but any other
+                // error of a new row (NOT NULL, CHECK, a foreign key) has to reach the caller.
+                duplicatesOnly: true,
             );
         } catch (Throwable $exception) {
             // The insert alone does not complete an upsert: the library cannot tell reliably
