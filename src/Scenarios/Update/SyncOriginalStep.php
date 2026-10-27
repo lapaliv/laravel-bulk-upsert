@@ -3,16 +3,22 @@
 namespace Lapaliv\BulkUpsert\Scenarios\Update;
 
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Support\ModelState;
 
 /**
- * Marks the attributes of the updated models as the ones which are stored in the database.
+ * Makes the written values the original ones of the updated models.
  *
  * @internal
  */
 class SyncOriginalStep
 {
     /**
-     * Replace the original attributes of each model that participated in the query.
+     * Declare saved exactly the values which the query has written.
+     *
+     * The attributes which were not written stay dirty. A listener may also change an
+     * attribute after the query; that change has not been written, so the original value
+     * becomes the written one and the change stays dirty. The primary key has already been
+     * synced by the step which ran the query.
      *
      * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
      *
@@ -21,11 +27,18 @@ class SyncOriginalStep
     public function handle(BulkAccumulationEntity $data): void
     {
         foreach ($data->getRows() as $row) {
-            if ($row->isSkipSaving()) {
+            $written = $row->getWrittenUpdate();
+
+            if ($written === null) {
                 continue;
             }
 
-            $row->getModel()->syncOriginal();
+            $model = $row->getModel();
+            unset($written[$model->getKeyName()]);
+
+            if ($written !== []) {
+                ModelState::syncWrittenOriginal($model, $written);
+            }
         }
     }
 }

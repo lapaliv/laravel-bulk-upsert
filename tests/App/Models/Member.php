@@ -3,6 +3,7 @@
 namespace Tests\App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 
@@ -20,6 +21,7 @@ use Illuminate\Database\Schema\Blueprint;
  * @property string $email
  * @property string $name
  * @property string|null $bio
+ * @property \Illuminate\Database\Eloquent\Casts\ArrayObject|null $settings
  * @property \Carbon\CarbonInterface $created_at
  * @property \Carbon\CarbonInterface $updated_at
  * @property \Carbon\CarbonInterface|null $deleted_at
@@ -52,6 +54,16 @@ class Member extends Model
         'email',
         'name',
         'bio',
+        'settings',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'settings' => AsArrayObject::class,
     ];
 
     /**
@@ -67,6 +79,7 @@ class Member extends Model
             $table->string('email');
             $table->string('name');
             $table->text('bio')->nullable();
+            $table->json('settings')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

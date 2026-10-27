@@ -78,6 +78,26 @@ class BulkAccumulationItemEntity
     private bool $restoring = false;
 
     /**
+     * The raw values which the UPDATE statement is going to write for the row.
+     *
+     * `null` means the row is not a part of the statement. The primary key is included
+     * with the stored value which the statement is written by.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $plannedUpdate = null;
+
+    /**
+     * The raw values which the UPDATE statement has written for the row.
+     *
+     * It is set only after the statement has run successfully, and only these values
+     * may be declared saved on the model.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $writtenUpdate = null;
+
+    /**
      * Create a new accumulated row.
      *
      * @param mixed $original
@@ -265,5 +285,49 @@ class BulkAccumulationItemEntity
     public function setRestoring(bool $restoring): void
     {
         $this->restoring = $restoring;
+    }
+
+    /**
+     * Get the raw values which the UPDATE statement is going to write for the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPlannedUpdate(): ?array
+    {
+        return $this->plannedUpdate;
+    }
+
+    /**
+     * Set the raw values which the UPDATE statement is going to write for the row.
+     *
+     * @param array<string, mixed>|null $plannedUpdate
+     *
+     * @return void
+     */
+    public function setPlannedUpdate(?array $plannedUpdate): void
+    {
+        $this->plannedUpdate = $plannedUpdate;
+    }
+
+    /**
+     * Get the raw values which the UPDATE statement has written for the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getWrittenUpdate(): ?array
+    {
+        return $this->writtenUpdate;
+    }
+
+    /**
+     * Set the raw values which the UPDATE statement has written for the row.
+     *
+     * @param array<string, mixed>|null $writtenUpdate
+     *
+     * @return void
+     */
+    public function setWrittenUpdate(?array $writtenUpdate): void
+    {
+        $this->writtenUpdate = $writtenUpdate;
     }
 }

@@ -79,6 +79,12 @@ readonly class UpdateBuilderFactory
             $filters[$model] = $target['filters'][$index];
         }
 
+        // A row takes part in the statement only if it gets a plan below.
+        foreach ($data->getRows() as $row) {
+            $row->setPlannedUpdate(null);
+            $row->setWrittenUpdate(null);
+        }
+
         foreach ($data->getRows() as $row) {
             // `skipSaving` is set by a `saving`/`savingMany` listener that returned false. It has to
             // be honoured here as well, otherwise the cancelled row still ends up in the statement.
@@ -169,16 +175,6 @@ readonly class UpdateBuilderFactory
 
         unset($attributes[$eloquent->getKeyName()]);
 
-        // The primary key is never written, so the model has to keep the stored one.
-        // Otherwise `syncOriginal()` would remember the changed key, and the next write
-        // of the same model would reach another row.
-        $model = $row->getModel();
-        $keyName = $eloquent->getKeyName();
-
-        if ($model->exists && $keyName !== '' && $model->isDirty($keyName)) {
-            $model->setAttribute($keyName, $model->getRawOriginal($keyName));
-        }
-
         if ($deletedAtColumn !== null) {
             if ($row->isDeleting() && $row->isSkipDeleting()) {
                 unset($attributes[$deletedAtColumn]);
@@ -210,6 +206,17 @@ readonly class UpdateBuilderFactory
             $attributes[$updatedAtColumn] ??= $updatedAt;
             $row->getModel()->{$updatedAtColumn} = $updatedAt;
         }
+
+        // Remember the storage values which the statement writes for the row: only they may
+        // be declared saved once the statement has run. They are the converted values of the
+        // SET part, not the raw attributes (a date-only column is cut, a date object is
+        // formatted), and they are scalars, so a listener cannot change them in place.
+        // The primary key is never written; the stored key the statement is written by is
+        // remembered under its name. A row with nothing to write gets the key only.
+        $planned = $attributes;
+        /** @psalm-suppress MixedAssignment The key is a scalar resolved by WriteKeyResolver. */
+        $planned[$eloquent->getKeyName()] = $filter[$eloquent->getKeyName()] ?? null;
+        $row->setPlannedUpdate($planned);
 
         /** @psalm-suppress MixedAssignment */
         foreach ($attributes as $key => $value) {
