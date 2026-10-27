@@ -4,6 +4,7 @@ namespace Lapaliv\BulkUpsert\Scenarios;
 
 use Illuminate\Database\Eloquent\Model;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
@@ -108,7 +109,7 @@ readonly class UpdateScenario
 
         // A row which does not exist in the database is not saved at all, so it takes part in
         // no saving/saved event and is not returned. It is decided here, before any listener
-        // of this scenario, which may change `exists`. (The touches are a separate matter.)
+        // of this scenario, which may change `exists`.
         foreach ($data->getRows() as $row) {
             if (!$row->getModel()->exists) {
                 $row->setSkipSaving(true);
@@ -145,7 +146,17 @@ readonly class UpdateScenario
 
         // If the model has the property "touches", then it loads relations recursively
         // and touches each of them. WARNING: This operation may be really heavy.
-        $this->touchRelationsStep->handle($data);
+        // Only the rows whose SET has been written touch: not a missing row, not a cancelled
+        // one, not a row without changes (it gets its primary key only).
+        $keyName = $eloquent->getKeyName();
+        $this->touchRelationsStep->handle(
+            $data,
+            static function (BulkAccumulationItemEntity $row) use ($keyName): bool {
+                $written = $row->getWrittenUpdate();
+
+                return $written !== null && array_diff_key($written, [$keyName => true]) !== [];
+            }
+        );
 
         // At the end, all old attributes should be replaced with new ones.
         if ($needToKeepModels) {

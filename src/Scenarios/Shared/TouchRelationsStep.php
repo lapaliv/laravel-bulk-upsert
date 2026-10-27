@@ -2,6 +2,7 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios\Shared;
 
+use Closure;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -30,18 +31,39 @@ readonly class TouchRelationsStep
     /**
      * Recursively update the 'updated_at' column value of the related entities.
      *
+     * Without `$written`, the rows which are dirty or have recently been created touch their
+     * relations. With it, exactly the rows it accepts do: the scenario which knows what it has
+     * written decides, not the state of the models, which listeners may change.
+     *
      * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     * @param (\Closure(\Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity): bool)|null $written
      *
      * @return void
      */
-    public function handle(BulkAccumulationEntity $data): void
+    public function handle(BulkAccumulationEntity $data, ?Closure $written = null): void
     {
-        if ($data->hasRows()) {
+        if (!$data->hasRows()) {
+            return;
+        }
+
+        if ($written === null) {
             /** @var \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $models */
             $models = $data->getModels();
 
             $this->processCollection($data->getFirstModel(), $models);
+
+            return;
         }
+
+        $selected = [];
+
+        foreach ($data->getRows() as $row) {
+            if ($written($row)) {
+                $selected[] = $row->getModel();
+            }
+        }
+
+        $this->processCollection($data->getFirstModel(), $data->getFirstModel()->newCollection($selected), true);
     }
 
     /**
@@ -83,7 +105,8 @@ readonly class TouchRelationsStep
         }
 
         foreach ($relationNames as $relationName) {
-            $this->processRelation($models, $relationName);
+            // Only the selected models touch: a clean neighbour must not touch its parents.
+            $this->processRelation($dirtyModels, $relationName);
         }
     }
 
