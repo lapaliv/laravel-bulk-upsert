@@ -1000,13 +1000,13 @@ class Bulk
      * Convert the given row to an Eloquent model.
      *
      * An array, an object with the `toArray()` method or an instance of `stdClass` is
-     * turned into a model of the instance. A model is taken as it is.
+     * turned into a model through `newInstance()` of the given model, so the connection,
+     * the table and the casts of that model are kept. A model is taken as it is.
      *
      * @param mixed $row
      *
      * @return \Illuminate\Database\Eloquent\Model|TModel
      *
-     * @throws \Lapaliv\BulkUpsert\Exceptions\BulkBindingResolution
      * @throws \Lapaliv\BulkUpsert\Exceptions\BulkValueTypeIsNotSupported
      */
     private function convertRowToModel(mixed $row): Model
@@ -1029,18 +1029,10 @@ class Bulk
         }
 
         if (is_array($row) && !empty($row)) {
-            try {
-                $result = Container::getInstance()->make(
-                    get_class($this->model),
-                    ['attributes' => $row]
-                );
-            } catch (BindingResolutionException $exception) {
-                throw new BulkBindingResolution(
-                    $exception->getMessage(),
-                    $exception->getCode(),
-                    $exception
-                );
-            }
+            // `newInstance()` keeps the connection, the table and the casts of the given model,
+            // and fills the attributes only after that, so the runtime casts already apply.
+            /** @var array<string, mixed> $row */
+            $result = $this->model->newInstance($row);
 
             $keyName = $result->getKeyName();
 
