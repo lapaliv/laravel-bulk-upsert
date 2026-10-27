@@ -3,7 +3,6 @@
 namespace Lapaliv\BulkUpsert\Builders;
 
 use Carbon\Carbon;
-use LogicException;
 use Lapaliv\BulkUpsert\Converters\AttributesToScalarArrayConverter;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
@@ -87,12 +86,16 @@ class InsertBuilderFactory
         $this->createdAtColumn = $eloquent->getCreatedAtColumn();
         $this->updatedAtColumn = $eloquent->getUpdatedAtColumn();
 
+        $this->createdAt = null;
+        $this->updatedAt = null;
+
         if ($eloquent->usesTimestamps()) {
-            // The same value and format as `Model::save()` writes.
+            // The same value and format as `Model::save()` writes; a column whose constant is
+            // `null` does not exist and gets no value.
             $now = $eloquent->freshTimestampString();
 
-            $this->createdAt = $now;
-            $this->updatedAt = $now;
+            $this->createdAt = $this->createdAtColumn === null ? null : $now;
+            $this->updatedAt = $this->updatedAtColumn === null ? null : $now;
         }
 
         foreach ($data->getRows() as $row) {
@@ -169,20 +172,19 @@ class InsertBuilderFactory
     ): void
     {
         if ($row->getModel()->usesTimestamps()) {
-            $createdAtColumn = $this->createdAtColumn
-                ?? throw new LogicException('The "created at" column of the model is not set.');
-            $updatedAtColumn = $this->updatedAtColumn
-                ?? throw new LogicException('The "updated at" column of the model is not set.');
+            // Laravel lets a model drop one of the columns by setting its constant to `null`;
+            // the other one is still filled.
+            if ($this->createdAtColumn !== null) {
+                $columns[$this->createdAtColumn] ??= $this->createdAtColumn;
+                /** @psalm-suppress MixedAssignment */
+                $result[$this->createdAtColumn] ??= $this->createdAt;
+            }
 
-            $columns[$createdAtColumn] ??= $createdAtColumn;
-            $columns[$updatedAtColumn] ??= $updatedAtColumn;
-
-            /** @psalm-suppress MixedAssignment */
-            $result[$updatedAtColumn] ??= $this->updatedAt
-                ?? throw new LogicException('The formatted "updated at" value is not set.');
-            /** @psalm-suppress MixedAssignment */
-            $result[$createdAtColumn] ??= $this->createdAt
-                ?? throw new LogicException('The formatted "created at" value is not set.');
+            if ($this->updatedAtColumn !== null) {
+                $columns[$this->updatedAtColumn] ??= $this->updatedAtColumn;
+                /** @psalm-suppress MixedAssignment */
+                $result[$this->updatedAtColumn] ??= $this->updatedAt;
+            }
         }
     }
 }
