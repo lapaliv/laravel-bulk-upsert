@@ -6,6 +6,7 @@ use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 use Throwable;
 
 /**
@@ -51,6 +52,7 @@ readonly class CreateNonexistentRowsStep
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        ?ReturnedModels $returned = null,
     ): void
     {
         $nonexistent = $this->collect($data);
@@ -83,6 +85,7 @@ readonly class CreateNonexistentRowsStep
                 dateFields: $dateFields,
                 selectColumns: $selectColumns,
                 deletedAtColumn: $deletedAtColumn,
+                returned: $returned,
             );
         } catch (Throwable $exception) {
             // The insert alone does not complete an upsert: the library cannot tell reliably

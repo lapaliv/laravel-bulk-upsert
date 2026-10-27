@@ -15,6 +15,7 @@ use Lapaliv\BulkUpsert\Scenarios\Update\DispatchUpdatingEventsStep;
 use Lapaliv\BulkUpsert\Scenarios\Update\SyncChangesStep;
 use Lapaliv\BulkUpsert\Scenarios\Update\SyncOriginalStep;
 use Lapaliv\BulkUpsert\Scenarios\Update\UpdateRowsStep;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 
 /**
  * Updates the rows in the database.
@@ -82,6 +83,7 @@ readonly class UpdateScenario
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      * @param bool $withTrashed
+     * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
      *
      * @return void
      */
@@ -93,6 +95,7 @@ readonly class UpdateScenario
         array $selectColumns,
         ?string $deletedAtColumn,
         bool $withTrashed,
+        ?ReturnedModels $returned = null,
     ): void
     {
         if (!$data->hasRows()) {
@@ -115,7 +118,8 @@ readonly class UpdateScenario
         $this->updateRowsStep->handle($eloquent, $data, $dateFields, $deletedAtColumn);
 
         $hasEndListeners = $this->hasEndListeners($eventDispatcher);
-        $needToKeepModels = $hasEndListeners || $this->hasModelsInData($data);
+        // The rows which are given back must describe what has been written as well.
+        $needToKeepModels = $returned !== null || $hasEndListeners || $this->hasModelsInData($data);
 
         // Both the listeners and the models given by the user expect
         // `getChanges()` to return the changes made by this query.
@@ -137,6 +141,15 @@ readonly class UpdateScenario
         // At the end, all old attributes should be replaced with new ones.
         if ($needToKeepModels) {
             $this->syncOriginalStep->handle($data);
+        }
+
+        // The same set of rows as the `saved` events get, collected without depending on them.
+        if ($returned !== null) {
+            foreach ($data->getRows() as $row) {
+                if (!$row->isSkipSaving()) {
+                    $returned->add($row);
+                }
+            }
         }
     }
 

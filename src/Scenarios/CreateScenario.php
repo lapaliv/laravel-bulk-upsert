@@ -14,6 +14,7 @@ use Lapaliv\BulkUpsert\Scenarios\Create\InsertAndSelectStep;
 use Lapaliv\BulkUpsert\Scenarios\Create\MatchSelectedModelsStep;
 use Lapaliv\BulkUpsert\Scenarios\Create\SyncOriginalStep;
 use Lapaliv\BulkUpsert\Scenarios\Shared\TouchRelationsStep;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 
 /**
  * Inserts the rows into the database.
@@ -80,6 +81,7 @@ readonly class CreateScenario
      * @param string[] $dateFields
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
+     * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
      *
      * @return void
      */
@@ -90,6 +92,7 @@ readonly class CreateScenario
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        ?ReturnedModels $returned = null,
     ): void
     {
         if (!$data->hasRows()) {
@@ -112,7 +115,16 @@ readonly class CreateScenario
             $dateFields,
             $selectColumns,
             $deletedAtColumn,
+            $returned !== null,
         );
+
+        // The rows left in the data are the ones which took part in the insert: the same set
+        // the `saved` events get, collected without depending on them.
+        if ($returned !== null) {
+            foreach ($data->getRows() as $row) {
+                $returned->add($row);
+            }
+        }
 
         // After inserting, it needs to fire events ending with '-ed' such as
         // 'created', 'deleted', 'saved' and their '-Many' counterparts.
@@ -136,6 +148,7 @@ readonly class CreateScenario
      * @param string[] $dateFields
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
+     * @param bool $returnModels Whether the rows have to be read back to be given back.
      *
      * @return void
      */
@@ -146,6 +159,7 @@ readonly class CreateScenario
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        bool $returnModels,
     ): void
     {
         $startedAt = Carbon::now();
@@ -155,7 +169,8 @@ readonly class CreateScenario
             $ignore,
             $dateFields,
             $selectColumns,
-            $deletedAtColumn
+            $deletedAtColumn,
+            $returnModels,
         );
 
         if ($result === null) {

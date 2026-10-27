@@ -59,6 +59,7 @@ readonly class InsertAndSelectStep
         array $dateFields,
         array $selectColumns,
         ?string $deletedAtColumn,
+        bool $returnModels = false,
     ): ?array
     {
         if (!$data->hasRows()) {
@@ -66,7 +67,8 @@ readonly class InsertAndSelectStep
         }
 
         $eloquent = $data->getFirstModel();
-        $needToSelect = $this->doNeedToSelect($eloquent, $data, $eventDispatcher, $deletedAtColumn);
+        // The models which are given back need their keys, so they are read back as well.
+        $needToSelect = $returnModels || $this->doNeedToSelect($eloquent, $data, $eventDispatcher, $deletedAtColumn);
 
         $builder = $this->insertBuilderFactory->handle(
             $data,

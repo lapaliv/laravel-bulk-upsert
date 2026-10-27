@@ -22,6 +22,7 @@ use Lapaliv\BulkUpsert\Scenarios\DeleteScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use Lapaliv\BulkUpsert\Support\ModelMetadata;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 use LogicException;
 use stdClass;
 
@@ -596,17 +597,15 @@ class Bulk
         $this->accumulate($storageKey, $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
+        // One collector for the whole call: the result does not depend on the events.
+        $returned = new ReturnedModels();
 
         foreach ($this->getReadyChunks($storageKey, force: true) as $accumulation) {
-            $this->getEventDispatcher()->once(
-                BulkEventEnum::SavedMany,
-                function (Collection $collection) use ($result): void {
-                    $result->push(...$collection);
-                }
-            );
 
-            $this->runCreateScenario($accumulation, $ignoreConflicts, $columns);
+            $this->runCreateScenario($accumulation, $ignoreConflicts, $columns, $returned);
         }
+
+        $result->push(...$returned->all());
 
         return $result;
     }
@@ -674,17 +673,15 @@ class Bulk
         $this->accumulate('update', $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
+        // One collector for the whole call: the result does not depend on the events.
+        $returned = new ReturnedModels();
 
         foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
-            $this->getEventDispatcher()->once(
-                BulkEventEnum::SavedMany,
-                function (Collection $collection) use ($result): void {
-                    $result->push(...$collection);
-                }
-            );
 
-            $this->runUpdateScenario($accumulation, $columns);
+            $this->runUpdateScenario($accumulation, $columns, $returned);
         }
+
+        $result->push(...$returned->all());
 
         return $result;
     }
@@ -754,19 +751,15 @@ class Bulk
         $this->accumulate('upsert', $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
+        // One collector for the whole call: the result does not depend on the events.
+        $returned = new ReturnedModels();
 
         foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
-            $listenerKey = $this->getEventDispatcher()->listen(
-                BulkEventEnum::SavedMany,
-                function (Collection $collection) use ($result): void {
-                    $result->push(...$collection);
-                }
-            );
 
-            $this->runUpsertScenario($accumulation, $columns);
-
-            $this->getEventDispatcher()->forget(BulkEventEnum::SavedMany, $listenerKey);
+            $this->runUpsertScenario($accumulation, $columns, $returned);
         }
+
+        $result->push(...$returned->all());
 
         return $result;
     }
@@ -1305,7 +1298,12 @@ class Bulk
      *
      * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
-    private function runCreateScenario(BulkAccumulationEntity $accumulation, bool $ignore, array $columns = ['*']): void
+    private function runCreateScenario(
+        BulkAccumulationEntity $accumulation,
+        bool $ignore,
+        array $columns = ['*'],
+        ?ReturnedModels $returned = null,
+    ): void
     {
         try {
             $scenario = Container::getInstance()->make(CreateScenario::class);
@@ -1316,6 +1314,7 @@ class Bulk
                 $this->getDateFields(),
                 $this->getSelectColumns($columns, $accumulation->getUniqueBy()),
                 $this->getDeletedAtColumn(),
+                $returned,
             );
 
             unset($scenario);
@@ -1371,7 +1370,11 @@ class Bulk
      *
      * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
-    private function runUpdateScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
+    private function runUpdateScenario(
+        BulkAccumulationEntity $accumulation,
+        array $columns = ['*'],
+        ?ReturnedModels $returned = null,
+    ): void
     {
         try {
             $scenario = Container::getInstance()->make(UpdateScenario::class);
@@ -1383,6 +1386,7 @@ class Bulk
                 $this->getSelectColumns($columns, $accumulation->getUniqueBy()),
                 $this->getDeletedAtColumn(),
                 $this->withTrashed,
+                $returned,
             );
 
             unset($scenario);
@@ -1405,7 +1409,11 @@ class Bulk
      *
      * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
-    private function runUpsertScenario(BulkAccumulationEntity $accumulation, array $columns = ['*']): void
+    private function runUpsertScenario(
+        BulkAccumulationEntity $accumulation,
+        array $columns = ['*'],
+        ?ReturnedModels $returned = null,
+    ): void
     {
         try {
             $scenario = Container::getInstance()->make(UpsertScenario::class);
@@ -1417,6 +1425,7 @@ class Bulk
                 $this->getSelectColumns($columns, $accumulation->getUniqueBy()),
                 $this->getDeletedAtColumn(),
                 $this->withTrashed,
+                $returned,
             );
 
             unset($scenario);

@@ -7,6 +7,7 @@ use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
 use Lapaliv\BulkUpsert\Scenarios\Upsert\CreateNonexistentRowsStep;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 
 /**
  * Inserts the rows that are absent in the database and updates the rest of them.
@@ -52,6 +53,7 @@ readonly class UpsertScenario
      * @param string[] $selectColumns
      * @param string|null $deletedAtColumn
      * @param bool $withTrashed
+     * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
      *
      * @return void
      */
@@ -63,6 +65,7 @@ readonly class UpsertScenario
         array $selectColumns,
         ?string $deletedAtColumn,
         bool $withTrashed,
+        ?ReturnedModels $returned = null,
     ): void
     {
         if (!$data->hasRows()) {
@@ -79,6 +82,7 @@ readonly class UpsertScenario
             $dateFields,
             $selectColumns,
             $deletedAtColumn,
+            $returned,
         );
 
         // The updating scenario marks the nonexistent rows as skipped once again,
@@ -91,6 +95,7 @@ readonly class UpsertScenario
             $selectColumns,
             $deletedAtColumn,
             $withTrashed,
+            $returned,
         );
     }
 }
