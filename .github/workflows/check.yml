@@ -95,6 +95,17 @@ jobs:
             sleep 2
           done
 
+      # Binary logging is on in the MySQL image, so a user without SUPER may not create
+      # triggers, which some tests need. The trust is set on this throwaway CI server only;
+      # the tests still run as the ordinary test user.
+      - name: Allow the test user to create MySQL triggers
+        run: |
+          docker exec -e MYSQL_PWD=root "${{ job.services.mysql.id }}" \
+            mysql -uroot -e "SET GLOBAL log_bin_trust_function_creators = ON"
+          value="$(docker exec -e MYSQL_PWD=root "${{ job.services.mysql.id }}" \
+            mysql -uroot -N -e "SELECT @@GLOBAL.log_bin_trust_function_creators")"
+          test "$value" = "1"
+
       - name: Create .env file for testing
         run: |
           {
