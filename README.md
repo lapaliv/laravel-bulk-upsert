@@ -135,6 +135,11 @@ $users = $bulk->uniqueBy('email')->createAndReturn($data);
 // $users is Illuminate\Database\Eloquent\Collection<App\Models\User>
 ```
 
+A new model which you pass to `create()` / `upsert()` is not updated in place: it gets neither
+the primary key nor `exists`. The created rows are read back into other model instances, which
+`createAndReturn()` / `upsertAndReturn()` give back and the listeners receive. Use them when
+you need the keys.
+
 You can accumulate rows until there are enough of them to be written.
 ```php
 $chunkSize = 100;
@@ -257,6 +262,17 @@ have been saved; `getRows()` gives its models. Such a row stays in the accumulat
 known for sure (a trigger or a collation may have stored it under another key), so check the
 database before you fix the model and flush again: a retry may insert it once more. The check is the library's own record of
 reading the row back, so a listener which changes `exists` afterwards does not affect it.
+
+The rows are matched with the stored ones by their unique attributes in PHP first. When the
+database finds a row which PHP does not match (e.g. a case-insensitive collation), the
+database decides, with one extra SELECT per such row, so many such rows cost extra queries.
+`uniqueBy()` must identify one stored row: the library may throw
+`Lapaliv\BulkUpsert\Exceptions\BulkIdentifierIsAmbiguous` when it notices several equal rows,
+but it does not check every case (e.g. NULL in a nullable unique column).
+
+A model must be bound to the table and the connection of the bulk: otherwise
+`Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch` is thrown when the model is given and
+again before its chunk is written.
 
 The upsert tells which rows its insert has created from the database itself, not from the
 primary keys or the creation time: a row which another process inserts between the steps of
