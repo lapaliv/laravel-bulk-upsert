@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Scenarios\Create;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Support\DatabaseKeyMatcher;
 use Lapaliv\BulkUpsert\Support\UniqueKeyGenerator;
 
 /**
@@ -21,6 +22,7 @@ readonly class MatchSelectedModelsStep
      */
     public function __construct(
         private UniqueKeyGenerator $uniqueKeyGenerator,
+        private DatabaseKeyMatcher $databaseKeyMatcher,
     )
     {
         //
@@ -44,10 +46,32 @@ readonly class MatchSelectedModelsStep
             $keyedExistingRows[$this->uniqueKeyGenerator->handle($existingRow, $data->getUniqueBy())] = $existingRow;
         }
 
+        // Matched in PHP first; the database decides for the rest (a collation may find the
+        // stored row equal to the input though PHP does not).
+        $usedKeys = [];
+        /** @var array<int, \Illuminate\Database\Eloquent\Model> $unmatched */
+        $unmatched = [];
+
         foreach ($data->getRows() as $index => $row) {
             $key = $this->uniqueKeyGenerator->handle($row->getModel(), $data->getUniqueBy());
 
-            $existingRow = $keyedExistingRows[$key] ?? null;
+            if (isset($keyedExistingRows[$key])) {
+                $usedKeys[$key] = true;
+            } else {
+                $unmatched[(int) $index] = $row->getModel();
+            }
+        }
+
+        $leftovers = array_values(array_diff_key($keyedExistingRows, $usedKeys));
+        $first = $existingRows->first();
+        $matchedByDatabase = $unmatched !== [] && $leftovers !== [] && $first instanceof Model
+            ? $this->databaseKeyMatcher->match($first, $data->getUniqueBy(), $unmatched, $leftovers)
+            : [];
+
+        foreach ($data->getRows() as $index => $row) {
+            $key = $this->uniqueKeyGenerator->handle($row->getModel(), $data->getUniqueBy());
+
+            $existingRow = $matchedByDatabase[(int) $index] ?? $keyedExistingRows[$key] ?? null;
 
             if ($existingRow !== null) {
                 $row->setModel($existingRow);

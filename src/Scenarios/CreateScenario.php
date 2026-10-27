@@ -198,6 +198,12 @@ readonly class CreateScenario
         }
 
         $this->matchSelectedModelsStep->handle($data, $existingRows);
+
+        // Every row may have been left unmatched (e.g. skipped by a duplicate of another index).
+        if (!$data->hasRows()) {
+            return;
+        }
+
         $this->fillInWasRecentlyCreatedPropertyStep->handle($data, $insertResult, $dateFields, $startedAt);
     }
 }

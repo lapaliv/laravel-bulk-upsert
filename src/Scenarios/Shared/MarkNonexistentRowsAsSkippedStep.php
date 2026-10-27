@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Lapaliv\BulkUpsert\Builders\SelectExistingRowsQuery;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
+use Lapaliv\BulkUpsert\Support\DatabaseKeyMatcher;
 use Lapaliv\BulkUpsert\Support\UniqueKeyGenerator;
 
 /**
@@ -23,10 +24,12 @@ readonly class MarkNonexistentRowsAsSkippedStep
      *
      * @param \Lapaliv\BulkUpsert\Builders\SelectExistingRowsQuery $selectExistingRowsQuery
      * @param \Lapaliv\BulkUpsert\Support\UniqueKeyGenerator $uniqueKeyGenerator
+     * @param \Lapaliv\BulkUpsert\Support\DatabaseKeyMatcher $databaseKeyMatcher
      */
     public function __construct(
         private SelectExistingRowsQuery $selectExistingRowsQuery,
         private UniqueKeyGenerator $uniqueKeyGenerator,
+        private DatabaseKeyMatcher $databaseKeyMatcher,
     )
     {
         //
@@ -72,7 +75,7 @@ readonly class MarkNonexistentRowsAsSkippedStep
                 $withTrashed,
             );
 
-            $this->mark($data, $nonexistent, $exists->values());
+            $this->mark($eloquent, $data, $nonexistent, $exists->values());
         }
     }
 
@@ -89,11 +92,13 @@ readonly class MarkNonexistentRowsAsSkippedStep
      * @return void
      */
     private function mark(
+        Model $eloquent,
         BulkAccumulationEntity $result,
         BulkAccumulationEntity $nonExistent,
         Collection $exists,
     ): void
     {
+        $uniqueBy = $nonExistent->getUniqueBy();
         $mapIndexesAndKeys = [];
 
         foreach ($result->getRows() as $index => $row) {
@@ -102,12 +107,46 @@ readonly class MarkNonexistentRowsAsSkippedStep
         }
 
         /** @var array<string, \Illuminate\Database\Eloquent\Model> $keyedSelected */
-        $keyedSelected = $this->uniqueKeyGenerator->keyBy($exists, $nonExistent->getUniqueBy());
+        $keyedSelected = $this->uniqueKeyGenerator->keyBy($exists, $uniqueBy);
 
-        foreach ($nonExistent->getRows() as $row) {
-            $key = $this->uniqueKeyGenerator->handle($row->getModel(), $nonExistent->getUniqueBy());
+        // The rows are matched in PHP first. The selected rows which no row of the data has
+        // matched there may still be equal to a row by the rules of the database (a collation):
+        // the database decides for them, so a found row is neither skipped nor inserted again.
+        $usedKeys = [];
+        /** @var array<int, \Illuminate\Database\Eloquent\Model> $unmatched */
+        $unmatched = [];
 
-            if (array_key_exists($key, $keyedSelected)) {
+        foreach ($result->getRows() as $row) {
+            $usedKeys[$this->uniqueKeyGenerator->handle($row->getModel(), $uniqueBy)] = true;
+        }
+
+        foreach ($nonExistent->getRows() as $index => $row) {
+            if (!array_key_exists($this->uniqueKeyGenerator->handle($row->getModel(), $uniqueBy), $keyedSelected)) {
+                $unmatched[(int) $index] = $row->getModel();
+            }
+        }
+
+        $leftovers = array_values(array_diff_key($keyedSelected, $usedKeys));
+        $matchedByDatabase = $unmatched !== [] && $leftovers !== []
+            ? $this->databaseKeyMatcher->match($eloquent, $uniqueBy, $unmatched, $leftovers)
+            : [];
+
+        foreach ($nonExistent->getRows() as $index => $row) {
+            $key = $this->uniqueKeyGenerator->handle($row->getModel(), $uniqueBy);
+
+            if (isset($matchedByDatabase[(int) $index])) {
+                $selected = $matchedByDatabase[(int) $index];
+                $stored = $selected->getAttributes();
+                // The unique values stay the stored ones: the database has found the row by
+                // them, and they are never written, so the model describes the stored row.
+                $selected->setRawAttributes(array_replace(
+                    $stored,
+                    $row->getModel()->getAttributes(),
+                    array_intersect_key($stored, array_flip($uniqueBy)),
+                ));
+                $row->setModel($selected);
+                $row->markMatchedInDatabase();
+            } elseif (array_key_exists($key, $keyedSelected)) {
                 // The given values have already been through the mutators and the casts when
                 // the input was turned into a model, so they are copied as raw attributes.
                 // `setAttribute()` would run the mutators a second time (e.g. `new` → `new!!`).
