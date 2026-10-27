@@ -79,6 +79,13 @@ readonly class DeleteRowsStep
 
         unset($builder, $driver);
 
+        // The rows are written now: a failure below must not send them to the database again.
+        foreach ($data->getRows() as $row) {
+            if (!$row->isSkipDeleting() && $row->getModel()->exists) {
+                $row->markWritten();
+            }
+        }
+
         return true;
     }
 }

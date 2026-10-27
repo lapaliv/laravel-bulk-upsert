@@ -22,6 +22,7 @@ use Lapaliv\BulkUpsert\Scenarios\DeleteScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpdateScenario;
 use Lapaliv\BulkUpsert\Scenarios\UpsertScenario;
 use Lapaliv\BulkUpsert\Support\ModelMetadata;
+use LogicException;
 use stdClass;
 
 /**
@@ -157,6 +158,13 @@ class Bulk
      * @var bool
      */
     private bool $withTrashed = false;
+
+    /**
+     * The storages which are being flushed right now.
+     *
+     * @var array<string, true>
+     */
+    private array $flushing = [];
 
     /**
      * Create a new bulk instance for the given model.
@@ -515,6 +523,7 @@ class Bulk
     public function create(iterable $rows, bool $ignoreConflicts = false): static
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
+        $this->assertNotFlushing($storageKey);
         $this->accumulate(
             $storageKey,
             $rows,
@@ -583,6 +592,7 @@ class Bulk
     ): Collection
     {
         $storageKey = $ignoreConflicts ? 'createOrIgnore' : 'create';
+        $this->assertNotFlushing($storageKey);
         $this->accumulate($storageKey, $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
@@ -612,6 +622,7 @@ class Bulk
      */
     public function update(iterable $rows): static
     {
+        $this->assertNotFlushing('update');
         $this->accumulate('update', $rows);
 
         foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
@@ -659,6 +670,7 @@ class Bulk
      */
     public function updateAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
+        $this->assertNotFlushing('update');
         $this->accumulate('update', $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
@@ -690,6 +702,7 @@ class Bulk
      */
     public function upsert(iterable $rows): static
     {
+        $this->assertNotFlushing('upsert');
         $this->accumulate('upsert', $rows);
 
         foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
@@ -737,6 +750,7 @@ class Bulk
      */
     public function upsertAndReturn(iterable $rows, array $columns = ['*']): Collection
     {
+        $this->assertNotFlushing('upsert');
         $this->accumulate('upsert', $rows);
         /** @var TCollection $result */
         $result = $this->model->newCollection();
@@ -771,6 +785,7 @@ class Bulk
      */
     public function delete(iterable $rows): static
     {
+        $this->assertNotFlushing('delete');
         $this->accumulate('delete', $rows);
 
         foreach ($this->getReadyChunks('delete', force: true) as $accumulation) {
@@ -816,6 +831,7 @@ class Bulk
      */
     public function forceDelete(iterable $rows): static
     {
+        $this->assertNotFlushing('forceDelete');
         $this->accumulate('forceDelete', $rows);
 
         foreach ($this->getReadyChunks('forceDelete', force: true) as $accumulation) {
@@ -856,6 +872,7 @@ class Bulk
      */
     public function createAccumulated(): static
     {
+        $this->assertNotFlushing('createOrIgnore', 'create');
         foreach ($this->getReadyChunks('createOrIgnore', force: true) as $accumulation) {
             $this->runCreateScenario($accumulation, ignore: true);
         }
@@ -876,6 +893,7 @@ class Bulk
      */
     public function updateAccumulated(): static
     {
+        $this->assertNotFlushing('update');
         foreach ($this->getReadyChunks('update', force: true) as $accumulation) {
             $this->runUpdateScenario($accumulation);
         }
@@ -892,6 +910,7 @@ class Bulk
      */
     public function upsertAccumulated(): static
     {
+        $this->assertNotFlushing('upsert');
         foreach ($this->getReadyChunks('upsert', force: true) as $accumulation) {
             $this->runUpsertScenario($accumulation);
         }
@@ -908,6 +927,7 @@ class Bulk
      */
     public function deleteAccumulated(): static
     {
+        $this->assertNotFlushing('delete');
         foreach ($this->getReadyChunks('delete', force: true) as $accumulation) {
             $this->runDeleteScenario($accumulation, force: false);
         }
@@ -924,6 +944,7 @@ class Bulk
      */
     public function forceDeleteAccumulated(): static
     {
+        $this->assertNotFlushing('forceDelete');
         foreach ($this->getReadyChunks('forceDelete', force: true) as $accumulation) {
             $this->runDeleteScenario($accumulation, force: true);
         }
@@ -1114,58 +1135,162 @@ class Bulk
     /**
      * Get the chunks which are ready to be saved.
      *
-     * A full chunk is always yielded and removed from the storage. The rest stays in
-     * the storage until `$force` is `true`.
+     * A full chunk is always yielded; the rest stays in the storage until `$force` is
+     * `true`. What stays in the storage after a flush:
+     *
+     * - the rows of a chunk whose scenario has finished leave the storage;
+     * - the chunks which have not run yet stay;
+     * - when a scenario throws, the rows of its chunk whose operation has been completed
+     *   (inserted, updated, deleted) leave the storage, and the other rows stay, so the next
+     *   flush retries them without writing the completed ones twice.
+     *
+     * "Completed" means that the statement has run, not that an outer transaction has been
+     * committed: after a rollback of such a transaction the transaction is retried with a
+     * new bulk instance. The listeners run again for a retried row; they are not undone.
+     *
+     * A forced flush of the storage started while the same storage is being flushed (e.g. by
+     * a listener) is rejected. A non-forced one does nothing; its rows are flushed later.
      *
      * @param BulkStorageKey $storageKey
      * @param bool $force
      *
      * @return \Generator<\Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity>
+     *
+     * @throws \LogicException When a forced flush of a storage being flushed is started.
      */
     private function getReadyChunks(string $storageKey, bool $force = false): Generator
     {
+        if (isset($this->flushing[$storageKey])) {
+            if ($force) {
+                $this->assertNotFlushing($storageKey);
+            }
+
+            return;
+        }
+
+        // The rows of every group are taken now: the rows which a listener adds meanwhile
+        // (to this or to another group) are saved by the next flush.
+        $snapshot = [];
+
         foreach ($this->storage[$storageKey] as $key => $accumulation) {
             $rows = $accumulation->getRows();
 
-            if ($force) {
-                // Drop the accumulation from the storage before yielding: the consumer runs a
-                // scenario per chunk, and a failure in one of them must not leave the already
-                // processed rows behind to be written a second time.
-                unset($this->storage[$storageKey][$key]);
+            // A non-forced flush has nothing to do with an incomplete group.
+            if ($force || count($rows) >= $this->chunkSize) {
+                $snapshot[$key] = [$accumulation->getUniqueBy(), $rows];
+            }
+        }
 
-                // Flushing does not mean "send everything in one statement". `chunkSize` bounds the
-                // size of a single statement, so it applies here just as it does below.
-                foreach (array_chunk($rows, $this->chunkSize) as $chunk) {
-                    yield new BulkAccumulationEntity(
-                        $chunk,
-                        $accumulation->getUniqueBy(),
-                        $this->updateOnly,
-                        $this->updateExcept,
-                    );
-                }
-            } elseif (count($rows) >= $this->chunkSize) {
-                $rest = [];
+        if ($snapshot === []) {
+            return;
+        }
 
-                foreach (array_chunk($rows, $this->chunkSize) as $chunk) {
-                    if (count($chunk) === $this->chunkSize) {
+        $this->flushing[$storageKey] = true;
+
+        try {
+            foreach ($snapshot as $key => [$uniqueBy, $rows]) {
+                /** @var array<int, true> $finished The object ids of the rows which leave the storage. */
+                $finished = [];
+                /** @var list<\Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity> $current */
+                $current = [];
+
+                try {
+                    // `chunkSize` bounds the size of a single statement, also when flushing.
+                    foreach (array_chunk($rows, $this->chunkSize) as $chunk) {
+                        if (!$force && count($chunk) < $this->chunkSize) {
+                            // The incomplete tail waits for more rows or for a forced flush.
+                            break;
+                        }
+
+                        foreach ($chunk as $row) {
+                            $row->resetAttempt();
+                        }
+
+                        $current = $chunk;
+
                         yield new BulkAccumulationEntity(
                             $chunk,
-                            $accumulation->getUniqueBy(),
+                            $uniqueBy,
                             $this->updateOnly,
                             $this->updateExcept,
                         );
-                    } else {
-                        $rest = $chunk;
-                    }
-                }
 
-                $this->storage[$storageKey][$key] = new BulkAccumulationEntity(
-                    $rest,
-                    $accumulation->getUniqueBy(),
-                    $this->updateOnly,
-                    $this->updateExcept,
+                        foreach ($chunk as $row) {
+                            $finished[spl_object_id($row)] = true;
+                        }
+
+                        $current = [];
+                    }
+                } finally {
+                    // `$current` is not empty when its scenario has thrown: only its rows whose
+                    // operation has been completed leave the storage, the others are retried.
+                    foreach ($current as $row) {
+                        if ($row->isWritten()) {
+                            $finished[spl_object_id($row)] = true;
+                        }
+                    }
+
+                    $this->removeRows($storageKey, $key, $finished);
+                }
+            }
+        } finally {
+            unset($this->flushing[$storageKey]);
+        }
+    }
+
+    /**
+     * Reject a forced flush of a storage which is being flushed right now.
+     *
+     * It is checked before the given rows are added, so a rejected call changes nothing.
+     *
+     * @param BulkStorageKey ...$storageKeys
+     *
+     * @return void
+     *
+     * @throws \LogicException
+     */
+    private function assertNotFlushing(string ...$storageKeys): void
+    {
+        foreach ($storageKeys as $storageKey) {
+            if (isset($this->flushing[$storageKey])) {
+                throw new LogicException(
+                    'The accumulated rows cannot be saved while they are being saved (e.g. from a listener).'
                 );
             }
+        }
+    }
+
+    /**
+     * Remove the given rows from the accumulation in one pass, and the accumulation when it
+     * gets empty.
+     *
+     * The rows are matched by identity, so the rows added to the accumulation meanwhile stay.
+     *
+     * @param BulkStorageKey $storageKey
+     * @param string $key
+     * @param array<int, true> $removed The object ids of the rows to remove.
+     *
+     * @return void
+     */
+    private function removeRows(string $storageKey, string $key, array $removed): void
+    {
+        if ($removed === [] || !isset($this->storage[$storageKey][$key])) {
+            return;
+        }
+
+        $accumulation = $this->storage[$storageKey][$key];
+        $rest = [];
+
+        foreach ($accumulation->getRows() as $row) {
+            if (!isset($removed[spl_object_id($row)])) {
+                $rest[] = $row;
+            }
+        }
+
+        if ($rest === []) {
+            unset($this->storage[$storageKey][$key]);
+        } else {
+            $accumulation->setRows($rest);
         }
     }
 

@@ -85,6 +85,7 @@ readonly class InsertAndSelectStep
         // the select is an extra operation that may be skipped.
         if (!$needToSelect) {
             $driver->quietInsert($eloquent->getConnection(), $builder);
+            $this->markWritten($data);
 
             return null;
         }
@@ -94,6 +95,8 @@ readonly class InsertAndSelectStep
             $builder,
             $eloquent->getIncrementing() ? $eloquent->getKeyName() : null
         );
+        // The rows are written now: a failure below must not send them to the database again.
+        $this->markWritten($data);
 
         return [
             'insertResult' => $insertResult,
@@ -184,5 +187,19 @@ readonly class InsertAndSelectStep
             $deletedAtColumn,
             withTrashed: $deletedAtColumn !== null,
         );
+    }
+
+    /**
+     * Remember that the statement has written every row of the data.
+     *
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     *
+     * @return void
+     */
+    private function markWritten(BulkAccumulationEntity $data): void
+    {
+        foreach ($data->getRows() as $row) {
+            $row->markWritten();
+        }
     }
 }

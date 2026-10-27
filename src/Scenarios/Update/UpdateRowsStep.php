@@ -60,15 +60,23 @@ readonly class UpdateRowsStep
         // A row which takes part but has nothing to write gets its key only.
         $keyName = $eloquent->getKeyName();
 
+        // Every row of the statement is marked first: the statement has updated all of them,
+        // so none of them may be retried even if syncing a model below throws.
         foreach ($data->getRows() as $row) {
             $planned = $row->getPlannedUpdate();
 
-            if ($planned === null) {
-                continue;
+            if ($planned !== null) {
+                $row->setWrittenUpdate($planned);
+                $row->markWritten();
             }
+        }
 
-            $row->setWrittenUpdate($planned);
-            $this->keepStoredKey($row->getModel(), $keyName, $planned[$keyName] ?? null);
+        foreach ($data->getRows() as $row) {
+            $planned = $row->getWrittenUpdate();
+
+            if ($planned !== null) {
+                $this->keepStoredKey($row->getModel(), $keyName, $planned[$keyName] ?? null);
+            }
         }
     }
 

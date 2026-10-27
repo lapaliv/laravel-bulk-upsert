@@ -98,6 +98,16 @@ class BulkAccumulationItemEntity
     private ?array $writtenUpdate = null;
 
     /**
+     * Whether the operation of the row (insert, update, delete) has been completed.
+     *
+     * A completed row leaves the storage even when a later step of its scenario throws, so
+     * a retried flush does not write it twice.
+     *
+     * @var bool
+     */
+    private bool $written = false;
+
+    /**
      * Create a new accumulated row.
      *
      * @param mixed $original
@@ -329,5 +339,57 @@ class BulkAccumulationItemEntity
     public function setWrittenUpdate(?array $writtenUpdate): void
     {
         $this->writtenUpdate = $writtenUpdate;
+    }
+
+    /**
+     * Determine whether the operation of the row has been completed.
+     *
+     * @return bool
+     */
+    public function isWritten(): bool
+    {
+        return $this->written;
+    }
+
+    /**
+     * Remember that the operation of the row has been completed.
+     *
+     * @return void
+     */
+    public function markWritten(): void
+    {
+        $this->written = true;
+    }
+
+    /**
+     * Forget that the operation of the row has been completed.
+     *
+     * @return void
+     */
+    public function forgetWritten(): void
+    {
+        $this->written = false;
+    }
+
+    /**
+     * Forget the decisions of the listeners of a previous attempt.
+     *
+     * The listeners run again on the retry and take their decisions again. The model is not
+     * restored: the changes which the listeners have made to it stay, as they would for a
+     * second `Model::save()`. Whether the operation has been completed is kept.
+     *
+     * @return void
+     */
+    public function resetAttempt(): void
+    {
+        $this->skipSaving = false;
+        $this->skipCreating = false;
+        $this->skipUpdating = false;
+        $this->skipDeleting = false;
+        $this->skipRestoring = false;
+        $this->deleting = false;
+        $this->restoring = false;
+        $this->plannedUpdate = null;
+        $this->writtenUpdate = null;
     }
 }

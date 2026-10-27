@@ -6,6 +6,7 @@ use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
 use Lapaliv\BulkUpsert\Scenarios\CreateScenario;
+use Throwable;
 
 /**
  * Creates the rows which are absent in the database and decides which of them still need an update.
@@ -58,39 +59,51 @@ readonly class CreateNonexistentRowsStep
             return;
         }
 
-        // The creating scenario may replace a row's model with the one it read back from the
-        // database, which drops whatever the caller asked to write. Remember the attributes
-        // now, while the models still hold them.
-        $requestedAttributes = $this->rememberRequestedAttributes($nonexistent);
+        // The rows and their models are taken now: a quiet insert empties the data, and the
+        // creating scenario may replace a model with the one it has read back. The kept
+        // models hold what the caller asked to write together with the changes of the
+        // `saving`/`creating` listeners.
+        $rows = $nonexistent->getRows();
+        /** @var array<int, \Illuminate\Database\Eloquent\Model> $models */
+        $models = [];
 
-        $this->createScenario->handle(
-            $nonexistent,
-            $eventDispatcher,
-            ignore: true,
-            dateFields: $dateFields,
-            selectColumns: $selectColumns,
-            deletedAtColumn: $deletedAtColumn,
-        );
-
-        $this->markCreatedRows($data, $requestedAttributes);
-    }
-
-    /**
-     * Snapshot the attributes the caller asked to write, keyed by the row they belong to.
-     *
-     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function rememberRequestedAttributes(BulkAccumulationEntity $data): array
-    {
-        $result = [];
-
-        foreach ($data->getRows() as $row) {
-            $result[spl_object_id($row)] = $row->getModel()->getAttributes();
+        foreach ($rows as $row) {
+            $models[spl_object_id($row)] = $row->getModel();
+            // The flag must describe this insert only: a stale `true` left by an earlier
+            // operation would make the row skip its update. A row whose result stays unknown
+            // (a quiet insert) goes to the update, which looks it up first.
+            $row->getModel()->wasRecentlyCreated = false;
         }
 
-        return $result;
+        try {
+            $this->createScenario->handle(
+                $nonexistent,
+                $eventDispatcher,
+                ignore: true,
+                dateFields: $dateFields,
+                selectColumns: $selectColumns,
+                deletedAtColumn: $deletedAtColumn,
+            );
+        } catch (Throwable $exception) {
+            // The insert alone does not complete an upsert: the library cannot tell reliably
+            // whether this call has created a row (`wasRecentlyCreated` is a heuristic, and a
+            // quiet insert does not compute it). So every row of the insert is retried, with
+            // its own model: the retry looks the row up first, so a created row becomes an
+            // update, a no-op when nothing has changed. No user code runs here, so the
+            // original exception is rethrown as it is.
+            foreach ($rows as $row) {
+                $row->forgetWritten();
+                $row->setModel($models[spl_object_id($row)]);
+            }
+
+            throw $exception;
+        }
+
+        foreach ($rows as $row) {
+            $row->forgetWritten();
+        }
+
+        $this->markCreatedRows($data, $models);
     }
 
     /**
@@ -121,11 +134,11 @@ readonly class CreateNonexistentRowsStep
      * appeared in the database in the meantime, so it goes back to the update.
      *
      * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
-     * @param array<int, array<string, mixed>> $requestedAttributes
+     * @param array<int, \Illuminate\Database\Eloquent\Model> $models The models of the rows before the insert.
      *
      * @return void
      */
-    private function markCreatedRows(BulkAccumulationEntity $data, array $requestedAttributes): void
+    private function markCreatedRows(BulkAccumulationEntity $data, array $models): void
     {
         foreach ($data->getRows() as $row) {
             if (!$row->isSkipUpdating()) {
@@ -133,13 +146,15 @@ readonly class CreateNonexistentRowsStep
             }
 
             if ($row->getModel()->wasRecentlyCreated) {
+                // This call has created the row, so its upsert is complete.
+                $row->markWritten();
                 $row->setSkipSaving(true);
 
                 continue;
             }
 
             $row->setSkipUpdating(false);
-            $this->restoreRequestedAttributes($row, $requestedAttributes);
+            $this->restoreRequestedAttributes($row, $models);
         }
     }
 
@@ -156,25 +171,30 @@ readonly class CreateNonexistentRowsStep
      * that had already been encoded. The original attributes are deliberately left untouched:
      * they hold the stored row, which is what makes the update see the difference.
      *
+     * The requested attributes are the raw attributes of the model which the row had before
+     * the insert, i.e. the input together with the changes of the `saving`/`creating`
+     * listeners.
+     *
      * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity $row
-     * @param array<int, array<string, mixed>> $requestedAttributes
+     * @param array<int, \Illuminate\Database\Eloquent\Model> $models The models of the rows before the insert.
      *
      * @return void
      */
     private function restoreRequestedAttributes(
         BulkAccumulationItemEntity $row,
-        array $requestedAttributes,
+        array $models,
     ): void
     {
-        $requested = $requestedAttributes[spl_object_id($row)] ?? [];
+        $requested = $models[spl_object_id($row)] ?? null;
+        $model = $row->getModel();
 
-        if (empty($requested)) {
+        // A model which has not been replaced already holds the requested attributes.
+        if ($requested === null || $requested === $model) {
             return;
         }
 
-        $model = $row->getModel();
         $model->setRawAttributes(
-            array_merge($model->getAttributes(), $requested)
+            array_merge($model->getAttributes(), $requested->getAttributes())
         );
     }
 }

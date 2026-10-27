@@ -310,6 +310,42 @@ $bulk->deleteAccumulated();
 // or $bulk->forceDeleteAccumulated();
 ```
 
+#### When a flush throws
+
+The accumulated rows are saved chunk by chunk. When the scenario of a chunk throws (a
+listener, the database), the exception reaches the caller, and the storage keeps exactly
+the rows which still have to be saved:
+
+- the rows of the chunks which have finished leave the storage;
+- the chunks which have not run yet stay;
+- in the chunk which has thrown, the rows whose statement has run (inserted, updated,
+  deleted) leave the storage, the others stay. An upsert row stays until this call has
+  either created it or updated it.
+
+So the next `*Accumulated()` call saves the rest without writing a finished row twice.
+
+Keep in mind:
+
+- "has run" means the statement has returned, not that a transaction has been committed.
+  When you wrap the bulk into a transaction which rolls back, retry the transaction with
+  a new bulk instance and the original input.
+- When the connection breaks while a statement is running, the library cannot know
+  whether the database has executed it; such a chunk stays in the storage and a retry may
+  write it twice.
+- A retried row goes through the listeners again. The changes which the listeners made
+  before the statement (`saving`, `creating`, `updating`, ...) are not undone, as they
+  would not be for a second `Model::save()`. An upsert row is retried with the model it
+  had before the insert, so the changes which `created`/`saved` listeners made to the
+  model read back from the database are not kept. The events which a failure has
+  interrupted (e.g. the `created` events of the other rows of the chunk) are not
+  dispatched later.
+- A row counts as written once the driver call has returned. If the statement has run
+  but the driver or a query listener throws before that, the row is retried and may be
+  written twice.
+- A forced flush (`*Accumulated()`, `create()`, ...) of the same storage from a listener
+  during a flush throws a `LogicException`. `*OrAccumulate()` from a listener only adds the
+  rows; they are saved by the next flush.
+
 ### Listeners
 
 #### The order of events
