@@ -94,7 +94,14 @@ trait BulkBuilderTrait
         // A DISTINCT query goes to the second branch, which keeps its own projection:
         // widening it to every column would change what is distinct (and PostgreSQL cannot
         // compare `json` columns).
-        if (($base->orders ?? []) === [] && $base->limit === null && $base->offset === null && $base->distinct === false) {
+        // A JOIN may repeat a row, so it goes to the second branch too, which drops the repeated
+        // keys; the keyset would load such a row several times.
+        if (($base->orders ?? []) === []
+            && $base->limit === null
+            && $base->offset === null
+            && $base->distinct === false
+            && ($base->joins ?? []) === []
+        ) {
             // Keyset pagination by the primary key: only one chunk is in memory, and the key is
             // never written, so a row which leaves the WHERE clause cannot shift the next chunk.
             $lastKey = null;
@@ -159,13 +166,22 @@ trait BulkBuilderTrait
             $keys[] = $key;
         }
 
+        // A JOIN may repeat a row; it is updated once, at its first position.
+        $keysByValue = [];
+
+        foreach ($keys as $key) {
+            $keysByValue[(string)$key] ??= $key;
+        }
+
+        $keys = array_values($keysByValue);
+
         foreach (array_chunk($keys, $chunk) as $chunkKeys) {
             // The keys have already passed the WHERE clause and every scope of the builder, so
             // the rows are loaded by the keys alone: a scope with its own limit or offset would
             // otherwise cut the chunk again.
             $builder = $model->newQueryWithoutScopes()
                 ->useWritePdo()
-                ->setEagerLoads($this->getEagerLoads())
+                ->setEagerLoads($prepared->getEagerLoads())
                 ->select($model->qualifyColumn('*'));
 
             /** @var \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model> $loaded */
@@ -222,10 +238,21 @@ trait BulkBuilderTrait
             $qualifier . '.*',
             $qualifier . '.' . $model->getKeyName(),
         ];
+        // The key selected under its own name: `id as id`, `members.id as id`.
+        $aliased = array_map(
+            static fn (string $column): string => $column . ' as ' . $model->getKeyName(),
+            [$model->getKeyName(), $model->getQualifiedKeyName(), $qualifier . '.' . $model->getKeyName()]
+        );
 
         /** @psalm-suppress MixedAssignment A column may be an expression; is_string() checks it. */
         foreach ($columns as $column) {
-            if (is_string($column) && in_array($column, $accepted, true)) {
+            if (!is_string($column)) {
+                continue;
+            }
+
+            $normalized = (string)preg_replace('/\s+as\s+/i', ' as ', trim($column));
+
+            if (in_array($normalized, $accepted, true) || in_array($normalized, $aliased, true)) {
                 return true;
             }
         }

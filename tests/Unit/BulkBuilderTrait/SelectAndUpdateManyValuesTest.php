@@ -217,6 +217,59 @@ class OrWhereScopeMember extends Member
 }
 
 /**
+ * A member whose global scope orders the rows and eager loads a relation.
+ *
+ * @internal
+ */
+class EagerLoadingScopeMember extends Member
+{
+    /**
+     * @var string
+     */
+    protected $table = 'members';
+
+    /**
+     * The emails of the loaded relation for each updated row, or null when it was not loaded.
+     *
+     * @var array<int, string[]|null>
+     */
+    public static array $loaded = [];
+
+    /**
+     * Get the members of the same tenant.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function peers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        // The related model has no eager loading scope, so the loading does not recurse.
+        return $this->hasMany(Member::class, 'tenant_id', 'tenant_id');
+    }
+
+    /**
+     * Add the scope and record whether the relation is loaded.
+     *
+     * @return void
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::addGlobalScope(
+            'eager',
+            fn (\Illuminate\Database\Eloquent\Builder $builder) => $builder
+                ->with(['peers' => fn ($query) => $query->where('email', 'a@example.com')])
+                ->orderBy('email')
+        );
+        static::updating(function (self $member): void {
+            self::$loaded[] = $member->relationLoaded('peers')
+                ? $member->peers->pluck('email')->all()
+                : null;
+        });
+    }
+}
+
+/**
  * `selectAndUpdateMany()` must write the values exactly as the model would, and every row.
  *
  * Regression test. Without listeners the values were sent to a plain UPDATE as they were,
@@ -706,6 +759,55 @@ final class SelectAndUpdateManyValuesTest extends TestCaseWrapper
     }
 
     /**
+     * A JOIN which repeats rows without an own order must update every row once.
+     *
+     * The rows of the first tenant are repeated three times and the rows of the second one
+     * once, so a chunk of any size meets the repeated keys.
+     *
+     * @param int $chunk
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('chunkSizes')]
+    public function testJoinWhichRepeatsRowsWithoutOrderUpdatesEveryRowOnce(int $chunk): void
+    {
+        // arrange
+        $table = Member::table();
+        DB::table($table)->insert([
+            ['tenant_id' => 1, 'email' => 'a@example.com', 'name' => 'pending'],
+            ['tenant_id' => 1, 'email' => 'b@example.com', 'name' => 'pending'],
+            ['tenant_id' => 1, 'email' => 'c@example.com', 'name' => 'pending'],
+            ['tenant_id' => 2, 'email' => 'd@example.com', 'name' => 'pending'],
+        ]);
+        OrderRecordingMember::$updated = [];
+
+        // act
+        $count = OrderRecordingMember::query()
+            ->withoutGlobalScopes()
+            ->select($table . '.*')
+            ->join($table . ' as other', 'other.tenant_id', '=', $table . '.tenant_id')
+            ->selectAndUpdateMany(['bio' => 'x'], null, $chunk);
+
+        // assert
+        self::assertSame(4, $count);
+        $updated = OrderRecordingMember::$updated;
+        sort($updated);
+        self::assertSame(['a@example.com', 'b@example.com', 'c@example.com', 'd@example.com'], $updated);
+    }
+
+    /**
+     * The chunk sizes which meet the repeated keys in different ways.
+     *
+     * @return array<string, array{int}>
+     */
+    public static function chunkSizes(): array
+    {
+        return ['one' => [1], 'two' => [2], 'three' => [3]];
+    }
+
+    /**
      * A table alias of the builder must be honoured in both branches.
      *
      * @return void
@@ -808,6 +910,84 @@ final class SelectAndUpdateManyValuesTest extends TestCaseWrapper
         // assert
         self::assertSame(1, $count);
         self::assertSame(['done', 'pending'], DB::table($table)->orderBy('email')->pluck('name')->all());
+    }
+
+    /**
+     * A JOIN which repeats a row must not make the row be updated twice.
+     *
+     * Every member joins both members of its tenant, so every key comes twice; with one row
+     * per chunk the repeated key would be loaded and updated again in the next chunk.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testJoinWhichRepeatsRowsUpdatesEveryRowOnce(): void
+    {
+        // arrange
+        $this->insert(['a@example.com', 'b@example.com']);
+        $table = Member::table();
+        OrderRecordingMember::$updated = [];
+
+        // act
+        $count = OrderRecordingMember::query()
+            ->select($table . '.*')
+            ->join($table . ' as other', 'other.tenant_id', '=', $table . '.tenant_id')
+            ->orderBy($table . '.email')
+            ->selectAndUpdateMany(['bio' => 'x'], null, 1);
+
+        // assert
+        self::assertSame(2, $count);
+        self::assertSame(['a@example.com', 'b@example.com'], OrderRecordingMember::$updated);
+    }
+
+    /**
+     * The relations eager loaded by a global scope must be loaded for the updated rows.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testEagerLoadsOfGlobalScopeAreKept(): void
+    {
+        // arrange
+        $this->insert(['a@example.com', 'b@example.com']);
+        EagerLoadingScopeMember::$loaded = [];
+
+        // act
+        EagerLoadingScopeMember::query()->selectAndUpdateMany(['bio' => 'x'], null, 1);
+
+        // assert
+        // The constraint of the eager load is kept as well, not only the relation.
+        self::assertSame([['a@example.com'], ['a@example.com']], EagerLoadingScopeMember::$loaded);
+    }
+
+    /**
+     * A DISTINCT query which selects the key under its own name must be accepted.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testDistinctQueryWithAliasedKeyIsAccepted(): void
+    {
+        // arrange
+        $this->insert(['a@example.com', 'b@example.com']);
+
+        // act
+        $counts = [];
+
+        foreach (['members.id as id', 'members.id AS id', 'id  as  id'] as $i => $key) {
+            DB::table(Member::table())->update(['name' => 'pending']);
+            $counts[] = Member::query()
+                ->select([$key, 'members.email'])
+                ->distinct()
+                ->selectAndUpdateMany(['name' => 'done ' . $i]);
+        }
+
+        // assert
+        self::assertSame([2, 2, 2], $counts);
+        self::assertSame(0, DB::table(Member::table())->where('name', 'pending')->count());
     }
 
     /**
