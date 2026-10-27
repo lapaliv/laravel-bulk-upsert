@@ -42,15 +42,35 @@ class FillInWasRecentlyCreatedPropertyStep
         $eloquent = $data->getFirstModel();
         $createdAtColumn = $eloquent->getCreatedAtColumn();
 
-        if ($eloquent->getIncrementing() && $insertResult->getMaxPrimaryBeforeInserting() !== null) {
+        // A driver which returns the inserted rows (PostgreSQL) has matched exactly them.
+        if ($insertResult->getRows() !== null) {
             foreach ($data->getRows() as $row) {
+                $row->setCreatedByInsert($row->isCreatedByInsert() ?? true);
+            }
+        }
+
+        // What the driver knows is the answer; the guesses below are only for the rest.
+        $unknown = [];
+
+        foreach ($data->getRows() as $index => $row) {
+            $known = $row->isCreatedByInsert();
+
+            if ($known === null) {
+                $unknown[$index] = $row;
+            } else {
+                $row->getModel()->wasRecentlyCreated = $known;
+            }
+        }
+
+        if ($eloquent->getIncrementing() && $insertResult->getMaxPrimaryBeforeInserting() !== null) {
+            foreach ($unknown as $row) {
                 $row->getModel()->wasRecentlyCreated = $row->getModel()->wasRecentlyCreated
                     || $row->getModel()->getKey() > $insertResult->getMaxPrimaryBeforeInserting();
             }
         } elseif ($eloquent->usesTimestamps() && $createdAtColumn !== null) {
             $format = $dataFields[$createdAtColumn] ?? 'Y-m-d H:i:s';
 
-            foreach ($data->getRows() as $row) {
+            foreach ($unknown as $row) {
                 if ($row->getModel()->wasRecentlyCreated) {
                     continue;
                 }

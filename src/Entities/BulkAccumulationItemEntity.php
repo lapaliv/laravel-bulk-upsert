@@ -119,6 +119,16 @@ class BulkAccumulationItemEntity
     private bool $matchedInDatabase = false;
 
     /**
+     * Whether the insert of the current attempt has created the row: null when not known.
+     *
+     * It is told by the driver and recorded before any listener, so a listener which changes
+     * `wasRecentlyCreated` does not change what the library does with the row.
+     *
+     * @var bool|null
+     */
+    private ?bool $createdByInsert = null;
+
+    /**
      * Create a new accumulated row.
      *
      * @param mixed $original
@@ -403,6 +413,29 @@ class BulkAccumulationItemEntity
         $this->plannedUpdate = null;
         $this->writtenUpdate = null;
         $this->matchedInDatabase = false;
+        $this->createdByInsert = null;
+    }
+
+    /**
+     * Determine whether the insert of the current attempt has created the row (null: unknown).
+     *
+     * @return bool|null
+     */
+    public function isCreatedByInsert(): ?bool
+    {
+        return $this->createdByInsert;
+    }
+
+    /**
+     * Remember whether the insert of the current attempt has created the row.
+     *
+     * @param bool|null $createdByInsert
+     *
+     * @return void
+     */
+    public function setCreatedByInsert(?bool $createdByInsert): void
+    {
+        $this->createdByInsert = $createdByInsert;
     }
 
     /**

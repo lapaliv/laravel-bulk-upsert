@@ -8,6 +8,7 @@ use Lapaliv\BulkUpsert\Builders\InsertBuilderFactory;
 use Lapaliv\BulkUpsert\Builders\SelectExistingRowsQuery;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
+use Lapaliv\BulkUpsert\Contracts\BulkInsertedIndexes;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
@@ -97,6 +98,13 @@ readonly class InsertAndSelectStep
             return null;
         }
 
+        // The values of the statement follow the rows of the data in their order.
+        $rows = array_values($data->getRows());
+
+        foreach ($rows as $row) {
+            $row->setCreatedByInsert(null);
+        }
+
         $insertResult = $driver->insertWithResult(
             $eloquent->getConnection(),
             $builder,
@@ -104,6 +112,20 @@ readonly class InsertAndSelectStep
         );
         // The rows are written now: a failure below must not send them to the database again.
         $this->markWritten($data);
+
+        // A driver which knows which rows the statement has created says it exactly, so a row
+        // which somebody else has inserted meanwhile is not taken as created by this call.
+        $insertedIndexes = $insertResult instanceof BulkInsertedIndexes
+            ? $insertResult->getInsertedIndexes()
+            : null;
+
+        if ($insertedIndexes !== null) {
+            $inserted = array_flip($insertedIndexes);
+
+            foreach ($rows as $index => $row) {
+                $row->setCreatedByInsert(isset($inserted[$index]));
+            }
+        }
 
         return [
             'insertResult' => $insertResult,

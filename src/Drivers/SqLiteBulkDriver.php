@@ -5,6 +5,7 @@ namespace Lapaliv\BulkUpsert\Drivers;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Grammars\SQLiteGrammar as LaravelSqLiteGrammar;
+use Illuminate\Database\QueryException;
 use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
@@ -12,6 +13,7 @@ use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
 use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
 use Lapaliv\BulkUpsert\Drivers\SqLite\SqLiteInsertResult;
+use Lapaliv\BulkUpsert\Drivers\SqLite\SqLitePartialInsert;
 use Lapaliv\BulkUpsert\Grammars\SqLiteBulkGrammar;
 use LogicException;
 
@@ -78,14 +80,107 @@ readonly class SqLiteBulkDriver implements BulkDriver
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $grammar = new SqLiteBulkGrammar($this->mixedValueToSqlConverter, $laravelGrammar);
-        $connection->insert($grammar->insert($builder), $grammar->getBindings());
+        $insertedIndexes = $this->runInsert($connection, $builder);
 
         return new SqLiteInsertResult(
             is_numeric($lastPrimaryBeforeInserting)
                 ? (int)$lastPrimaryBeforeInserting
-                : null
+                : null,
+            $insertedIndexes,
         );
+    }
+
+    /**
+     * Run the insert and tell which rows it has created.
+     *
+     * `ON CONFLICT DO NOTHING` does not say which rows it has skipped, so when the duplicates
+     * have to be skipped, the rows are inserted by a plain statement first: it is atomic and
+     * creates all of them. Only when it fails with a duplicate key, they are inserted one by
+     * one, skipping the duplicates, and each one tells by its count whether it was created.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
+     *
+     * @return list<int>|null The positions of the created rows, or null when it is unknown.
+     *
+     * @throws \Throwable
+     */
+    private function runInsert(ConnectionInterface $connection, InsertBuilder $builder): ?array
+    {
+        $all = array_keys(array_values($builder->getValues()));
+
+        if (!$builder->isIgnoringDuplicatesOnly()) {
+            $grammar = $this->grammar($connection);
+            $count = $connection->affectingStatement($grammar->insert($builder), $grammar->getBindings());
+
+            // `INSERT OR IGNORE` or a trigger with `RAISE(IGNORE)` may skip rows without
+            // telling which ones: only a full count proves that every row was created.
+            return !$builder->doNothingAtConflict() && $count === count($all) ? $all : null;
+        }
+
+        $plain = (clone $builder)->onConflictDoNothing(false)->ignoreDuplicatesOnly(false);
+
+        try {
+            // The attempt runs in its own transaction (a savepoint inside an outer one), so a
+            // failure leaves none of its rows, whatever conflict resolution a trigger uses.
+            // A trigger with `RAISE(IGNORE)` skips a row without an error: then the count is
+            // short, the attempt is undone and the rows go one by one, so each one tells.
+            /** @var list<int> */
+            return $connection->transaction(function () use ($connection, $plain, $all): array {
+                $grammar = $this->grammar($connection);
+                $count = $connection->affectingStatement($grammar->insert($plain), $grammar->getBindings());
+
+                if ($count !== count($all)) {
+                    throw new SqLitePartialInsert();
+                }
+
+                return $all;
+            });
+        } catch (SqLitePartialInsert) {
+            // Undone by the transaction; the rows are inserted one by one below.
+        } catch (QueryException $exception) {
+            if (!$this->isDuplicateKey($exception)) {
+                throw $exception;
+            }
+        }
+
+        /** @var list<int> */
+        return $connection->transaction(function () use ($connection, $builder): array {
+            $inserted = [];
+
+            foreach (array_values($builder->getValues()) as $index => $row) {
+                $grammar = $this->grammar($connection);
+                $count = $connection->affectingStatement(
+                    $grammar->insert($builder->withValues([$row])),
+                    $grammar->getBindings()
+                );
+
+                if ($count > 0) {
+                    $inserted[] = $index;
+                }
+            }
+
+            return $inserted;
+        });
+    }
+
+    /**
+     * Determine whether the statement has failed because of a duplicate key.
+     *
+     * SQLite gives the same code (19, SQLITE_CONSTRAINT) to every constraint and the extended
+     * code is not exposed by PDO, so the message tells a unique or primary key apart.
+     *
+     * @param \Illuminate\Database\QueryException $exception
+     *
+     * @return bool
+     */
+    private function isDuplicateKey(QueryException $exception): bool
+    {
+        /** @var array<int, mixed>|null $errorInfo */
+        $errorInfo = $exception->errorInfo;
+
+        return (int)($errorInfo[1] ?? 0) === 19
+            && str_contains($exception->getMessage(), 'UNIQUE constraint failed');
     }
 
     /**

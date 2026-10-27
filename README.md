@@ -234,7 +234,11 @@ appears in the database meanwhile (a duplicate key) is skipped by the insert and
 but the other errors which the database raises for a new row (NOT NULL, CHECK, a foreign
 key, a too long value) reach the caller instead of being hidden:
 
-- PostgreSQL and SQLite use `ON CONFLICT DO NOTHING`, which skips a uniqueness conflict only.
+- PostgreSQL uses `ON CONFLICT DO NOTHING ... RETURNING`, which skips a uniqueness conflict
+  only and returns exactly the created rows.
+- SQLite inserts the rows by a plain `INSERT` inside a transaction (a savepoint within yours);
+  only when it fails with a duplicate key, they are inserted one by one with
+  `ON CONFLICT DO NOTHING`, each one telling whether it was created.
 - MySQL has no such clause (`INSERT IGNORE` also hides the other errors), so the rows are
   inserted by a plain `INSERT`; only when it fails with a duplicate key, they are inserted
   again one by one inside a transaction, skipping the duplicates. This relies on
@@ -253,6 +257,13 @@ have been saved; `getRows()` gives its models. Such a row stays in the accumulat
 known for sure (a trigger or a collation may have stored it under another key), so check the
 database before you fix the model and flush again: a retry may insert it once more. The check is the library's own record of
 reading the row back, so a listener which changes `exists` afterwards does not affect it.
+
+The upsert tells which rows its insert has created from the database itself, not from the
+primary keys or the creation time: a row which another process inserts between the steps of
+the upsert is updated with your input, and only the rows created by this call get `created`.
+A custom driver tells it by implementing `Lapaliv\BulkUpsert\Contracts\BulkInsertedIndexes`
+on its insert result; without it, the library falls back to the primary keys and the creation
+time, which such a race can fool.
 
 `create($rows, ignoreConflicts: true)` keeps `INSERT IGNORE` / `INSERT OR IGNORE` /
 `ON CONFLICT DO NOTHING`, as before.
@@ -635,8 +646,12 @@ In this example you have a chain. After upserting the user, the library will run
 
 ## Transactions
 
-The library never opens a transaction on its own. Every operation sends its queries straight
-to the connection of your model.
+The library does not wrap an operation into a transaction for you. Every operation sends its
+queries straight to the connection of your model. There are two narrow exceptions, both inside
+the insert of an upsert: SQLite runs the first attempt of the insert in a transaction (a
+savepoint within yours), and both SQLite and MySQL insert the rows one by one inside a
+transaction after a duplicate key. These transactions only make the insert itself atomic;
+they never cover the rest of the operation.
 
 This is a deliberate decision, not something which was forgotten. Only you know how a bulk
 operation fits into the rest of your work, so only you can decide what has to be atomic. Any

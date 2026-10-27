@@ -3,13 +3,14 @@
 namespace Lapaliv\BulkUpsert\Drivers\SqLite;
 
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
+use Lapaliv\BulkUpsert\Contracts\BulkInsertedIndexes;
 
 /**
  * The result of a SQLite insert query.
  *
  * @internal
  */
-readonly class SqLiteInsertResult implements BulkInsertResult
+readonly class SqLiteInsertResult implements BulkInsertResult, BulkInsertedIndexes
 {
     /**
      * Create a new result instance.
@@ -18,7 +19,10 @@ readonly class SqLiteInsertResult implements BulkInsertResult
      *
      * @return void
      */
-    public function __construct(private ?int $maxPrimaryBeforeInserting)
+    public function __construct(
+        private ?int $maxPrimaryBeforeInserting,
+        private ?array $insertedIndexes = null,
+    )
     {
         //
     }
@@ -43,5 +47,16 @@ readonly class SqLiteInsertResult implements BulkInsertResult
     public function getMaxPrimaryBeforeInserting(): null|int|string
     {
         return $this->maxPrimaryBeforeInserting;
+    }
+
+    /**
+     * Get the positions of the rows which the statement has created.
+     *
+     * @return list<int>|null
+     */
+    public function getInsertedIndexes(): ?array
+    {
+        /** @var list<int>|null */
+        return $this->insertedIndexes;
     }
 }

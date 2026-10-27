@@ -81,12 +81,13 @@ readonly class MySqlBulkDriver implements BulkDriver
             $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
         }
 
-        $this->runInsert($connection, $builder);
+        $insertedIndexes = $this->runInsert($connection, $builder);
 
         return new MySqlInsertResult(
             is_numeric($lastPrimaryBeforeInserting)
                 ? (int)$lastPrimaryBeforeInserting
-                : null
+                : null,
+            $insertedIndexes,
         );
     }
 
@@ -118,12 +119,14 @@ readonly class MySqlBulkDriver implements BulkDriver
      * @param \Illuminate\Database\ConnectionInterface $connection
      * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
      *
-     * @return void
+     * @return list<int>|null The positions of the created rows, or null when it is unknown.
      *
      * @throws \Throwable
      */
-    private function runInsert(ConnectionInterface $connection, InsertBuilder $builder): void
+    private function runInsert(ConnectionInterface $connection, InsertBuilder $builder): ?array
     {
+        $all = array_keys(array_values($builder->getValues()));
+
         $run = function (InsertBuilder $statement) use ($connection): void {
             $grammar = $this->grammar($connection);
             $connection->insert($grammar->insert($statement), $grammar->getBindings());
@@ -132,30 +135,39 @@ readonly class MySqlBulkDriver implements BulkDriver
         if (!$builder->isIgnoringDuplicatesOnly()) {
             $run($builder);
 
-            return;
+            // `INSERT IGNORE` may skip rows without telling which ones.
+            return $builder->doNothingAtConflict() ? null : $all;
         }
 
         try {
-            // A single statement is atomic: when it fails, none of its rows is stored.
+            // A single statement is atomic: when it succeeds, it has created every row.
             $run($builder);
 
-            return;
+            return $all;
         } catch (QueryException $exception) {
             if (!$this->isDuplicateKey($exception)) {
                 throw $exception;
             }
         }
 
-        $connection->transaction(function () use ($builder, $run): void {
-            foreach ($builder->getValues() as $row) {
+        // Each row tells on its own whether it has been created: a row which somebody else has
+        // inserted meanwhile is a duplicate, whatever its primary key is.
+        /** @var list<int> */
+        return $connection->transaction(function () use ($builder, $run): array {
+            $inserted = [];
+
+            foreach (array_values($builder->getValues()) as $index => $row) {
                 try {
                     $run($builder->withValues([$row]));
+                    $inserted[] = $index;
                 } catch (QueryException $exception) {
                     if (!$this->isDuplicateKey($exception)) {
                         throw $exception;
                     }
                 }
             }
+
+            return $inserted;
         });
     }
 

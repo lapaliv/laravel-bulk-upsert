@@ -75,6 +75,7 @@ readonly class CreateNonexistentRowsStep
             // operation would make the row skip its update. A row whose result stays unknown
             // (a quiet insert) goes to the update, which looks it up first.
             $row->getModel()->wasRecentlyCreated = false;
+            $row->setCreatedByInsert(null);
         }
 
         try {
@@ -165,7 +166,9 @@ readonly class CreateNonexistentRowsStep
                 continue;
             }
 
-            if ($row->getModel()->wasRecentlyCreated) {
+            // The driver's answer, recorded before any listener; the public flag (a guess, and
+            // changeable by a `created` listener) only when the driver does not know.
+            if ($row->isCreatedByInsert() ?? $row->getModel()->wasRecentlyCreated) {
                 // This call has created the row, so its upsert is complete.
                 $row->markWritten();
                 $row->setSkipSaving(true);
