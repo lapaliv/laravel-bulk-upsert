@@ -270,6 +270,82 @@ class EagerLoadingScopeMember extends Member
 }
 
 /**
+ * A member whose bio mutator appends to the stored value, so a second update is visible.
+ *
+ * @internal
+ */
+class AppendingBioMember extends Member
+{
+    /**
+     * @var string
+     */
+    protected $table = 'members';
+
+    /**
+     * Append the value to the current bio.
+     *
+     * @param string $value
+     *
+     * @return void
+     */
+    public function setBioAttribute(string $value): void
+    {
+        $this->attributes['bio'] = ($this->attributes['bio'] ?? '') . $value;
+    }
+}
+
+/**
+ * A member whose global scope only eager loads a relation, without an order.
+ *
+ * @internal
+ */
+class EagerLoadingWithoutOrderMember extends Member
+{
+    /**
+     * @var string
+     */
+    protected $table = 'members';
+
+    /**
+     * The emails of the loaded relation for each updated row, or null when it was not loaded.
+     *
+     * @var array<int, string[]|null>
+     */
+    public static array $loaded = [];
+
+    /**
+     * Get the members of the same tenant.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function peers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Member::class, 'tenant_id', 'tenant_id');
+    }
+
+    /**
+     * Add the scope and record the loaded relation.
+     *
+     * @return void
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::addGlobalScope(
+            'eager',
+            fn (\Illuminate\Database\Eloquent\Builder $builder) => $builder
+                ->with(['peers' => fn ($query) => $query->where('email', 'a@example.com')])
+        );
+        static::updating(function (self $member): void {
+            self::$loaded[] = $member->relationLoaded('peers')
+                ? $member->peers->pluck('email')->all()
+                : null;
+        });
+    }
+}
+
+/**
  * `selectAndUpdateMany()` must write the values exactly as the model would, and every row.
  *
  * Regression test. Without listeners the values were sent to a plain UPDATE as they were,
@@ -988,6 +1064,164 @@ final class SelectAndUpdateManyValuesTest extends TestCaseWrapper
         // assert
         self::assertSame([2, 2, 2], $counts);
         self::assertSame(0, DB::table(Member::table())->where('name', 'pending')->count());
+    }
+
+    /**
+     * A row which a JOIN repeats must go through a non-idempotent mutator once.
+     *
+     * The mutator appends to the stored bio, so a second update of the same row stores `xx`.
+     *
+     * @param bool $ordered
+     * @param int $chunk
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('joinCases')]
+    public function testJoinWhichRepeatsRowsRunsTheMutatorOnce(bool $ordered, int $chunk): void
+    {
+        // arrange
+        $table = Member::table();
+        DB::table($table)->insert([
+            ['tenant_id' => 1, 'email' => 'a@example.com', 'name' => 'pending', 'bio' => ''],
+            ['tenant_id' => 1, 'email' => 'b@example.com', 'name' => 'pending', 'bio' => ''],
+            ['tenant_id' => 1, 'email' => 'c@example.com', 'name' => 'pending', 'bio' => ''],
+            ['tenant_id' => 2, 'email' => 'd@example.com', 'name' => 'pending', 'bio' => ''],
+        ]);
+        $builder = AppendingBioMember::query()
+            ->withoutGlobalScopes()
+            ->select($table . '.*')
+            ->join($table . ' as other', 'other.tenant_id', '=', $table . '.tenant_id');
+
+        if ($ordered) {
+            $builder->orderBy($table . '.email');
+        }
+
+        // act
+        $count = $builder->selectAndUpdateMany(['bio' => 'x'], null, $chunk);
+
+        // assert
+        self::assertSame(4, $count);
+        self::assertSame(['x', 'x', 'x', 'x'], DB::table($table)->orderBy('email')->pluck('bio')->all());
+    }
+
+    /**
+     * The JOIN cases: with and without an own order, over several chunk sizes.
+     *
+     * @return array<string, array{bool, int}>
+     */
+    public static function joinCases(): array
+    {
+        $result = [];
+
+        foreach ([false, true] as $ordered) {
+            foreach ([1, 2, 3] as $chunk) {
+                $result[($ordered ? 'ordered' : 'unordered') . ', chunk ' . $chunk] = [$ordered, $chunk];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The eager loads of a global scope without an order must be kept as well.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testEagerLoadsOfGlobalScopeWithoutOrderAreKept(): void
+    {
+        // arrange
+        $this->insert(['a@example.com', 'b@example.com']);
+        EagerLoadingWithoutOrderMember::$loaded = [];
+
+        // act
+        EagerLoadingWithoutOrderMember::query()->selectAndUpdateMany(['bio' => 'x'], null, 1);
+
+        // assert
+        self::assertSame([['a@example.com'], ['a@example.com']], EagerLoadingWithoutOrderMember::$loaded);
+    }
+
+    /**
+     * A DISTINCT query must accept the key selected under its own name, with any table name.
+     *
+     * @param string $from
+     * @param string $key
+     * @param string $email
+     * @param bool $ordered
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('distinctKeyCases')]
+    public function testDistinctQueryAcceptsTheAliasedKey(string $from, string $key, string $email, bool $ordered): void
+    {
+        // arrange
+        $this->insert(['a@example.com', 'b@example.com']);
+        $builder = Member::query()->withoutGlobalScopes()->from($from)->select([$key, $email])->distinct();
+
+        if ($ordered) {
+            $builder->orderBy($email);
+        }
+
+        // act
+        $count = $builder->selectAndUpdateMany(['name' => 'done'], null, 1);
+
+        // assert
+        self::assertSame(2, $count);
+        self::assertSame(0, DB::table(Member::table())->where('name', 'pending')->count());
+    }
+
+    /**
+     * The forms of the key in a DISTINCT query, with and without an own order.
+     *
+     * @return array<string, array{string, string, string, bool}>
+     */
+    public static function distinctKeyCases(): array
+    {
+        $forms = [
+            'id as id' => ['members', 'id as id', 'email'],
+            'table.id as id' => ['members', 'members.id as id', 'members.email'],
+            'upper AS' => ['members', 'members.id AS id', 'members.email'],
+            'extra spaces' => ['members', 'members.id   as   id', 'members.email'],
+            'from alias' => ['members as m', 'm.id as id', 'm.email'],
+        ];
+        $result = [];
+
+        foreach ($forms as $name => $form) {
+            foreach ([false, true] as $ordered) {
+                $result[$name . ($ordered ? ', ordered' : ', unordered')] = [...$form, $ordered];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * A DISTINCT query with the key inside `selectRaw()` is rejected before any write.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testDistinctQueryWithRawKeyIsRejectedBeforeAnyWrite(): void
+    {
+        // arrange
+        $this->insert(['a@example.com']);
+
+        // act
+        try {
+            Member::query()->selectRaw('members.id, members.email')->distinct()->selectAndUpdateMany(['name' => 'done']);
+            self::fail('A DISTINCT query with a raw key has to be rejected.');
+        } catch (\LogicException $exception) {
+            self::assertStringContainsString('primary key', $exception->getMessage());
+        }
+
+        // assert
+        self::assertSame('pending', DB::table(Member::table())->value('name'));
     }
 
     /**

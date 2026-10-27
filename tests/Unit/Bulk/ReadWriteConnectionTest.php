@@ -38,18 +38,7 @@ final class ReadWriteConnectionTest extends TestCaseWrapper
     {
         parent::setUp();
 
-        /** @var array<string, mixed> $config */
-        $config = DB::connection()->getConfig();
-        $driver = (string) ($config['driver'] ?? '');
-        $read = $driver === 'sqlite'
-            ? ['database' => '/nonexistent/bulk-upsert/read.sqlite']
-            : ['host' => '127.0.0.1', 'port' => 1];
-
-        DB::connectUsing(
-            self::CONNECTION,
-            array_replace($config, ['read' => $read, 'write' => [], 'sticky' => false]),
-            true
-        );
+        $this->connect(false);
 
         DB::table(Member::table())->delete();
         DB::table(Member::table())->insert(
@@ -149,6 +138,69 @@ final class ReadWriteConnectionTest extends TestCaseWrapper
 
         // assert
         self::assertSame(0, DB::table(Member::table())->count());
+    }
+
+    /**
+     * The reader of the test connection must be unreachable, or the other tests prove nothing.
+     *
+     * @return void
+     */
+    public function testReaderIsUnreachable(): void
+    {
+        // assert
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        // act
+        $this->model()->newQuery()->get();
+    }
+
+    /**
+     * After `create()` a sticky connection must read the new rows from the writer.
+     *
+     * On PostgreSQL the rows are inserted with `INSERT ... RETURNING`, which runs through
+     * `select()`; the connection has to be marked as modified for the sticky reads.
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     */
+    public function testStickyConnectionReadsTheCreatedRowsFromTheWriter(): void
+    {
+        // arrange
+        $this->connect(true);
+        $sut = $this->model()->newQuery()->bulk()->uniqueBy('email')
+            ->onCreated(fn () => null);
+
+        // act
+        $sut->create([$this->row('b@example.com', 'b')]);
+        $emails = $this->model()->newQuery()->orderBy('email')->pluck('email')->all();
+
+        // assert
+        self::assertSame(['a@example.com', 'b@example.com'], $emails);
+    }
+
+    /**
+     * Register the read/write connection whose reader is unreachable.
+     *
+     * @param bool $sticky
+     *
+     * @return void
+     */
+    private function connect(bool $sticky): void
+    {
+        /** @var array<string, mixed> $config */
+        $config = DB::connection()->getConfig();
+        $driver = (string) ($config['driver'] ?? '');
+        $read = $driver === 'sqlite'
+            ? ['database' => '/nonexistent/bulk-upsert/read.sqlite']
+            : ['host' => '127.0.0.1', 'port' => 1];
+
+        DB::purge(self::CONNECTION);
+        DB::connectUsing(
+            self::CONNECTION,
+            array_replace($config, ['read' => $read, 'write' => [], 'sticky' => $sticky]),
+            true
+        );
     }
 
     /**
