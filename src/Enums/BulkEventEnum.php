@@ -64,6 +64,8 @@ enum BulkEventEnum: string
      * Get the events which are dispatched for a single model.
      *
      * @return self[]
+     *
+     * @psalm-api
      */
     public static function model(): array
     {
@@ -104,6 +106,8 @@ enum BulkEventEnum: string
      * Get the events which are dispatched for the whole collection.
      *
      * @return self[]
+     *
+     * @psalm-api
      */
     public static function collection(): array
     {

@@ -37,16 +37,17 @@ readonly class MatchSelectedModelsStep
      */
     public function handle(BulkAccumulationEntity $data, Collection $existingRows): void
     {
-        $keyedExistingRows = $existingRows->keyBy(
-            function (Model $model) use ($data): string {
-                return $this->uniqueKeyGenerator->handle($model, $data->getUniqueBy());
-            }
-        );
+        /** @var array<string, \Illuminate\Database\Eloquent\Model> $keyedExistingRows */
+        $keyedExistingRows = [];
+
+        foreach ($existingRows as $existingRow) {
+            $keyedExistingRows[$this->uniqueKeyGenerator->handle($existingRow, $data->getUniqueBy())] = $existingRow;
+        }
 
         foreach ($data->getRows() as $index => $row) {
             $key = $this->uniqueKeyGenerator->handle($row->getModel(), $data->getUniqueBy());
 
-            $existingRow = $keyedExistingRows->get($key);
+            $existingRow = $keyedExistingRows[$key] ?? null;
 
             if ($existingRow !== null) {
                 $row->setModel($existingRow);
