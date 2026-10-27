@@ -58,7 +58,10 @@ class SqLiteBulkGrammar extends BaseBulkGrammar
     }
 
     /**
-     * Compile a CASE with a single WHEN branch into the `iif()` function of SQLite.
+     * Compile a CASE with a single WHEN branch.
+     *
+     * A CASE expression rather than `iif()`: SQLite has `iif()` since 3.32 only, while
+     * Laravel 11 supports SQLite from 3.26.
      *
      * @param string $condition
      * @param string $then
@@ -68,7 +71,7 @@ class SqLiteBulkGrammar extends BaseBulkGrammar
      */
     protected function compileConditionalSet(string $condition, string $then, string $else): string
     {
-        return sprintf('iif(%s, %s, %s)', $condition, $then, $else);
+        return sprintf('case when %s then %s else %s end', $condition, $then, $else);
     }
 
     /**

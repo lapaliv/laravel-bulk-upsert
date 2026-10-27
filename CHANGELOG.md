@@ -37,6 +37,7 @@ Fixes
 * Changes which `savingMany` makes to clean models are written.
 * Touches: only written rows touch; `morphTo` parents of several classes.
 * The table prefix of the connection is kept on Laravel 11.
+* SQLite before 3.32: a conditional update is a `CASE` expression instead of `iif()`.
 
 
 ## [2.x]
