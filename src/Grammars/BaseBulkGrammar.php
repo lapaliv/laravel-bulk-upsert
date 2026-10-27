@@ -353,7 +353,10 @@ abstract class BaseBulkGrammar implements BulkGrammar
                 }
 
                 if (empty($values)) {
-                    $result[] = sprintf('%s is null', $this->wrap($where->getField()));
+                    // An empty list matches nothing; only a list of NULLs matches NULL.
+                    $result[] = $hasNull
+                        ? sprintf('%s is null', $this->wrap($where->getField()))
+                        : '1 = 0';
                 } else {
                     $condition = count($values) === 1
                         ? sprintf('%s = %s', $this->wrap($where->getField()), $values[0])

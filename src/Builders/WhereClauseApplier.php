@@ -150,7 +150,22 @@ readonly class WhereClauseApplier
         } elseif (is_array($value) && count($value) === 1) {
             $builder->where($column, '=', $value[0]);
         } elseif (is_array($value)) {
-            $builder->whereIn($column, $value);
+            // `IN (...)` never matches NULL, so a NULL value gets its own `IS NULL` branch,
+            // grouped with the IN list, so the outer AND/OR of the caller stays as it is.
+            $values = array_values(array_filter($value, static fn (mixed $item): bool => $item !== null));
+
+            if (count($values) === count($value)) {
+                $builder->whereIn($column, $values);
+            } elseif ($values === []) {
+                $builder->where($column, '=', null);
+            } else {
+                $builder->where(
+                    function (QueryBuilder|EloquentBuilder|BulkBuilderWhereClause $builder) use ($column, $values): void {
+                        $this->addCondition($builder, $column, $values);
+                        $builder->orWhere($column, '=', null);
+                    }
+                );
+            }
         } else {
             throw new BulkValueTypeIsNotSupported($value);
         }
