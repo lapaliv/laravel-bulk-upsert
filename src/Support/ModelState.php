@@ -42,9 +42,11 @@ final class ModelState
     /**
      * Remember the changes which the given storage values have made.
      *
-     * A value is a change when it is not equivalent to the original one. The equivalence
-     * is checked by Eloquent itself on a clone, so the casts compare the values; the clone
-     * is thrown away, the model keeps its attributes and cast caches.
+     * A value is a change when Eloquent's `originalIsEquivalent()` says it is not equivalent
+     * to the original one, so the casts compare the values. The check runs on the model
+     * itself, with the written values put into the attributes for a moment and the cast
+     * caches emptied; the attributes and the caches are restored right after it, even on
+     * an exception. The model is never cloned, so a custom `__clone()` does not run.
      *
      * @param \Illuminate\Database\Eloquent\Model $model
      * @param array<string, mixed> $written
@@ -53,14 +55,28 @@ final class ModelState
      */
     public static function syncWrittenChanges(Model $model, array $written): void
     {
-        $probe = clone $model;
-        $probe->setRawAttributes(array_replace($model->getRawOriginal(), $written));
-        $probe->syncChanges();
-        $changes = $probe->getChanges();
-        unset($probe);
+        self::run($model, /** @psalm-suppress InaccessibleProperty, MixedAssignment, MixedArgument The closure runs in the scope of Model. */ static function (Model $target) use ($written): void {
+            $attributes = $target->attributes;
+            $classCastCache = $target->classCastCache;
+            $attributeCastCache = $target->attributeCastCache;
+            $changes = [];
 
-        self::run($model, /** @psalm-suppress InaccessibleProperty The closure runs in the scope of Model. */ static function (Model $target) use ($changes): void {
-            // The closure runs in the scope of Model, so the protected arrays are reachable.
+            try {
+                $target->attributes = array_replace($target->getRawOriginal(), $written);
+                $target->classCastCache = [];
+                $target->attributeCastCache = [];
+
+                foreach (array_keys($written) as $key) {
+                    if (!$target->originalIsEquivalent($key)) {
+                        $changes[$key] = $written[$key];
+                    }
+                }
+            } finally {
+                $target->attributes = $attributes;
+                $target->classCastCache = $classCastCache;
+                $target->attributeCastCache = $attributeCastCache;
+            }
+
             $target->changes = $changes;
 
             if (property_exists($target, 'previous')) {
