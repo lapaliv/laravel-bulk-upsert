@@ -609,8 +609,9 @@ class UserObserver {
         
         $bulkRows->each(
             function(BulkRow $bulkRow) use(&$rawComments): void {
-                $bulkRow->original['user_id'] = $bulkRow->getModel()->id;
-                $rawComments[] = $bulkRow->getOriginal();
+                $comment = $bulkRow->getOriginal();
+                $comment['user_id'] = $bulkRow->getModel()->id;
+                $rawComments[] = $comment;
             }
         );
         
