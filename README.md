@@ -205,6 +205,24 @@ User::query()
 
 This way loads the data from database and updates found rows by the query.
 
+- Every found row is loaded as a model and the values are set through `setAttribute()`,
+  so the casts (e.g. `hashed`) and the mutators run exactly as for `Model::save()`,
+  with or without listeners. There is no shortcut to a single `UPDATE` query.
+- The rows are processed chunk by chunk (`chunk`, 100 by default). Without an own
+  order, limit or offset they are paginated by the primary key, so a row which the
+  update moves out of the `WHERE` clause does not make the next chunks skip rows.
+  With an own order, limit or offset (or with `DISTINCT`) the primary keys of all the
+  found rows are collected first, so all of them are kept in memory; the rows are then
+  loaded again by these keys.
+- The rows are not a frozen snapshot: listeners and other processes may change the
+  rows of the next chunks.
+- The method returns the number of the selected rows, not the number of the rows
+  which have really changed.
+- The given builder is not changed.
+- `GROUP BY`, `HAVING`, `UNION` and a `DISTINCT` query whose columns do not contain
+  the primary key are not supported: the method throws a `LogicException` before
+  writing anything.
+
 ### Upserting (Updating & Inserting)
 
 Preparing the data
