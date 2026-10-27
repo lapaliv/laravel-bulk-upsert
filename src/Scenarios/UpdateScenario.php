@@ -106,6 +106,15 @@ readonly class UpdateScenario
         // so they are marked as skipped before anything else happens.
         $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn, $withTrashed);
 
+        // A row which does not exist in the database is not saved at all, so it takes part in
+        // no saving/saved event and is not returned. It is decided here, before any listener
+        // of this scenario, which may change `exists`. (The touches are a separate matter.)
+        foreach ($data->getRows() as $row) {
+            if (!$row->getModel()->exists) {
+                $row->setSkipSaving(true);
+            }
+        }
+
         // Before updating, it needs to define the final list of models that need to be updated.
         // For this purpose, it uses events such as
         // 'saving', 'savingMany', 'updating', 'updatingMany',

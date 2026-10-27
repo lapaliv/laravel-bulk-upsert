@@ -48,6 +48,12 @@ class DispatchSavingEventsStep
         // Firstly, it needs to fire the 'saving' event for each row.
         // If the event dispatcher returns false, the row won't be saved at all.
         foreach ($data->getRows() as $row) {
+            // A row which is not saved here (not found, or created by the upsert already) gets
+            // no saving event.
+            if ($row->isSkipSaving()) {
+                continue;
+            }
+
             if ($eventDispatcher->dispatch(BulkEventEnum::Saving, $row->getModel()) === false) {
                 $row->setSkipSaving(true);
 
