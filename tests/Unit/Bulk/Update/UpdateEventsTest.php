@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Bulk\Update;
 
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
@@ -13,6 +12,8 @@ use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
+ * The switching of the events on and off while `update()` writes the rows.
+ *
  * @internal
  */
 class UpdateEventsTest extends TestCaseWrapper
@@ -20,9 +21,11 @@ class UpdateEventsTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * No event is fired when `disableEvents()` turns all of them off.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDisableAllEvents(): void
     {
@@ -44,9 +47,11 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
+     * `disableModelEndEvents()` stops the model end events only, the other events still run.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDisableModelEndEvents(): void
     {
@@ -78,14 +83,16 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $disabledEvent
+     * A single disabled event is not fired, while the other events still are.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $disabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testDisableSomeEvents(string $disabledEvent): void
+    public function testDisableSomeEvents(BulkEventEnum $disabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
@@ -111,14 +118,16 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $disabledEvent
+     * An event turned off with `disableEvent()` is not fired, the other events still are.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $disabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testDisableOneEvent(string $disabledEvent): void
+    public function testDisableOneEvent(BulkEventEnum $disabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
@@ -144,9 +153,12 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
+     * With all events enabled the save and update events run for every model, and the collection
+     * ones only once per chunk.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testEnableAllEvents(): void
     {
@@ -174,14 +186,16 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * An event which is disabled and then enabled again is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableSomeDisabledEvents(string $enabledEvent): void
+    public function testEnableSomeDisabledEvents(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
@@ -204,14 +218,16 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * After all events are disabled, only the event enabled with `enableEvents()` is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableSomeEvents(string $enabledEvent): void
+    public function testEnableSomeEvents(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
@@ -236,14 +252,16 @@ class UpdateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * After all events are disabled, only the event enabled with `enableEvent()` is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableOneEvent(string $enabledEvent): void
+    public function testEnableOneEvent(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->createCollectionAndDirty(2);
@@ -267,10 +285,15 @@ class UpdateEventsTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
+    /**
+     * The save and update events which `update()` can fire.
+     *
+     * @return array<int, array{\Lapaliv\BulkUpsert\Enums\BulkEventEnum}>
+     */
     public static function eventsDataProvider(): array
     {
         return array_map(
-            fn(string $event) => [$event],
+            fn(BulkEventEnum $event) => [$event],
             [
                 ...BulkEventEnum::save(),
                 ...BulkEventEnum::update(),

@@ -2,13 +2,14 @@
 
 namespace Tests\Unit\Bulk;
 
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The flushing of every kind of accumulated rows by a single `saveAccumulated()` call.
+ *
  * @internal
  */
 class SaveAccumulatedTest extends TestCaseWrapper
@@ -16,9 +17,11 @@ class SaveAccumulatedTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * The accumulated create, update and upsert rows are all written by one call.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function test(): void
     {

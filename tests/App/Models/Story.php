@@ -2,7 +2,6 @@
 
 namespace Tests\App\Models;
 
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,14 +10,19 @@ use Tests\App\Collection\StoryCollection;
 use Tests\App\Factories\StoryFactory;
 
 /**
+ * A test model with a uuid key and without any relation.
+ *
+ * The story uses soft deletes. The tests use it for the cases where the package has to
+ * give the written models back.
+ *
  * @property string $uuid
  * @property string $title
  * @property string $content
- * @property CarbonInterface $created_at
- * @property CarbonInterface $updated_at
- * @property CarbonInterface|null $deleted_at
+ * @property \Carbon\CarbonInterface $created_at
+ * @property \Carbon\CarbonInterface $updated_at
+ * @property \Carbon\CarbonInterface|null $deleted_at
  *
- * @method static StoryFactory factory($count = null, $state = [])
+ * @method static \Tests\App\Factories\StoryFactory factory($count = null, $state = [])
  */
 class Story extends Model
 {
@@ -57,6 +61,13 @@ class Story extends Model
         'content',
     ];
 
+    /**
+     * Create the table of the model for the tests.
+     *
+     * The primary key is a uuid and the table also has a deleted at column.
+     *
+     * @return void
+     */
     public static function createTable(): void
     {
         self::getSchema()->create(self::table(), function (Blueprint $table): void {
@@ -69,16 +80,35 @@ class Story extends Model
         });
     }
 
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param \Illuminate\Database\Query\Builder $query
+     *
+     * @return \Tests\App\Builders\StoryBuilder
+     */
     public function newEloquentBuilder($query): StoryBuilder
     {
         return new StoryBuilder($query);
     }
 
+    /**
+     * Create a new Eloquent Collection instance.
+     *
+     * @param \Tests\App\Models\Story[] $models
+     *
+     * @return \Tests\App\Collection\StoryCollection
+     */
     public function newCollection(array $models = []): StoryCollection
     {
         return new StoryCollection($models);
     }
 
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Tests\App\Factories\StoryFactory
+     */
     public static function newFactory(): StoryFactory
     {
         return new StoryFactory();

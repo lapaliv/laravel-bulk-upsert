@@ -3,7 +3,6 @@
 namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
@@ -14,6 +13,8 @@ use Tests\Unit\UserTestTrait;
 use Mockery;
 
 /**
+ * The switching of the events on and off while `create()` writes the rows.
+ *
  * @internal
  */
 class CreateEventsTest extends TestCaseWrapper
@@ -21,9 +22,11 @@ class CreateEventsTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * No event is fired when `disableEvents()` turns all of them off.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDisableAllEvents(): void
     {
@@ -47,14 +50,16 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $disabledEvent
+     * A single disabled event is not fired, while the other events still are.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $disabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testDisableSomeEvents(string $disabledEvent): void
+    public function testDisableSomeEvents(BulkEventEnum $disabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
@@ -74,6 +79,7 @@ class CreateEventsTest extends TestCaseWrapper
         $sut->create($users);
 
         // assert
+//        dd($sut, $disabledEvent);
         self::spyShouldHaveReceived($callingSpy)
             ->atLeast()
             ->once();
@@ -81,9 +87,11 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
+     * `disableModelEndEvents()` stops the model end events only, the other events still run.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDisableModelEndEvents(): void
     {
@@ -116,14 +124,16 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $disabledEvent
+     * An event turned off with `disableEvent()` is not fired, the other events still are.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $disabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public static function testDisableOneEvent(string $disabledEvent): void
+    public static function testDisableOneEvent(BulkEventEnum $disabledEvent): void
     {
         // arrange
         $users = User::factory()->count(2)->make();
@@ -150,9 +160,11 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
+     * A soft deleted row fires all save, create and delete events when the events are enabled.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testEnableAllEvents(): void
     {
@@ -186,14 +198,16 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * An event which is disabled and then enabled again is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableSomeDisabledEvents(string $enabledEvent): void
+    public function testEnableSomeDisabledEvents(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
@@ -217,14 +231,16 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * After all events are disabled, only the event enabled with `enableEvents()` is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableSomeEvents(string $enabledEvent): void
+    public function testEnableSomeEvents(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
@@ -250,14 +266,16 @@ class CreateEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param string $enabledEvent
+     * After all events are disabled, only the event enabled with `enableEvent()` is fired.
+     *
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $enabledEvent
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('eventsDataProvider')]
-    public function testEnableOneEvent(string $enabledEvent): void
+    public function testEnableOneEvent(BulkEventEnum $enabledEvent): void
     {
         // arrange
         $users = $this->userGenerator->makeCollection(2);
@@ -282,10 +300,15 @@ class CreateEventsTest extends TestCaseWrapper
         self::spyShouldNotHaveReceived($notCallingSpy);
     }
 
+    /**
+     * The save and create events which `create()` can fire.
+     *
+     * @return array<int, array{\Lapaliv\BulkUpsert\Enums\BulkEventEnum}>
+     */
     public static function eventsDataProvider(): array
     {
         return array_map(
-            static fn(string $event) => [$event],
+            static fn(BulkEventEnum $event) => [$event],
             [
                 ...BulkEventEnum::save(),
                 ...BulkEventEnum::create(),

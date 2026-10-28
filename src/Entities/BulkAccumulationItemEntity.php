@@ -5,43 +5,137 @@ namespace Lapaliv\BulkUpsert\Entities;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * One accumulated row: the value which the user gave and its model.
+ *
+ * The flags of the entity say which parts of the process the row must skip.
+ * The listeners of the events change them while the scenario is running.
+ *
  * @internal
  */
 class BulkAccumulationItemEntity
 {
     /**
+     * The value which was given to the bulk instance.
+     *
      * @var mixed
-     *
-     * @deprecated use `getOriginal()`
      */
-    public mixed $row;
+    private mixed $row;
 
     /**
-     * @var Model
+     * The model which was built from the given value.
      *
-     * @deprecated use `getModel()`
+     * @var \Illuminate\Database\Eloquent\Model
      */
-    public Model $model;
+    private Model $model;
 
     /**
+     * Whether the row must be skipped by the saving process.
+     *
      * @var bool
-     *
-     * @deprecated use `isSkipSaving()`
      */
-    public bool $skipSaving = false;
+    private bool $skipSaving = false;
 
     /**
-     * @var bool
+     * Whether the row must be skipped by the creating process.
      *
-     * @deprecated use `isCreationSkipped()` and `skipCreation()`
+     * @var bool
      */
-    public bool $skipCreating = false;
-    public bool $skipUpdating = false;
-    public bool $skipDeleting = false;
-    public bool $skipRestoring = false;
-    public bool $isDeleting = false;
-    public bool $isRestoring = false;
+    private bool $skipCreating = false;
 
+    /**
+     * Whether the row must be skipped by the updating process.
+     *
+     * @var bool
+     */
+    private bool $skipUpdating = false;
+
+    /**
+     * Whether the row must be skipped by the deleting process.
+     *
+     * @var bool
+     */
+    private bool $skipDeleting = false;
+
+    /**
+     * Whether the row must be skipped by the restoring process.
+     *
+     * @var bool
+     */
+    private bool $skipRestoring = false;
+
+    /**
+     * Whether the row is being soft deleted by the current query.
+     *
+     * @var bool
+     */
+    private bool $deleting = false;
+
+    /**
+     * Whether the row is being restored by the current query.
+     *
+     * @var bool
+     */
+    private bool $restoring = false;
+
+    /**
+     * The raw values which the UPDATE statement is going to write for the row.
+     *
+     * `null` means the row is not a part of the statement. The primary key is included
+     * with the stored value which the statement is written by.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $plannedUpdate = null;
+
+    /**
+     * The raw values which the UPDATE statement has written for the row.
+     *
+     * It is set only after the statement has run successfully, and only these values
+     * may be declared saved on the model.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $writtenUpdate = null;
+
+    /**
+     * Whether the operation of the row (insert, update, delete) has been completed.
+     *
+     * A completed row leaves the storage even when a later step of its scenario throws, so
+     * a retried flush does not write it twice.
+     *
+     * @var bool
+     */
+    private bool $written = false;
+
+    /**
+     * Whether the current attempt has matched the row with a row read from the database.
+     *
+     * It is recorded by the library when the row is read back or found, before any listener
+     * runs, so a listener which changes `exists` does not change it. It says that the row was
+     * found, not that its update succeeded.
+     *
+     * @var bool
+     */
+    private bool $matchedInDatabase = false;
+
+    /**
+     * Whether the insert of the current attempt has created the row: null when not known.
+     *
+     * It is told by the driver and recorded before any listener, so a listener which changes
+     * `wasRecentlyCreated` does not change what the library does with the row.
+     *
+     * @var bool|null
+     */
+    private ?bool $createdByInsert = null;
+
+    /**
+     * Create a new accumulated row.
+     *
+     * @param mixed $original
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
+     * @return void
+     */
     public function __construct(mixed $original, Model $model)
     {
         $this->row = $original;
@@ -49,6 +143,8 @@ class BulkAccumulationItemEntity
     }
 
     /**
+     * Get the value which was given to the bulk instance.
+     *
      * @return mixed
      */
     public function getOriginal(): mixed
@@ -57,17 +153,320 @@ class BulkAccumulationItemEntity
     }
 
     /**
-     * @return Model
+     * Get the model of the row.
+     *
+     * @return \Illuminate\Database\Eloquent\Model
      */
     public function getModel(): Model
     {
         return $this->model;
     }
 
+    /**
+     * Set the model of the row.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
+     * @return $this
+     */
     public function setModel(Model $model): static
     {
         $this->model = $model;
 
         return $this;
+    }
+
+    /**
+     * Determine whether the row must be skipped by the saving process.
+     *
+     * @return bool
+     */
+    public function isSkipSaving(): bool
+    {
+        return $this->skipSaving;
+    }
+
+    /**
+     * Set whether the row must be skipped by the saving process.
+     *
+     * @param bool $skipSaving
+     *
+     * @return void
+     */
+    public function setSkipSaving(bool $skipSaving): void
+    {
+        $this->skipSaving = $skipSaving;
+    }
+
+    /**
+     * Determine whether the row must be skipped by the creating process.
+     *
+     * @return bool
+     */
+    public function isSkipCreating(): bool
+    {
+        return $this->skipCreating;
+    }
+
+    /**
+     * Remember that a `saving`/`creating` listener has cancelled the creation of the row.
+     *
+     * @param bool $skipCreating
+     *
+     * @return void
+     */
+    public function setSkipCreating(bool $skipCreating): void
+    {
+        $this->skipCreating = $skipCreating;
+    }
+
+    /**
+     * Determine whether the row must be skipped by the updating process.
+     *
+     * @return bool
+     */
+    public function isSkipUpdating(): bool
+    {
+        return $this->skipUpdating;
+    }
+
+    /**
+     * Set whether the row must be skipped by the updating process.
+     *
+     * @param bool $skipUpdating
+     *
+     * @return void
+     */
+    public function setSkipUpdating(bool $skipUpdating): void
+    {
+        $this->skipUpdating = $skipUpdating;
+    }
+
+    /**
+     * Determine whether the row must be skipped by the deleting process.
+     *
+     * @return bool
+     */
+    public function isSkipDeleting(): bool
+    {
+        return $this->skipDeleting;
+    }
+
+    /**
+     * Set whether the row must be skipped by the deleting process.
+     *
+     * @param bool $skipDeleting
+     *
+     * @return void
+     */
+    public function setSkipDeleting(bool $skipDeleting): void
+    {
+        $this->skipDeleting = $skipDeleting;
+    }
+
+    /**
+     * Determine whether the row must be skipped by the restoring process.
+     *
+     * @return bool
+     */
+    public function isSkipRestoring(): bool
+    {
+        return $this->skipRestoring;
+    }
+
+    /**
+     * Set whether the row must be skipped by the restoring process.
+     *
+     * @param bool $skipRestoring
+     *
+     * @return void
+     */
+    public function setSkipRestoring(bool $skipRestoring): void
+    {
+        $this->skipRestoring = $skipRestoring;
+    }
+
+    /**
+     * Determine whether the row is being soft deleted by the current query.
+     *
+     * @return bool
+     */
+    public function isDeleting(): bool
+    {
+        return $this->deleting;
+    }
+
+    /**
+     * Set whether the row is being soft deleted by the current query.
+     *
+     * @param bool $deleting
+     *
+     * @return void
+     */
+    public function setDeleting(bool $deleting): void
+    {
+        $this->deleting = $deleting;
+    }
+
+    /**
+     * Determine whether the row is being restored by the current query.
+     *
+     * @return bool
+     */
+    public function isRestoring(): bool
+    {
+        return $this->restoring;
+    }
+
+    /**
+     * Set whether the row is being restored by the current query.
+     *
+     * @param bool $restoring
+     *
+     * @return void
+     */
+    public function setRestoring(bool $restoring): void
+    {
+        $this->restoring = $restoring;
+    }
+
+    /**
+     * Get the raw values which the UPDATE statement is going to write for the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPlannedUpdate(): ?array
+    {
+        return $this->plannedUpdate;
+    }
+
+    /**
+     * Set the raw values which the UPDATE statement is going to write for the row.
+     *
+     * @param array<string, mixed>|null $plannedUpdate
+     *
+     * @return void
+     */
+    public function setPlannedUpdate(?array $plannedUpdate): void
+    {
+        $this->plannedUpdate = $plannedUpdate;
+    }
+
+    /**
+     * Get the raw values which the UPDATE statement has written for the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getWrittenUpdate(): ?array
+    {
+        return $this->writtenUpdate;
+    }
+
+    /**
+     * Set the raw values which the UPDATE statement has written for the row.
+     *
+     * @param array<string, mixed>|null $writtenUpdate
+     *
+     * @return void
+     */
+    public function setWrittenUpdate(?array $writtenUpdate): void
+    {
+        $this->writtenUpdate = $writtenUpdate;
+    }
+
+    /**
+     * Determine whether the operation of the row has been completed.
+     *
+     * @return bool
+     */
+    public function isWritten(): bool
+    {
+        return $this->written;
+    }
+
+    /**
+     * Remember that the operation of the row has been completed.
+     *
+     * @return void
+     */
+    public function markWritten(): void
+    {
+        $this->written = true;
+    }
+
+    /**
+     * Forget that the operation of the row has been completed.
+     *
+     * @return void
+     */
+    public function forgetWritten(): void
+    {
+        $this->written = false;
+    }
+
+    /**
+     * Forget the decisions of the listeners of a previous attempt.
+     *
+     * The listeners run again on the retry and take their decisions again. The model is not
+     * restored: the changes which the listeners have made to it stay, as they would for a
+     * second `Model::save()`. Whether the operation has been completed is kept.
+     *
+     * @return void
+     */
+    public function resetAttempt(): void
+    {
+        $this->skipSaving = false;
+        $this->skipCreating = false;
+        $this->skipUpdating = false;
+        $this->skipDeleting = false;
+        $this->skipRestoring = false;
+        $this->deleting = false;
+        $this->restoring = false;
+        $this->plannedUpdate = null;
+        $this->writtenUpdate = null;
+        $this->matchedInDatabase = false;
+        $this->createdByInsert = null;
+    }
+
+    /**
+     * Determine whether the insert of the current attempt has created the row (null: unknown).
+     *
+     * @return bool|null
+     */
+    public function isCreatedByInsert(): ?bool
+    {
+        return $this->createdByInsert;
+    }
+
+    /**
+     * Remember whether the insert of the current attempt has created the row.
+     *
+     * @param bool|null $createdByInsert
+     *
+     * @return void
+     */
+    public function setCreatedByInsert(?bool $createdByInsert): void
+    {
+        $this->createdByInsert = $createdByInsert;
+    }
+
+    /**
+     * Determine whether the current attempt has matched the row with a database row.
+     *
+     * @return bool
+     */
+    public function isMatchedInDatabase(): bool
+    {
+        return $this->matchedInDatabase;
+    }
+
+    /**
+     * Remember that the current attempt has matched the row with a database row.
+     *
+     * @return void
+     */
+    public function markMatchedInDatabase(): void
+    {
+        $this->matchedInDatabase = true;
     }
 }

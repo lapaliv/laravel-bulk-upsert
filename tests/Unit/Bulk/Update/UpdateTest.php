@@ -3,14 +3,14 @@
 namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Random\RandomException;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The rows which `update()` writes into the table.
+ *
  * @internal
  */
 final class UpdateTest extends TestCaseWrapper
@@ -18,11 +18,13 @@ final class UpdateTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Every dirty model is written to the table, whichever shape the unique attribute has.
+     *
      * @param array|callable|string $uniqBy
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testBase(array|string|callable $uniqBy): void
@@ -43,12 +45,14 @@ final class UpdateTest extends TestCaseWrapper
     }
 
     /**
+     * The timestamps which the model already carries are kept instead of the current time.
+     *
      * @param array|callable|string $uniqBy
      *
      * @return void
      *
-     * @throws BulkException
-     * @throws RandomException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     * @throws \Random\RandomException
      */
     #[DataProvider('dataProvider')]
     public function testWithTimestamps(array|string|callable $uniqBy): void
@@ -88,12 +92,13 @@ final class UpdateTest extends TestCaseWrapper
     }
 
     /**
-     * If the Bulk gets models for updating, then their origins should be synced
-     * even if the bulk does not have any listeners ending with "ed".
+     * The updated models are no longer dirty and keep their changes.
+     *
+     * The origins are synced even when the builder has no listener whose name ends with `ed`.
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testIsDirtyAfterUpdating()
     {
@@ -111,6 +116,11 @@ final class UpdateTest extends TestCaseWrapper
         }
     }
 
+    /**
+     * The unique attributes, written as a string, as nested arrays and as a closure.
+     *
+     * @return array<string, array{array|callable|string}>
+     */
     public static function dataProvider(): array
     {
         return [

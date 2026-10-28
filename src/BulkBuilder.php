@@ -3,11 +3,13 @@
 namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 /**
- * @template TCollection of Collection
+ * The Eloquent builder which the models of the package use.
+ *
+ * It adds the bulk methods to the usual query builder.
+ *
+ * @template TCollection of \Illuminate\Database\Eloquent\Collection
  * @template TModel of \Illuminate\Database\Eloquent\Model
  * @extends Builder<TModel>
  */

@@ -3,7 +3,6 @@
 namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\CommentCollection;
 use Tests\App\Models\Comment;
 use Tests\App\Models\Post;
@@ -11,14 +10,18 @@ use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 
 /**
+ * The touching of the related models when `create()` inserts new rows.
+ *
  * @internal
  */
 final class CreateAndTouchTest extends TestCaseWrapper
 {
     /**
+     * The `updated_at` column of every touched relation is set to the current time.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function test(): void
     {
@@ -52,7 +55,7 @@ final class CreateAndTouchTest extends TestCaseWrapper
         $sut->create($comments);
 
         // assert
-        /** @var Post $post */
+        /** @var \Tests\App\Models\Post $post */
         foreach ($posts as $post) {
             $this->assertDatabaseHas($post->getTable(), [
                 'id' => $post->id,

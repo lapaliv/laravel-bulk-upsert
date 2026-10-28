@@ -2,23 +2,22 @@
 
 namespace Lapaliv\BulkUpsert\Providers;
 
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\ServiceProvider;
-use Lapaliv\BulkUpsert\BulkBulkDriverManager;
+use Lapaliv\BulkUpsert\Builders\WhereClauseApplier;
 use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Converters\MixedValueToScalarConverter;
+use Lapaliv\BulkUpsert\Drivers\DriverManager;
 use Lapaliv\BulkUpsert\Drivers\MySqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\PostgreSqlBulkDriver;
 use Lapaliv\BulkUpsert\Drivers\SqLiteBulkDriver;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\AddWhereClauseToBuilderFeature;
-use Lapaliv\BulkUpsert\Features\GetDateFieldsFeature;
-use Lapaliv\BulkUpsert\Features\GetDeletedAtColumnFeature;
-use Lapaliv\BulkUpsert\Features\GetUniqueKeyFeature;
-use Lapaliv\BulkUpsert\Features\GetValueHashFeature;
-use Lapaliv\BulkUpsert\Features\KeyByFeature;
+use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Support\ModelMetadata;
+use Lapaliv\BulkUpsert\Support\UniqueKeyGenerator;
+use Lapaliv\BulkUpsert\Support\ValueHasher;
 
 /**
+ * Registers the package services in the container.
+ *
  * @psalm-suppress UnusedClass
  */
 class BulkUpsertServiceProvider extends ServiceProvider
@@ -26,34 +25,33 @@ class BulkUpsertServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      *
+     * The method binds the helpers of the package as singletons, registers the bulk
+     * drivers for `mysql`, `pgsql` and `sqlite`, and gives the application event
+     * dispatcher to {@see \Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher}.
+     *
      * @return void
      *
-     * @throws BindingResolutionException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function register(): void
     {
         $mixedValueToScalarConverter = new MixedValueToScalarConverter();
-        $getValueHashFeature = new GetValueHashFeature($mixedValueToScalarConverter);
-        $getUniqueKeyFeature = new GetUniqueKeyFeature($getValueHashFeature, $mixedValueToScalarConverter);
+        $valueHasher = new ValueHasher($mixedValueToScalarConverter);
+        $uniqueKeyGenerator = new UniqueKeyGenerator($mixedValueToScalarConverter);
 
-        $this->app->singleton(BulkDriverManager::class, fn () => new BulkBulkDriverManager());
-        $this->app->singleton(GetDateFieldsFeature::class, fn () => new GetDateFieldsFeature());
-        $this->app->singleton(GetDeletedAtColumnFeature::class, fn () => new GetDeletedAtColumnFeature());
-        $this->app->singleton(GetValueHashFeature::class, fn () => $getValueHashFeature);
+        $this->app->singleton(BulkDriverManager::class, fn() => new DriverManager());
+        $this->app->singleton(ModelMetadata::class, fn() => new ModelMetadata());
+        $this->app->singleton(ValueHasher::class, fn() => $valueHasher);
         $this->app->singleton(
-            AddWhereClauseToBuilderFeature::class,
-            fn () => new AddWhereClauseToBuilderFeature($getValueHashFeature)
+            WhereClauseApplier::class,
+            fn() => new WhereClauseApplier($valueHasher)
         );
         $this->app->singleton(
-            GetUniqueKeyFeature::class,
-            fn () => $getUniqueKeyFeature
-        );
-        $this->app->singleton(
-            KeyByFeature::class,
-            fn () => new KeyByFeature($getUniqueKeyFeature)
+            UniqueKeyGenerator::class,
+            fn() => $uniqueKeyGenerator
         );
 
-        /** @var BulkBulkDriverManager $driverManager */
+        /** @var \Lapaliv\BulkUpsert\Drivers\DriverManager $driverManager */
         $driverManager = $this->app->make(BulkDriverManager::class);
         $driverManager->registerDriver(
             'mysql',
@@ -68,7 +66,10 @@ class BulkUpsertServiceProvider extends ServiceProvider
             $this->app->make(SqLiteBulkDriver::class)
         );
 
-        BulkEventDispatcher::setIlluminateEventDispatcher($this->app->make('events'));
+        /** @var \Illuminate\Contracts\Events\Dispatcher $eventDispatcher */
+        $eventDispatcher = $this->app->make('events');
+
+        BulkEventDispatcher::setIlluminateEventDispatcher($eventDispatcher);
     }
 
     /**

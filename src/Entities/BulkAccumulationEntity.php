@@ -2,80 +2,144 @@
 
 namespace Lapaliv\BulkUpsert\Entities;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
+use Lapaliv\BulkUpsert\Support\WriteTarget;
 
 /**
+ * One chunk of the accumulated rows with the settings of its query.
+ *
+ * All the rows of the entity share the same unique attributes, so they can be
+ * saved by a single query.
+ *
  * @internal
  */
 class BulkAccumulationEntity
 {
     /**
+     * The names of the attributes which make a row unique.
+     *
      * @var string[]
-     *
-     * @deprecated use `$this->getUniqueBy()`
      */
-    public array $uniqueBy;
+    private array $uniqueBy;
 
     /**
-     * @var BulkAccumulationItemEntity[]
+     * The accumulated rows of the chunk.
      *
-     * @deprecated use `$this->getRows()`
+     * @var \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity[]
      */
-    public array $rows = [];
+    private array $rows = [];
 
     /**
+     * The names of the attributes which should be updated.
+     *
      * @var string[]
-     *
-     * @deprecated use `$this->getUpdateOnly()`
      */
-    public array $updateOnly = [];
+    private array $updateOnly = [];
 
     /**
+     * The names of the attributes which should not be updated.
+     *
      * @var string[]
-     *
-     * @deprecated use `$this->getUpdateExcept()`
      */
-    public array $updateExcept = [];
+    private array $updateExcept = [];
 
     /**
-     * @param BulkAccumulationItemEntity[] $rows
+     * Create a new chunk of the accumulated rows.
+     *
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity[] $rows
      * @param string[] $uniqueBy
+     * @param string[] $updateOnly
+     * @param string[] $updateExcept
+     *
+     * @return void
      */
     public function __construct(
         array $rows = [],
         array $uniqueBy = [],
         array $updateOnly = [],
         array $updateExcept = [],
-    ) {
+    )
+    {
         $this->setRows($rows);
         $this->uniqueBy = $uniqueBy;
-        $this->updateOnly = $updateOnly;
-        $this->updateExcept = $updateExcept;
+        $this->setUpdateOnly($updateOnly);
+        $this->setUpdateExcept($updateExcept);
     }
 
-    public function getNotSkippedModels(string $key = null): Collection
+    /**
+     * Get the models which the saving process should not skip.
+     *
+     * The rows which are skipped by the creating or the updating process are left out.
+     *
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>
+     */
+    public function getNotSkippedSavingModels(): Collection
     {
+        /** @var \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $result */
         $result = new Collection();
 
         foreach ($this->rows as $row) {
-            if ($key === null && ($row->skipCreating || $row->skipUpdating)) {
+            if ($row->isSkipCreating() || $row->isSkipUpdating()) {
                 continue;
             }
 
-            if ($key !== null && $row->{$key}) {
-                continue;
-            }
-
-            $result->push($row->model);
+            $result->push($row->getModel());
         }
 
         return $result;
     }
 
     /**
+     * Get the models which the updating process should not skip.
+     *
+     * The rows which are skipped by the saving or the updating process are left out.
+     *
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>
+     */
+    public function getNotSkippedUpdatingModels(): Collection
+    {
+        /** @var \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $result */
+        $result = new Collection();
+
+        foreach ($this->rows as $row) {
+            if ($row->isSkipSaving() || $row->isSkipUpdating()) {
+                continue;
+            }
+
+            $result->push($row->getModel());
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get the models which the deleting process should not skip.
+     *
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>
+     */
+    public function getNotSkippedDeletingModels(): Collection
+    {
+        /** @var \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model> $result */
+        $result = new Collection();
+
+        foreach ($this->rows as $row) {
+            if ($row->isSkipDeleting()) {
+                continue;
+            }
+
+            $result->push($row->getModel());
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get the names of the attributes which make a row unique.
+     *
      * @return string[]
      */
     public function getUniqueBy(): array
@@ -84,7 +148,9 @@ class BulkAccumulationEntity
     }
 
     /**
-     * @return BulkAccumulationItemEntity[]
+     * Get the accumulated rows of the chunk.
+     *
+     * @return \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity[]
      */
     public function getRows(): array
     {
@@ -92,7 +158,9 @@ class BulkAccumulationEntity
     }
 
     /**
-     * @param BulkAccumulationItemEntity[] $originals
+     * Set the accumulated rows of the chunk.
+     *
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity[] $originals
      *
      * @return $this
      */
@@ -103,7 +171,24 @@ class BulkAccumulationEntity
         return $this;
     }
 
+
     /**
+     * Add one row to the chunk.
+     *
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity $original
+     *
+     * @return $this
+     */
+    public function addRow(BulkAccumulationItemEntity $original): static
+    {
+        $this->rows[] = $original;
+
+        return $this;
+    }
+
+    /**
+     * Get the names of the attributes which should be updated.
+     *
      * @return string[]
      *
      * @psalm-suppress PossiblyUnusedMethod
@@ -114,6 +199,22 @@ class BulkAccumulationEntity
     }
 
     /**
+     * Set the names of the attributes which should be updated.
+     *
+     * @param string[] $updateOnly
+     *
+     * @return $this
+     */
+    public function setUpdateOnly(array $updateOnly): static
+    {
+        $this->updateOnly = $updateOnly;
+
+        return $this;
+    }
+
+    /**
+     * Get the names of the attributes which should not be updated.
+     *
      * @return string[]
      *
      * @psalm-suppress PossiblyUnusedMethod
@@ -123,6 +224,27 @@ class BulkAccumulationEntity
         return $this->updateExcept;
     }
 
+    /**
+     * Set the names of the attributes which should not be updated.
+     *
+     * @param string[] $updateExcept
+     *
+     * @return $this
+     */
+    public function setUpdateExcept(array $updateExcept): static
+    {
+        $this->updateExcept = $updateExcept;
+
+        return $this;
+    }
+
+    /**
+     * Remove the row with the given key from the chunk.
+     *
+     * @param int $key
+     *
+     * @return $this
+     */
     public function unsetRow(int $key): static
     {
         unset($this->rows[$key]);
@@ -130,17 +252,26 @@ class BulkAccumulationEntity
         return $this;
     }
 
-    public function getModels(?callable $filter = null): Collection
+    /**
+     * Get the models of the rows as a collection of the model.
+     *
+     * The filter is applied to the collection when it is given.
+     *
+     * @param \Closure(\Illuminate\Database\Eloquent\Model): bool|null $filter
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function getModels(?Closure $filter = null): Collection
     {
         if ($this->hasRows()) {
             $result = $this->getFirstModel()->newCollection(
                 array_map(
-                    fn (BulkAccumulationItemEntity $item) => $item->getModel(),
+                    fn(BulkAccumulationItemEntity $item) => $item->getModel(),
                     $this->getRows()
                 )
             );
 
-            $result = $filter ? $result->filter($filter) : $result;
+            $result = $filter !== null ? $result->filter($filter) : $result;
 
             return $result->values();
         }
@@ -148,12 +279,22 @@ class BulkAccumulationEntity
         return new Collection();
     }
 
-    public function getBulkRows(?callable $filter = null): BulkRows
+    /**
+     * Get the rows as a collection of {@see \Lapaliv\BulkUpsert\Entities\BulkRow}.
+     *
+     * The filter gets the model of the row and decides whether the row is taken.
+     *
+     * @param \Closure(\Illuminate\Database\Eloquent\Model): bool|null $filter
+     *
+     * @return \Lapaliv\BulkUpsert\Collections\BulkRowCollection
+     */
+    public function getBulkRows(?Closure $filter = null): BulkRowCollection
     {
-        $result = new BulkRows();
+        /** @var \Lapaliv\BulkUpsert\Collections\BulkRowCollection<\Illuminate\Database\Eloquent\Model, mixed> $result */
+        $result = new BulkRowCollection();
 
         foreach ($this->getRows() as $row) {
-            if (!$filter || $filter($row->getModel())) {
+            if ($filter === null || $filter($row->getModel())) {
                 $result->push(
                     new BulkRow($row->getModel(), $row->getOriginal(), $this->getUniqueBy())
                 );
@@ -163,16 +304,74 @@ class BulkAccumulationEntity
         return $result;
     }
 
+    /**
+     * Determine whether the chunk has any row.
+     *
+     * @return bool
+     */
     public function hasRows(): bool
     {
         return !empty($this->getRows());
     }
 
+    /**
+     * Get the model of the first row of the chunk.
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     */
     public function getFirstModel(): Model
     {
-        /** @var BulkAccumulationItemEntity $item */
+        /** @var \Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity $item */
         $item = Arr::first($this->getRows());
 
         return $item->getModel();
+    }
+
+    /**
+     * The table and the connection which the rows have to be written into, when known.
+     *
+     * @var \Lapaliv\BulkUpsert\Support\WriteTarget|null
+     */
+    private ?WriteTarget $target = null;
+
+    /**
+     * Get the table and the connection which the rows have to be written into.
+     *
+     * @return \Lapaliv\BulkUpsert\Support\WriteTarget|null
+     */
+    public function getTarget(): ?WriteTarget
+    {
+        return $this->target;
+    }
+
+    /**
+     * Set the table and the connection which the rows have to be written into.
+     *
+     * @param \Lapaliv\BulkUpsert\Support\WriteTarget|null $target
+     *
+     * @return static
+     */
+    public function setTarget(?WriteTarget $target): static
+    {
+        $this->target = $target;
+
+        return $this;
+    }
+
+    /**
+     * Make sure the given models are still bound to the target, right before a statement.
+     *
+     * The listeners run between the checks of the bulk and the statement, and may change the
+     * table or the connection of a model.
+     *
+     * @param iterable<\Illuminate\Database\Eloquent\Model> $models
+     *
+     * @return void
+     *
+     * @throws \Lapaliv\BulkUpsert\Exceptions\BulkModelDoesNotMatch
+     */
+    public function assertTarget(iterable $models): void
+    {
+        $this->target?->assert($models);
     }
 }

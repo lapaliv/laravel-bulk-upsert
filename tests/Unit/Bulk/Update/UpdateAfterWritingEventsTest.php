@@ -5,8 +5,7 @@ namespace Tests\Unit\Bulk\Update;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
+use Lapaliv\BulkUpsert\Collections\BulkRowCollection;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Collection\UserCollection;
@@ -18,24 +17,27 @@ use Tests\TestCaseWrapper;
 use Mockery;
 
 /**
+ * The events which `update()` fires after the rows are written.
+ *
  * @internal
  */
 final class UpdateAfterWritingEventsTest extends TestCaseWrapper
 {
     /**
-     * @param Closure $data
-     * @param array $events
+     * Each expected model event is fired once per updated model.
+     *
+     * @param \Closure $data
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum[] $events
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('modelDataProvider')]
     public function testModel(Closure $data, array $events): void
     {
         // arrange
-        /** @var UserCollection $users */
+        /** @var \Tests\App\Collection\UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
         $sut = User::query()
@@ -46,8 +48,8 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
         $spies = [];
 
         foreach ($events as $event) {
-            $spies[$event] = Mockery::spy(TestCallback::class, $event);
-            Observer::listen($event, $spies[$event]);
+            $spies[$event->value] = Mockery::spy(TestCallback::class, $event->value);
+            Observer::listen($event, $spies[$event->value]);
         }
 
         // act
@@ -57,7 +59,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
         foreach ($events as $event) {
             $copiesUsers = clone $users;
 
-            self::spyShouldHaveReceived($spies[$event])
+            self::spyShouldHaveReceived($spies[$event->value])
                 ->times($users->count())
                 ->withArgs(
                     function (User $user) use ($copiesUsers): bool {
@@ -71,19 +73,20 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
     }
 
     /**
-     * @param Closure $data
-     * @param string $event
+     * The collection event is fired once with all of the updated models.
+     *
+     * @param \Closure $data
+     * @param \Lapaliv\BulkUpsert\Enums\BulkEventEnum $event
      *
      * @return void
      *
-     *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('collectionDataProvider')]
-    public function testCollection(Closure $data, string $event): void
+    public function testCollection(Closure $data, BulkEventEnum $event): void
     {
         // arrange
-        /** @var UserCollection $users */
+        /** @var \Tests\App\Collection\UserCollection $users */
         $users = $data();
         $users = $users->keyBy('id');
         $sut = User::query()
@@ -100,7 +103,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
         self::spyShouldHaveReceived($spy)
             ->once()
             ->withArgs(
-                function (UserCollection $actualUsers, BulkRows $bulkRows) use ($users): bool {
+                function (UserCollection $actualUsers, BulkRowCollection $bulkRows) use ($users): bool {
                     return $actualUsers->count() === $users->count()
                         && $actualUsers->pluck('id')->sort()->join(',') === $users->pluck('id')->sort()->join(',')
                         && $bulkRows->count() === $users->count();
@@ -108,6 +111,11 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
             );
     }
 
+    /**
+     * The rows to update, with the model events which they must fire afterwards.
+     *
+     * @return array<string, array{\Closure, \Lapaliv\BulkUpsert\Enums\BulkEventEnum[]}>
+     */
     public static function modelDataProvider(): array
     {
         return [
@@ -116,7 +124,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                     return App::make(UserGenerator::class)
                         ->createCollectionAndDirty(2);
                 },
-                [BulkEventEnum::SAVED],
+                [BulkEventEnum::Saved],
             ],
             'saved && deleted' => [
                 function () {
@@ -126,7 +134,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                         ['deleted_at' => Carbon::now()],
                     );
                 },
-                [BulkEventEnum::SAVED, BulkEventEnum::DELETED],
+                [BulkEventEnum::Saved, BulkEventEnum::Deleted],
             ],
             'saved && restored' => [
                 function () {
@@ -137,14 +145,14 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                         ),
                     ]);
                 },
-                [BulkEventEnum::SAVED, BulkEventEnum::RESTORED],
+                [BulkEventEnum::Saved, BulkEventEnum::Restored],
             ],
             'updated' => [
                 function () {
                     return App::make(UserGenerator::class)
                         ->createCollectionAndDirty(2);
                 },
-                [BulkEventEnum::UPDATED],
+                [BulkEventEnum::Updated],
             ],
             'updated && deleted' => [
                 function () {
@@ -155,7 +163,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                         ),
                     ]);
                 },
-                [BulkEventEnum::UPDATED, BulkEventEnum::DELETED],
+                [BulkEventEnum::Updated, BulkEventEnum::Deleted],
             ],
             'updated && restored' => [
                 function () {
@@ -166,7 +174,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                         ),
                     ]);
                 },
-                [BulkEventEnum::UPDATED, BulkEventEnum::RESTORED],
+                [BulkEventEnum::Updated, BulkEventEnum::Restored],
             ],
             'deleted' => [
                 function () {
@@ -177,7 +185,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                             ['deleted_at' => Carbon::now()],
                         );
                 },
-                [BulkEventEnum::DELETED],
+                [BulkEventEnum::Deleted],
             ],
             'restored' => [
                 function () {
@@ -188,11 +196,16 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                             ['deleted_at' => null],
                         );
                 },
-                [BulkEventEnum::RESTORED],
+                [BulkEventEnum::Restored],
             ],
         ];
     }
 
+    /**
+     * The rows to update, with the collection event which they must fire afterwards.
+     *
+     * @return array<string, array{\Closure, \Lapaliv\BulkUpsert\Enums\BulkEventEnum}>
+     */
     public static function collectionDataProvider(): array
     {
         return [
@@ -201,14 +214,14 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                     return App::make(UserGenerator::class)
                         ->createCollectionAndDirty(2);
                 },
-                BulkEventEnum::SAVED_MANY,
+                BulkEventEnum::SavedMany,
             ],
             'updated many' => [
                 function () {
                     return App::make(UserGenerator::class)
                         ->createCollectionAndDirty(2);
                 },
-                BulkEventEnum::UPDATED_MANY,
+                BulkEventEnum::UpdatedMany,
             ],
             'deleted many' => [
                 function () {
@@ -219,7 +232,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                             ['deleted_at' => Carbon::now()],
                         );
                 },
-                BulkEventEnum::DELETED_MANY,
+                BulkEventEnum::DeletedMany,
             ],
             'restored many' => [
                 function () {
@@ -230,7 +243,7 @@ final class UpdateAfterWritingEventsTest extends TestCaseWrapper
                             ['deleted_at' => null],
                         );
                 },
-                BulkEventEnum::RESTORED_MANY,
+                BulkEventEnum::RestoredMany,
             ],
         ];
     }

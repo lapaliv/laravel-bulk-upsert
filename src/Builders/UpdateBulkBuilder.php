@@ -2,33 +2,61 @@
 
 namespace Lapaliv\BulkUpsert\Builders;
 
+use LogicException;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase;
 use Lapaliv\BulkUpsert\Builders\Clauses\BuilderRawExpression;
-use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhere;
+use Lapaliv\BulkUpsert\Builders\Clauses\BuilderWhereClause;
+use Lapaliv\BulkUpsert\Builders\Clauses\BulkBuilderWhereClause;
 use Lapaliv\BulkUpsert\Builders\Clauses\Case\BuilderCaseWhen;
-use Lapaliv\BulkUpsert\Contracts\BulkBuilderWhereClause;
 
 /**
+ * Collects the parts of an UPDATE statement.
+ *
  * @internal
  */
 class UpdateBulkBuilder implements BulkBuilderWhereClause
 {
-    use BuilderWhere;
+    use BuilderWhereClause;
 
+    /**
+     * The name of the table which the rows are updated in.
+     *
+     * @var string|null
+     */
     private ?string $table = null;
+
+    /**
+     * The maximum number of the rows which can be updated.
+     *
+     * @var int|null
+     */
     private ?int $limit = null;
 
     /**
-     * @var array<string, BuilderCase|scalar>
+     * The new value of each column, keyed by the name of the column.
+     *
+     * @var array<string, \Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase|scalar|null>
      */
     private array $sets = [];
 
+    /**
+     * Get the table which the rows are updated in.
+     *
+     * @return string|null
+     */
     public function getTable(): ?string
     {
         return $this->table;
     }
 
-    public function table(string $table): static
+    /**
+     * Set the table which the rows are updated in.
+     *
+     * @param string $table
+     *
+     * @return $this
+     */
+    public function setTable(string $table): static
     {
         $this->table = $table;
 
@@ -36,7 +64,9 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
     }
 
     /**
-     * @return array<string, BuilderCase|string>
+     * Get the new value of each column.
+     *
+     * @return array<string, \Lapaliv\BulkUpsert\Builders\Clauses\BuilderCase|scalar|null>
      */
     public function getSets(): array
     {
@@ -44,15 +74,27 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
     }
 
     /**
+     * Add a new value which is only applied to the rows matching the given filters.
+     *
+     * The column keeps a CASE expression. Each call adds one more WHEN branch to it,
+     * and the ELSE branch leaves the old value of the column.
+     *
      * @param string $field
-     * @param array<string, scalar|scalar[]> $filters
+     * @param array<string, scalar|scalar[]> $filters The values which the rows are matched by.
      * @param bool|float|int|string|null $value
      *
      * @return $this
      */
     public function addSet(string $field, array $filters, int|float|string|null|bool $value): static
     {
-        $this->sets[$field] ??= (new BuilderCase())->else(new BuilderRawExpression($field));
+        $this->sets[$field] ??= (new BuilderCase())->setElse(new BuilderRawExpression($field));
+        $set = $this->sets[$field];
+
+        if (!$set instanceof BuilderCase) {
+            throw new LogicException(
+                sprintf('Cannot conditionally set the "%s" field: it already has a simple value set by addSimpleSet().', $field)
+            );
+        }
 
         $when = new BuilderCaseWhen();
 
@@ -64,12 +106,20 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
             }
         }
 
-        $when->then($value);
-        $this->sets[$field]->addWhenThen($when);
+        $when->setThen($value);
+        $set->addWhenThen($when);
 
         return $this;
     }
 
+    /**
+     * Set the same new value of the column for all the rows of the statement.
+     *
+     * @param string $field
+     * @param bool|float|int|string|null $value
+     *
+     * @return $this
+     */
     public function addSimpleSet(string $field, int|float|string|null|bool $value): static
     {
         $this->sets[$field] = $value;
@@ -77,12 +127,24 @@ class UpdateBulkBuilder implements BulkBuilderWhereClause
         return $this;
     }
 
+    /**
+     * Get the maximum number of the rows which can be updated.
+     *
+     * @return int|null
+     */
     public function getLimit(): ?int
     {
         return $this->limit;
     }
 
-    public function limit(int $limit): static
+    /**
+     * Set the maximum number of the rows which can be updated.
+     *
+     * @param int $limit
+     *
+     * @return $this
+     */
+    public function setLimit(int $limit): static
     {
         $this->limit = $limit;
 

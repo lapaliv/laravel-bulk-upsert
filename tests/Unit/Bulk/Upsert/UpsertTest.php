@@ -3,13 +3,14 @@
 namespace Tests\Unit\Bulk\Upsert;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The rows which `upsert()` inserts and updates in the same call.
+ *
  * @internal
  */
 final class UpsertTest extends TestCaseWrapper
@@ -17,8 +18,11 @@ final class UpsertTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * A known row is updated and an unknown row is inserted in the same call.
+     *
      * @return void
-     * @throws BulkException
+     *
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testBase(): void
     {
@@ -40,10 +44,12 @@ final class UpsertTest extends TestCaseWrapper
     }
 
     /**
+     * The timestamps which the models already carry are kept instead of the current time.
+     *
      * @return void
      *
-     * @throws BulkException
-     * @throws RandomException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
+     * @throws \Random\RandomException
      */
     public function testWithTimestamps(): void
     {

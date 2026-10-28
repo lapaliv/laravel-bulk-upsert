@@ -3,145 +3,134 @@
 namespace Lapaliv\BulkUpsert\Enums;
 
 /**
+ * The events which the package can dispatch.
+ *
+ * Every case with the `Many` suffix is dispatched once for the whole collection,
+ * the other cases are dispatched for each model.
+ *
  * @internal
  */
-class BulkEventEnum
+enum BulkEventEnum: string
 {
-    public const CREATING = 'creating';
-    public const CREATED = 'created';
-    public const CREATING_MANY = 'creatingMany';
-    public const CREATED_MANY = 'createdMany';
-    public const UPDATING = 'updating';
-    public const UPDATED = 'updated';
-    public const UPDATING_MANY = 'updatingMany';
-    public const UPDATED_MANY = 'updatedMany';
-    public const SAVING = 'saving';
-    public const SAVED = 'saved';
-    public const SAVING_MANY = 'savingMany';
-    public const SAVED_MANY = 'savedMany';
-    public const DELETING = 'deleting';
-    public const DELETED = 'deleted';
-    public const DELETING_MANY = 'deletingMany';
-    public const DELETED_MANY = 'deletedMany';
-    public const FORCE_DELETING = 'forceDeleting';
-    public const FORCE_DELETED = 'forceDeleted';
-    public const FORCE_DELETING_MANY = 'forceDeletingMany';
-    public const FORCE_DELETED_MANY = 'forceDeletedMany';
-    public const RESTORING = 'restoring';
-    public const RESTORED = 'restored';
-    public const RESTORING_MANY = 'restoringMany';
-    public const RESTORED_MANY = 'restoredMany';
+    case Creating = 'creating';
+    case Created = 'created';
+    case CreatingMany = 'creatingMany';
+    case CreatedMany = 'createdMany';
+    case Updating = 'updating';
+    case Updated = 'updated';
+    case UpdatingMany = 'updatingMany';
+    case UpdatedMany = 'updatedMany';
+    case Saving = 'saving';
+    case Saved = 'saved';
+    case SavingMany = 'savingMany';
+    case SavedMany = 'savedMany';
+    case Deleting = 'deleting';
+    case Deleted = 'deleted';
+    case DeletingMany = 'deletingMany';
+    case DeletedMany = 'deletedMany';
+    case ForceDeleting = 'forceDeleting';
+    case ForceDeleted = 'forceDeleted';
+    case ForceDeletingMany = 'forceDeletingMany';
+    case ForceDeletedMany = 'forceDeletedMany';
+    case Restoring = 'restoring';
+    case Restored = 'restored';
+    case RestoringMany = 'restoringMany';
+    case RestoredMany = 'restoredMany';
 
     /**
-     * @return string[]
-     */
-    public static function cases(): array
-    {
-        return [
-            self::CREATING,
-            self::CREATED,
-            self::CREATING_MANY,
-            self::CREATED_MANY,
-            self::UPDATING,
-            self::UPDATED,
-            self::UPDATING_MANY,
-            self::UPDATED_MANY,
-            self::SAVING,
-            self::SAVED,
-            self::SAVING_MANY,
-            self::SAVED_MANY,
-            self::DELETING,
-            self::DELETED,
-            self::DELETING_MANY,
-            self::DELETED_MANY,
-            self::FORCE_DELETING,
-            self::FORCE_DELETED,
-            self::FORCE_DELETING_MANY,
-            self::FORCE_DELETED_MANY,
-            self::RESTORING,
-            self::RESTORED,
-            self::RESTORING_MANY,
-            self::RESTORED_MANY,
-        ];
-    }
-
-    /**
-     * @return string[]
+     * Get the events which can stop the process when a listener returns `false`.
+     *
+     * @return self[]
      */
     public static function halt(): array
     {
         return [
-            self::CREATING,
-            self::CREATING_MANY,
-            self::UPDATING,
-            self::UPDATING_MANY,
-            self::SAVING,
-            self::SAVING_MANY,
-            self::DELETING,
-            self::DELETING_MANY,
-            self::FORCE_DELETING,
-            self::FORCE_DELETING_MANY,
-            self::RESTORING,
-            self::RESTORING_MANY,
+            self::Creating,
+            self::CreatingMany,
+            self::Updating,
+            self::UpdatingMany,
+            self::Saving,
+            self::SavingMany,
+            self::Deleting,
+            self::DeletingMany,
+            self::ForceDeleting,
+            self::ForceDeletingMany,
+            self::Restoring,
+            self::RestoringMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched for a single model.
+     *
+     * @return self[]
+     *
+     * @psalm-api
      */
     public static function model(): array
     {
         return [
-            self::CREATING,
-            self::CREATED,
-            self::UPDATING,
-            self::UPDATED,
-            self::SAVING,
-            self::SAVED,
-            self::DELETING,
-            self::DELETED,
-            self::FORCE_DELETING,
-            self::FORCE_DELETED,
-            self::RESTORING,
-            self::RESTORED,
-        ];
-    }
-
-    public static function modelEnd(): array
-    {
-        return [
-            self::CREATED,
-            self::UPDATED,
-            self::SAVED,
-            self::DELETED,
-            self::FORCE_DELETED,
-            self::RESTORED,
+            self::Creating,
+            self::Created,
+            self::Updating,
+            self::Updated,
+            self::Saving,
+            self::Saved,
+            self::Deleting,
+            self::Deleted,
+            self::ForceDeleting,
+            self::ForceDeleted,
+            self::Restoring,
+            self::Restored,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events of a single model which are dispatched after the query.
+     *
+     * @return self[]
+     */
+    public static function modelEnd(): array
+    {
+        return [
+            self::Created,
+            self::Updated,
+            self::Saved,
+            self::Deleted,
+            self::ForceDeleted,
+            self::Restored,
+        ];
+    }
+
+    /**
+     * Get the events which are dispatched for the whole collection.
+     *
+     * @return self[]
+     *
+     * @psalm-api
      */
     public static function collection(): array
     {
         return [
-            self::CREATING_MANY,
-            self::CREATED_MANY,
-            self::UPDATING_MANY,
-            self::UPDATED_MANY,
-            self::SAVING_MANY,
-            self::SAVED_MANY,
-            self::DELETING_MANY,
-            self::DELETED_MANY,
-            self::FORCE_DELETING_MANY,
-            self::FORCE_DELETED_MANY,
-            self::RESTORING_MANY,
-            self::RESTORED_MANY,
+            self::CreatingMany,
+            self::CreatedMany,
+            self::UpdatingMany,
+            self::UpdatedMany,
+            self::SavingMany,
+            self::SavedMany,
+            self::DeletingMany,
+            self::DeletedMany,
+            self::ForceDeletingMany,
+            self::ForceDeletedMany,
+            self::RestoringMany,
+            self::RestoredMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get all the events of the creating process.
+     *
+     * @return self[]
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
@@ -151,29 +140,35 @@ class BulkEventEnum
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched before creating.
+     *
+     * @return self[]
      */
     public static function creating(): array
     {
         return [
-            self::CREATING,
-            self::CREATING_MANY,
+            self::Creating,
+            self::CreatingMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched after creating.
+     *
+     * @return self[]
      */
     public static function created(): array
     {
         return [
-            self::CREATED,
-            self::CREATED_MANY,
+            self::Created,
+            self::CreatedMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get all the events of the updating process.
+     *
+     * @return self[]
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
@@ -183,29 +178,37 @@ class BulkEventEnum
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched before updating.
+     *
+     * @return self[]
      */
     public static function updating(): array
     {
         return [
-            self::UPDATING,
-            self::UPDATING_MANY,
+            self::Updating,
+            self::UpdatingMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched after updating.
+     *
+     * @return self[]
      */
     public static function updated(): array
     {
         return [
-            self::UPDATED,
-            self::UPDATED_MANY,
+            self::Updated,
+            self::UpdatedMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get all the events of the deleting process.
+     *
+     * @param bool $force
+     *
+     * @return self[]
      */
     public static function delete(bool $force = false): array
     {
@@ -213,47 +216,61 @@ class BulkEventEnum
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched before deleting.
+     *
+     * The force events are added to the list when `$force` is `true`.
+     *
+     * @param bool $force
+     *
+     * @return self[]
      */
     public static function deleting(bool $force = false): array
     {
         if ($force) {
             return [
-                self::DELETING,
-                self::DELETING_MANY,
-                self::FORCE_DELETING,
-                self::FORCE_DELETING_MANY,
+                self::Deleting,
+                self::DeletingMany,
+                self::ForceDeleting,
+                self::ForceDeletingMany,
             ];
         }
 
         return [
-            self::DELETING,
-            self::DELETING_MANY,
+            self::Deleting,
+            self::DeletingMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched after deleting.
+     *
+     * The force events are added to the list when `$force` is `true`.
+     *
+     * @param bool $force
+     *
+     * @return self[]
      */
     public static function deleted(bool $force = false): array
     {
         if ($force) {
             return [
-                self::DELETED,
-                self::DELETED_MANY,
-                self::FORCE_DELETED,
-                self::FORCE_DELETED_MANY,
+                self::Deleted,
+                self::DeletedMany,
+                self::ForceDeleted,
+                self::ForceDeletedMany,
             ];
         }
 
         return [
-            self::DELETED,
-            self::DELETED_MANY,
+            self::Deleted,
+            self::DeletedMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get all the events of the restoring process.
+     *
+     * @return self[]
      */
     public static function restore(): array
     {
@@ -261,29 +278,35 @@ class BulkEventEnum
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched before restoring.
+     *
+     * @return self[]
      */
     public static function restoring(): array
     {
         return [
-            self::RESTORING,
-            self::RESTORING_MANY,
+            self::Restoring,
+            self::RestoringMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched after restoring.
+     *
+     * @return self[]
      */
     public static function restored(): array
     {
         return [
-            self::RESTORED,
-            self::RESTORED_MANY,
+            self::Restored,
+            self::RestoredMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get all the events of the saving process.
+     *
+     * @return self[]
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
@@ -293,24 +316,28 @@ class BulkEventEnum
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched before saving.
+     *
+     * @return self[]
      */
     public static function saving(): array
     {
         return [
-            self::SAVING,
-            self::SAVING_MANY,
+            self::Saving,
+            self::SavingMany,
         ];
     }
 
     /**
-     * @return string[]
+     * Get the events which are dispatched after saving.
+     *
+     * @return self[]
      */
     public static function saved(): array
     {
         return [
-            self::SAVED,
-            self::SAVED_MANY,
+            self::Saved,
+            self::SavedMany,
         ];
     }
 }

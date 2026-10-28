@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="3"
+    errorLevel="1"
     resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
-    findUnusedBaselineEntry="true"
     findUnusedCode="true"
-    errorBaseline="psalm-baseline.xml"
 >
     <projectFiles>
         <directory name="src" />
@@ -26,5 +24,18 @@
                 <directory name="src" />
             </errorLevel>
         </MissingOverrideAttribute>
+        <ClassMustBeFinal>
+            <errorLevel type="suppress">
+                <directory name="src"/>
+            </errorLevel>
+        </ClassMustBeFinal>
+        <PropertyNotSetInConstructor>
+            <errorLevel type="suppress">
+                <!-- $model/$onDelete are inherited from Illuminate\Database\Eloquent\Builder and
+                     Query\Builder, which deliberately set $model via setModel() after construction
+                     (see Model::newModelQuery()) rather than through their own constructors. -->
+                <file name="src/BulkBuilder.php"/>
+            </errorLevel>
+        </PropertyNotSetInConstructor>
     </issueHandlers>
 </psalm>

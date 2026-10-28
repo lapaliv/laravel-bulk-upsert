@@ -4,7 +4,6 @@ namespace Tests\Unit\Bulk\Create;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Collection\UserCollection;
 use Tests\App\Models\Story;
 use Tests\App\Models\User;
@@ -12,6 +11,8 @@ use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The rows which `createAndReturn()` inserts and the models which it gives back.
+ *
  * @internal
  */
 final class CreateAndReturnTest extends TestCaseWrapper
@@ -19,9 +20,11 @@ final class CreateAndReturnTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Every row given to `createAndReturn()` is stored in the table with its attributes.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testDatabase(): void
     {
@@ -55,9 +58,11 @@ final class CreateAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * The returned models keep the given attributes and are marked as recently created.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testResult(): void
     {
@@ -68,7 +73,7 @@ final class CreateAndReturnTest extends TestCaseWrapper
             ->uniqueBy(['email']);
 
         // act
-        /** @var UserCollection $result */
+        /** @var \Tests\App\Collection\UserCollection $result */
         $result = $sut->createAndReturn($users);
 
         // assert
@@ -89,9 +94,14 @@ final class CreateAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * The selected columns limit the attributes which the returned models carry.
+     *
+     * The result is the model collection of the class, and each model has only the selected
+     * column and the unique one.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testSelectColumns(): void
     {
@@ -111,7 +121,7 @@ final class CreateAndReturnTest extends TestCaseWrapper
             ->uniqueBy(['email']);
 
         // act
-        /** @var UserCollection $result */
+        /** @var \Tests\App\Collection\UserCollection $result */
         $result = $sut->createAndReturn($users, ['id']);
 
         // assert
@@ -129,9 +139,11 @@ final class CreateAndReturnTest extends TestCaseWrapper
     }
 
     /**
+     * A model without an incrementing key is returned once per row and keeps its attributes.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testWithoutIncrementing(): void
     {
@@ -151,7 +163,7 @@ final class CreateAndReturnTest extends TestCaseWrapper
 
         $stories->each(
             function (Story $story) use ($result): void {
-                /** @var Story $actualStory */
+                /** @var \Tests\App\Models\Story $actualStory */
                 $actualStory = $result->where('uuid', $story->uuid)
                     ->first();
 

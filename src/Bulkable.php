@@ -3,11 +3,15 @@
 namespace Lapaliv\BulkUpsert;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
 
 /**
- * @template TCollection of Collection
+ * Gives an Eloquent model the bulk features of the package.
+ *
+ * The trait replaces the builder of the model and registers the events which are
+ * dispatched for a whole collection.
+ *
+ * @template TCollection of \Illuminate\Database\Eloquent\Collection
  *
  * @method static BulkBuilder|Builder query()
  * @method static Bulk bulk()
@@ -19,7 +23,7 @@ trait Bulkable
      *
      * @param \Illuminate\Database\Query\Builder $query
      *
-     * @return BulkBuilder<TCollection, $this>
+     * @return \Lapaliv\BulkUpsert\BulkBuilder<TCollection, $this>
      */
     public function newEloquentBuilder($query)
     {
@@ -35,7 +39,7 @@ trait Bulkable
      */
     public static function creatingMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::CREATING_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::CreatingMany->value, $callback);
     }
 
     /**
@@ -47,7 +51,7 @@ trait Bulkable
      */
     public static function createdMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::CREATED_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::CreatedMany->value, $callback);
     }
 
     /**
@@ -59,7 +63,7 @@ trait Bulkable
      */
     public static function updatingMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::UPDATING_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::UpdatingMany->value, $callback);
     }
 
     /**
@@ -71,7 +75,7 @@ trait Bulkable
      */
     public static function updatedMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::UPDATED_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::UpdatedMany->value, $callback);
     }
 
     /**
@@ -83,7 +87,7 @@ trait Bulkable
      */
     public static function savingMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::SAVING_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::SavingMany->value, $callback);
     }
 
     /**
@@ -95,7 +99,7 @@ trait Bulkable
      */
     public static function savedMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::SAVED_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::SavedMany->value, $callback);
     }
 
     /**
@@ -107,7 +111,7 @@ trait Bulkable
      */
     public static function deletingMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::DELETING_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::DeletingMany->value, $callback);
     }
 
     /**
@@ -119,7 +123,7 @@ trait Bulkable
      */
     public static function deletedMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::DELETED_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::DeletedMany->value, $callback);
     }
 
     /**
@@ -131,7 +135,7 @@ trait Bulkable
      */
     public static function restoringMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::RESTORING_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::RestoringMany->value, $callback);
     }
 
     /**
@@ -143,11 +147,24 @@ trait Bulkable
      */
     public static function restoredMany(callable $callback): void
     {
-        static::registerModelEvent(BulkEventEnum::RESTORED_MANY, $callback);
+        static::registerModelEvent(BulkEventEnum::RestoredMany->value, $callback);
     }
 
+    /**
+     * Initialize the trait for the model.
+     *
+     * The collection events become the observable events of the model, so the
+     * observers of the model can listen to them.
+     *
+     * @return void
+     */
     public function initializeBulkable(): void
     {
-        $this->setObservableEvents(BulkEventEnum::collection());
+        $this->setObservableEvents(
+            array_map(
+                fn(BulkEventEnum $enum): string => $enum->value,
+                BulkEventEnum::collection()
+            )
+        );
     }
 }

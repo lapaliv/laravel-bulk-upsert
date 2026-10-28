@@ -3,12 +3,13 @@
 namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The columns which `updateOnly()` and `updateAllExcept()` let `update()` write.
+ *
  * @internal
  */
 final class UpdateOnlyAndExceptTest extends TestCaseWrapper
@@ -16,9 +17,11 @@ final class UpdateOnlyAndExceptTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * `updateOnly()` writes the listed column and leaves the other ones as they were.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testOnly(): void
     {
@@ -57,9 +60,11 @@ final class UpdateOnlyAndExceptTest extends TestCaseWrapper
     }
 
     /**
+     * `updateAllExcept()` writes every column but the listed one.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testUpdateAllExcept(): void
     {

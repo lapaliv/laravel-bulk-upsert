@@ -3,20 +3,28 @@
 namespace Tests\App\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Database\Eloquent\Model;
-use Tests\App\Collection\PostCollection;
 use Tests\App\Models\Post;
 
 /**
+ * The factory which builds {@see \Tests\App\Models\Post} test models.
+ *
+ * A post has only a text column and the usual timestamps. The tests use it as the
+ * related model of a comment and as a simple model without soft deletes.
+ *
  * @internal
  *
- * @method Post|PostCollection create($attributes = [], ?Model $parent = null)
- * @method Post|PostCollection make($attributes = [], ?Model $parent = null)
- * @method Post|PostCollection createMany(iterable $records)
+ * @method \Tests\App\Models\Post|\Tests\App\Collection\PostCollection create($attributes = [], ?\Illuminate\Database\Eloquent\Model $parent = null)
+ * @method \Tests\App\Models\Post|\Tests\App\Collection\PostCollection make($attributes = [], ?\Illuminate\Database\Eloquent\Model $parent = null)
+ * @method \Tests\App\Models\Post|\Tests\App\Collection\PostCollection createMany(iterable $records)
  * @method self|static count(?int $count)
  */
 class PostFactory extends Factory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<\Tests\App\Models\Post>
+     */
     protected $model = Post::class;
 
     /**

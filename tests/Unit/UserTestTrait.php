@@ -8,12 +8,30 @@ use Tests\App\Models\User;
 use Tests\App\Observers\Observer;
 
 /**
+ * Helpers for the tests which work with the user model.
+ *
+ * The trait builds the user generator, freezes the clock and gives the tests a set of
+ * assertions which compare a user with its row in the database.
+ *
  * @internal
  */
 trait UserTestTrait
 {
+    /**
+     * The generator which builds the users for the tests.
+     *
+     * @var \Tests\App\Features\UserGenerator
+     */
     protected UserGenerator $userGenerator;
 
+    /**
+     * Set the test environment up.
+     *
+     * The clock is frozen, so the tests can compare the timestamps, and the listeners
+     * of the observer are dropped.
+     *
+     * @return void
+     */
     public function setUp(): void
     {
         parent::setUp();
@@ -23,6 +41,16 @@ trait UserTestTrait
         Observer::flush();
     }
 
+    /**
+     * Assert that the user was created just now.
+     *
+     * The row has to hold every attribute of the model. The created at and the updated
+     * at have to hold the frozen current time.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userWasCreated(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
@@ -42,6 +70,16 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the row of the user matches all of its attributes.
+     *
+     * Unlike {@see userWasCreated()} the timestamps are taken from the model itself, so
+     * the method also works for a user which was written some time ago.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userExists(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
@@ -61,6 +99,13 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the table has no user with this email.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userDoesNotExist(User $user): void
     {
         self::assertDatabaseMissing($user->getTable(), [
@@ -68,6 +113,16 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the user was soft deleted.
+     *
+     * The row still holds every other attribute of the model, but a row with the same
+     * email and an empty deleted at may not exist any more.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userWasSoftDeleted(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
@@ -91,6 +146,32 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the user is still there and its deleted at is empty.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
+    protected function userWasNotDeleted(User $user): void
+    {
+        self::assertDatabaseHas($user->getTable(), [
+            'id' => $user->id,
+            'email' => $user->email,
+            'deleted_at' => null,
+        ], $user->getConnectionName());
+    }
+
+    /**
+     * Assert that the user was updated just now.
+     *
+     * The created at stays the one of the model, but the updated at has to hold the
+     * frozen current time.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userWasUpdated(User $user): void
     {
         self::assertDatabaseHas($user->getTable(), [
@@ -111,6 +192,16 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the name of the user was not written into the table.
+     *
+     * The given model carries the new name, so a missing row means that the update did
+     * not happen.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userWasNotUpdated(User $user): void
     {
         self::assertDatabaseMissing($user->getTable(), [
@@ -119,6 +210,13 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that the user was not written into the table.
+     *
+     * @param \Tests\App\Models\User $user
+     *
+     * @return void
+     */
     protected function userWasNotCreated(User $user): void
     {
         self::assertDatabaseMissing($user->getTable(), [
@@ -126,6 +224,17 @@ trait UserTestTrait
         ], $user->getConnectionName());
     }
 
+    /**
+     * Assert that a user which the package gave back holds the expected values.
+     *
+     * The updated at has to be the frozen current time. When the expected user has no
+     * created at, the current time is expected there as well. The id has to be filled.
+     *
+     * @param \Tests\App\Models\User $expect
+     * @param \Tests\App\Models\User $actual
+     *
+     * @return void
+     */
     protected function returnedUserWasUpserted(User $expect, User $actual): void
     {
         self::assertEquals($expect->email, $actual->email);

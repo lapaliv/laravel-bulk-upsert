@@ -4,14 +4,14 @@ namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-use JsonException;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * Updating rows when the builder knows more than one set of unique attributes.
+ *
  * @internal
  */
 final class UpdateDifferentUniqueByTest extends TestCaseWrapper
@@ -19,13 +19,16 @@ final class UpdateDifferentUniqueByTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Each row is matched by the unique attribute set which it really has, and is updated
+     * instead of being inserted again.
+     *
      * @param array|string $uniqueBy
      * @param array|string $orUniqueBy
      *
      * @return void
      *
-     * @throws JsonException
-     * @throws BulkException
+     * @throws \JsonException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function test(string|array $uniqueBy, string|array $orUniqueBy): void
@@ -90,6 +93,11 @@ final class UpdateDifferentUniqueByTest extends TestCaseWrapper
         ], $connectionName);
     }
 
+    /**
+     * The unique attributes, written as a string and as arrays of different depth.
+     *
+     * @return array<string, array{array|string, array|string}>
+     */
     public static function dataProvider(): array
     {
         return [

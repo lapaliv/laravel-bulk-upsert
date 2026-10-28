@@ -1,13 +1,23 @@
 name: PHPUnit & Psalm
 
-on: [ pull_request ]
+on: [ pull_request, workflow_dispatch ]
 
 jobs:
   phpunit:
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
-        php-version: [ 8.2, 8.3, 8.4 ]
+        php: [ '8.4', '8.5' ]
+        laravel: [ '11', '12', '13' ]
+        include:
+          - laravel: '11'
+            testbench: '9'
+          - laravel: '12'
+            testbench: '10'
+          - laravel: '13'
+            testbench: '11'
     services:
       mysql:
         image: mysql:8.0
@@ -43,200 +53,91 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
-          extensions: mbstring, pdo, mysql, pgsql
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite
           coverage: none
 
       - name: Allow Composer to install advisory-flagged packages
         run: composer config --global policy.advisories.block false || true
 
-      - name: Wait for MySQL
+      # The lock file pins one Laravel version, so every combination is resolved anew
+      # (in this checkout only): Laravel of the matrix and the Testbench made for it.
+      - name: Install Laravel ${{ matrix.laravel }}
+        id: install
         run: |
-          echo "Waiting for MySQL..."
+          composer require --no-update --no-interaction "illuminate/database:^${{ matrix.laravel }}.0"
+          composer require --dev --no-update --no-interaction "orchestra/testbench:^${{ matrix.testbench }}.0"
+          composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress
+          composer check-platform-reqs
+
+      - name: Check the installed versions
+        run: |
+          php -v | head -n 1
+          # shellcheck disable=SC2016 # the PHP code is single-quoted on purpose
+          php -r '
+            require "vendor/autoload.php";
+            foreach (["laravel/framework", "orchestra/testbench", "phpunit/phpunit", "nesbot/carbon"] as $package) {
+                echo $package, " ", \Composer\InstalledVersions::getPrettyVersion($package), PHP_EOL;
+            }
+            $version = (string) \Composer\InstalledVersions::getVersion("laravel/framework");
+            if ((int) explode(".", ltrim($version, "v"))[0] !== ${{ matrix.laravel }}) {
+                fwrite(STDERR, "Laravel {$version} is installed, ${{ matrix.laravel }}.x is expected" . PHP_EOL);
+                exit(1);
+            }
+          '
+
+      - name: Wait for MySQL and PostgreSQL
+        run: |
           until mysqladmin ping -h 127.0.0.1 --silent; do
             sleep 2
           done
-          echo "MySQL is up!"
-
-          echo "Waiting for PostgreSQL..."
           until pg_isready -h 127.0.0.1 -p 5432; do
             sleep 2
           done
-          echo "PostgreSQL is up!"
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --ignore-platform-reqs
+      # Binary logging is on in the MySQL image, so a user without SUPER may not create
+      # triggers, which some tests need. The trust is set on this throwaway CI server only;
+      # the tests still run as the ordinary test user.
+      - name: Allow the test user to create MySQL triggers
+        run: |
+          docker exec -e MYSQL_PWD=root "${{ job.services.mysql.id }}" \
+            mysql -uroot -e "SET GLOBAL log_bin_trust_function_creators = ON"
+          value="$(docker exec -e MYSQL_PWD=root "${{ job.services.mysql.id }}" \
+            mysql -uroot -N -e "SELECT @@GLOBAL.log_bin_trust_function_creators")"
+          test "$value" = "1"
 
       - name: Create .env file for testing
         run: |
-          echo "POSTGRESQL_HOST=127.0.0.1" > .env
-          echo "POSTGRESQL_DATABASE=test_db" >> .env
-          echo "POSTGRESQL_USERNAME=test_user" >> .env
-          echo "POSTGRESQL_PASSWORD=test_password" >> .env
-          echo "POSTGRESQL_PORT=5432" >> .env
-          echo "MYSQL_HOST=127.0.0.1" >> .env
-          echo "MYSQL_DATABASE=test_db" >> .env
-          echo "MYSQL_USERNAME=test_user" >> .env
-          echo "MYSQL_PASSWORD=test_password" >> .env
-          echo "MYSQL_PORT=3306" >> .env
-
-      - name: Run Tests
-        run: make run-tests
-
-  phpunit-with-laravel:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - laravel: 11.*
-            php: 8.2
-          - laravel: 11.*
-            php: 8.3
-          - laravel: 11.*
-            php: 8.4
-          - laravel: 12.*
-            php: 8.2
-          - laravel: 12.*
-            php: 8.3
-          - laravel: 12.*
-            php: 8.4
-          - laravel: 13.*
-            php: 8.3
-          - laravel: 13.*
-            php: 8.4
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test_db
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: mbstring, pdo, mysql, pgsql
-          coverage: none
-
-      - name: Allow Composer to install advisory-flagged packages
-        run: composer config --global policy.advisories.block false || true
-
-      - name: Checkout target branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
-
-      - name: Checkout PR
-        uses: actions/checkout@v4
-
-      - name: Preparing Laravel project
-        run: |
-          cd ${{ runner.workspace }}
-          composer create-project --prefer-dist laravel/laravel laravel ${{ matrix.laravel }}
-          cd ${{ runner.workspace }}/laravel
-          composer config repositories.local path ${{ runner.workspace }}/laravel-bulk-upsert
-          composer require lapaliv/laravel-bulk-upsert:@dev
-          echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_DATABASE=test_db" >> .env
-          echo "DB_USERNAME=test_user" >> .env
-          echo "DB_PASSWORD=test_password" >> .env
-          php artisan key:generate
-          cp .env .env.testing
-          mv ${{ runner.workspace }}/laravel/tests/Unit ${{ runner.workspace }}/laravel/tests/Unit_old
-          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/App ${{ runner.workspace }}/laravel/tests/
-          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Database ${{ runner.workspace }}/laravel/tests/
-          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/Unit ${{ runner.workspace }}/laravel/tests/
-          cp -r ${{ runner.workspace }}/laravel-bulk-upsert/tests/TestCaseWrapper.php ${{ runner.workspace }}/laravel/tests/
-          sed -i '/^[[:space:]]*<env name="DB_CONNECTION" value="/d' phpunit.xml
-          sed -i '/^[[:space:]]*<env name="DB_DATABASE" value="/d' phpunit.xml
-
-      - name: Wait for MySQL
-        run: |
-          echo "Waiting for MySQL..."
-          until mysqladmin ping -h 127.0.0.1 --silent; do
-            sleep 2
-          done
-          echo "MySQL is up!"
-
-      - name: Preparing MySQL
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
-          echo "DB_CONNECTION=mysql" >> .env
-          echo "DB_CONNECTION=mysql" >> .env.testing
-          php artisan config:show database.default
+          {
+            echo "POSTGRESQL_HOST=127.0.0.1"
+            echo "POSTGRESQL_DATABASE=test_db"
+            echo "POSTGRESQL_USERNAME=test_user"
+            echo "POSTGRESQL_PASSWORD=test_password"
+            echo "POSTGRESQL_PORT=5432"
+            echo "MYSQL_HOST=127.0.0.1"
+            echo "MYSQL_DATABASE=test_db"
+            echo "MYSQL_USERNAME=test_user"
+            echo "MYSQL_PASSWORD=test_password"
+            echo "MYSQL_PORT=3306"
+          } > .env
 
       - name: Run tests (MySQL)
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          ./vendor/bin/phpunit
-
-      - name: Wait for PostgreSQL
-        run: |
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h 127.0.0.1 -p 5432; do
-            sleep 2
-          done
-          echo "PostgreSQL is up!"
-
-      - name: Preparing PostgreSQL
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
-          echo "DB_CONNECTION=pgsql" >> .env
-          echo "DB_CONNECTION=pgsql" >> .env.testing
-          php artisan config:show database.default
+        run: env DB_CONNECTION=mysql ./vendor/bin/phpunit
 
       - name: Run tests (PostgreSQL)
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          ./vendor/bin/phpunit
-
-      - name: Preparing SQLite
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env
-          sed -i 's/^DB_CONNECTION=.*/# &/' .env.testing
-          sed -i 's/^DB_DATABASE=.*/# &/' .env
-          sed -i 's/^DB_DATABASE=.*/# &/' .env.testing
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_CONNECTION=sqlite" >> .env.testing
-          rm ${{ runner.workspace }}/laravel/database/migrations/*
-          php artisan config:show database.default
+        # Runs after a failed run of another database too, but not after a failed install.
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: env DB_CONNECTION=pgsql ./vendor/bin/phpunit
 
       - name: Run tests (SQLite)
-        run: |
-          cd ${{ runner.workspace }}/laravel
-          ./vendor/bin/phpunit
+        # Runs after a failed run of another database too, but not after a failed install.
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: env DB_CONNECTION=sqlite ./vendor/bin/phpunit
 
   psalm:
     runs-on: ubuntu-latest
     env:
-      php_version: '8.3'
+      php_version: '8.4'
 
     steps:
       - name: Setup PHP
@@ -249,18 +150,12 @@ jobs:
       - name: Allow Composer to install advisory-flagged packages
         run: composer config --global policy.advisories.block false || true
 
-      - name: Checkout target branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
-
-      - name: Checkout PR
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          composer install --prefer-dist --no-progress
-          composer update
+          composer install --prefer-dist --no-progress --no-interaction
+          composer check-platform-reqs
 
       - name: Psalm
         run: ./vendor/bin/psalm --output-format=github --no-progress

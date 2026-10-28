@@ -5,6 +5,7 @@
 
 /.github export-ignore
 /tests export-ignore
+/benchmarks export-ignore
 /dev export-ignore
 /docker export-ignore
 /.editorconfig export-ignore

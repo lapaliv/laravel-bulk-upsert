@@ -2,61 +2,291 @@
 
 namespace Lapaliv\BulkUpsert\Drivers;
 
+use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Grammars\MySqlGrammar as LaravelMySqlGrammar;
+use Illuminate\Database\QueryException;
 use Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder;
 use Lapaliv\BulkUpsert\Builders\InsertBuilder;
 use Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder;
 use Lapaliv\BulkUpsert\Contracts\BulkDriver;
 use Lapaliv\BulkUpsert\Contracts\BulkInsertResult;
-use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverDeleteFeature;
-use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverInsertWithResultFeature;
-use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverQuietInsertFeature;
-use Lapaliv\BulkUpsert\Drivers\MySql\MySqlDriverUpdateFeature;
-use Throwable;
+use Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter;
+use Lapaliv\BulkUpsert\Drivers\MySql\MySqlInsertResult;
+use Lapaliv\BulkUpsert\Grammars\MySqlBulkGrammar;
+use LogicException;
 
 /**
+ * Runs the bulk queries on a MySQL connection.
+ *
  * @internal
  */
-class MySqlBulkDriver implements BulkDriver
+readonly class MySqlBulkDriver implements BulkDriver
 {
+    /**
+     * Create a new MySQL driver instance.
+     *
+     * @param \Lapaliv\BulkUpsert\Converters\MixedValueToSqlConverter $mixedValueToSqlConverter
+     *
+     * @return void
+     */
     public function __construct(
-        private MySqlDriverInsertWithResultFeature $insertWithResultFeature,
-        private MySqlDriverQuietInsertFeature $quietInsertFeature,
-        private MySqlDriverUpdateFeature $updateFeature,
-        private MySqlDriverDeleteFeature $deleteFeature,
-    ) {
+        private MixedValueToSqlConverter $mixedValueToSqlConverter,
+    )
+    {
         //
     }
 
     /**
-     * @throws Throwable
+     * Insert the rows and return the result which helps to find them again.
+     *
+     * MySQL cannot return the inserted rows, so the driver reads the biggest value of
+     * the primary key before inserting and puts it into the result.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
+     * @param string|null $primaryKeyName
+     *
+     * @return \Lapaliv\BulkUpsert\Contracts\BulkInsertResult
+     *
+     * @throws \Throwable
      */
     public function insertWithResult(
         ConnectionInterface $connection,
         InsertBuilder $builder,
         ?string $primaryKeyName,
-    ): BulkInsertResult {
-        return $this->insertWithResultFeature->handle($connection, $builder, $primaryKeyName);
+    ): BulkInsertResult
+    {
+        $laravelGrammar = $this->laravelGrammar($connection);
+        $lastPrimaryBeforeInserting = null;
+
+        // MySQL cannot return the inserted rows, so the driver remembers the last
+        // primary key value before inserting and selects everything above it later.
+        if ($primaryKeyName !== null) {
+            /** @var object{id?: int|string|null}|null $lastRow */
+            $lastRow = $connection->selectOne(
+                sprintf(
+                    'select max(%s) as id from %s',
+                    $laravelGrammar->wrap($primaryKeyName),
+                    $laravelGrammar->wrapTable(
+                        $builder->getTable() ?? throw new LogicException('The insert builder must have a target table before running the query.')
+                    )
+                ),
+                [],
+                // The rows inserted after this maximum are read back, so it has to come from
+                // the writer: a lagging reader would give a stale maximum.
+                false,
+            );
+
+            $lastPrimaryBeforeInserting = $lastRow->id ?? 0;
+        }
+
+        $insertedIndexes = $this->runInsert($connection, $builder);
+
+        return new MySqlInsertResult(
+            is_numeric($lastPrimaryBeforeInserting)
+                ? (int)$lastPrimaryBeforeInserting
+                : null,
+            $insertedIndexes,
+        );
     }
 
     /**
-     * @throws Throwable
+     * Insert the rows without collecting any result.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
+     *
+     * @return void
+     *
+     * @throws \Throwable
      */
     public function quietInsert(ConnectionInterface $connection, InsertBuilder $builder): void
     {
-        $this->quietInsertFeature->handle($connection, $builder);
+        $this->runInsert($connection, $builder);
     }
 
     /**
-     * @throws Throwable
+     * Run the insert, skipping only the duplicate keys when the builder asks for that.
+     *
+     * MySQL has no `ON CONFLICT DO NOTHING`: `INSERT IGNORE` also turns NOT NULL, CHECK and
+     * foreign key errors into warnings, and `ON DUPLICATE KEY UPDATE` fires the UPDATE
+     * triggers of the conflicting rows. So the rows are inserted by a plain statement; only
+     * when it fails with a duplicate key (1062), they are inserted one by one inside a
+     * transaction, skipping the duplicates. Any other error rolls the rows of the statement
+     * back and reaches the caller.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\InsertBuilder $builder
+     *
+     * @return list<int>|null The positions of the created rows, or null when it is unknown.
+     *
+     * @throws \Throwable
+     */
+    private function runInsert(ConnectionInterface $connection, InsertBuilder $builder): ?array
+    {
+        $all = array_keys(array_values($builder->getValues()));
+
+        $run = function (InsertBuilder $statement) use ($connection): void {
+            $grammar = $this->grammar($connection);
+            $connection->insert($grammar->insert($statement), $grammar->getBindings());
+        };
+
+        if (!$builder->isIgnoringDuplicatesOnly()) {
+            $run($builder);
+
+            // `INSERT IGNORE` may skip rows without telling which ones.
+            return $builder->doNothingAtConflict() ? null : $all;
+        }
+
+        try {
+            // A single statement is atomic: when it succeeds, it has created every row.
+            $run($builder);
+
+            return $all;
+        } catch (QueryException $exception) {
+            if (!$this->isDuplicateKey($exception)) {
+                throw $exception;
+            }
+        }
+
+        // Each row tells on its own whether it has been created: a row which somebody else has
+        // inserted meanwhile is a duplicate, whatever its primary key is.
+        /** @var list<int> */
+        return $connection->transaction(function () use ($builder, $run): array {
+            $inserted = [];
+
+            foreach (array_values($builder->getValues()) as $index => $row) {
+                try {
+                    $run($builder->withValues([$row]));
+                    $inserted[] = $index;
+                } catch (QueryException $exception) {
+                    if (!$this->isDuplicateKey($exception)) {
+                        throw $exception;
+                    }
+                }
+            }
+
+            return $inserted;
+        });
+    }
+
+    /**
+     * Determine whether the statement has failed because of a duplicate key.
+     *
+     * The native code is checked: SQLSTATE 23000 covers other integrity errors as well.
+     *
+     * @param \Illuminate\Database\QueryException $exception
+     *
+     * @return bool
+     */
+    private function isDuplicateKey(QueryException $exception): bool
+    {
+        /** @var array<int, mixed>|null $errorInfo */
+        $errorInfo = $exception->errorInfo;
+
+        return (int)($errorInfo[1] ?? 0) === 1062;
+    }
+
+    /**
+     * Run the update query and return the number of the affected rows.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\UpdateBulkBuilder $builder
+     *
+     * @return int
+     *
+     * @throws \Throwable
      */
     public function update(ConnectionInterface $connection, UpdateBulkBuilder $builder): int
     {
-        return $this->updateFeature->handle($connection, $builder);
+        $grammar = $this->grammar($connection);
+
+        return $connection->update($grammar->update($builder), $grammar->getBindings());
     }
 
+    /**
+     * Run the delete query and return the number of the deleted rows.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     * @param \Lapaliv\BulkUpsert\Builders\DeleteBulkBuilder $builder
+     *
+     * @return int
+     */
     public function forceDelete(ConnectionInterface $connection, DeleteBulkBuilder $builder): int
     {
-        return $this->deleteFeature->handle($connection, $builder);
+        $grammar = $this->grammar($connection);
+
+        return $connection->delete($grammar->delete($builder), $grammar->getBindings());
+    }
+
+    /**
+     * Create the package grammar for the given connection.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     *
+     * @return \Lapaliv\BulkUpsert\Grammars\MySqlBulkGrammar
+     */
+    private function grammar(ConnectionInterface $connection): MySqlBulkGrammar
+    {
+        return new MySqlBulkGrammar(
+            $this->mixedValueToSqlConverter,
+            $this->laravelGrammar($connection)
+        );
+    }
+
+    /**
+     * Narrow the connection to the concrete Laravel connection that {@see LaravelMySqlGrammar}
+     * requires.
+     *
+     * Every connection the package receives here is created by Laravel's own database
+     * manager, which always returns a {@see Connection} instance, even though the driver
+     * contract is typed against the wider {@see ConnectionInterface}.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     *
+     * @return \Illuminate\Database\Connection
+     */
+    private function getLaravelConnection(ConnectionInterface $connection): Connection
+    {
+        if ($connection instanceof Connection) {
+            return $connection;
+        }
+
+        throw new LogicException(
+            sprintf('Expected an instance of %s, got %s.', Connection::class, $connection::class)
+        );
+    }
+
+    /**
+     * Get the query grammar of the connection, configured as the connection uses it.
+     *
+     * The configured grammar of the connection is cloned rather than a new one created: on
+     * Laravel 11 a new grammar does not get the table prefix of the connection (it is set by
+     * `setTablePrefix()`), so the statements would go to the table without the prefix.
+     *
+     * @throws \LogicException When the connection uses a grammar of another kind.
+     *
+     * @param \Illuminate\Database\ConnectionInterface $connection
+     *
+     * @return LaravelMySqlGrammar
+     */
+    private function laravelGrammar(ConnectionInterface $connection): LaravelMySqlGrammar
+    {
+        $laravelConnection = $this->getLaravelConnection($connection);
+        $grammar = $laravelConnection->getQueryGrammar();
+
+        if ($grammar instanceof LaravelMySqlGrammar) {
+            return clone $grammar;
+        }
+
+        // A new grammar would lose the configuration of the connection (on Laravel 11, the
+        // table prefix), so an unexpected grammar is refused rather than replaced.
+        throw new LogicException(sprintf(
+            'The connection "%s" uses the query grammar %s, which is not a %s.',
+            (string) $laravelConnection->getName(),
+            get_debug_type($grammar),
+            LaravelMySqlGrammar::class,
+        ));
     }
 }

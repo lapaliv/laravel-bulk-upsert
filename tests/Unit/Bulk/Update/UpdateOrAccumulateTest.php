@@ -2,13 +2,14 @@
 
 namespace Tests\Unit\Bulk\Update;
 
-use Lapaliv\BulkUpsert\Contracts\BulkException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\App\Models\User;
 use Tests\TestCaseWrapper;
 use Tests\Unit\UserTestTrait;
 
 /**
+ * The moment when `updateOrAccumulate()` flushes the accumulated rows to the table.
+ *
  * @internal
  */
 final class UpdateOrAccumulateTest extends TestCaseWrapper
@@ -16,9 +17,11 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
     use UserTestTrait;
 
     /**
+     * Nothing is written while the number of the rows stays below the chunk size.
+     *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function testBigChunkSize(): void
     {
@@ -38,11 +41,13 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * The rows are updated as soon as they reach the chunk size.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testSmallChunkSize(string $uniqBy): void
@@ -64,11 +69,13 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * Only a full chunk is updated, and the rest of the rows stays in the accumulation.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testSmallChunkSizeWithExtraCount(string $uniqBy): void
@@ -91,11 +98,13 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
     }
 
     /**
+     * `saveAccumulated()` updates the rows which are still waiting in the accumulation.
+     *
      * @param string $uniqBy
      *
      * @return void
      *
-     * @throws BulkException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     #[DataProvider('dataProvider')]
     public function testSaveAccumulated(string $uniqBy): void
@@ -116,6 +125,11 @@ final class UpdateOrAccumulateTest extends TestCaseWrapper
         );
     }
 
+    /**
+     * The attributes which can be used as the unique one.
+     *
+     * @return array<string, array{string}>
+     */
     public static function dataProvider(): array
     {
         return [

@@ -3,24 +3,35 @@
 namespace Tests\App\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Database\Eloquent\Model;
-use Tests\App\Collection\UserCollection;
 use Tests\App\Enums\Gender;
 use Tests\App\Models\User;
 
 /**
+ * The factory which builds {@see \Tests\App\Models\User} test models.
+ *
+ * The user is the main fixture of the suite. It has a column of almost every type, so
+ * the tests can check how the package writes and reads them. Some columns are filled
+ * with `null` from time to time, which keeps the nullable cases covered as well.
+ *
  * @internal
  *
- * @method User|UserCollection create($attributes = [], ?Model $parent = null)
- * @method User|UserCollection make($attributes = [], ?Model $parent = null)
- * @method User|UserCollection createMany(iterable $records)
+ * @method \Tests\App\Models\User|\Tests\App\Collection\UserCollection create($attributes = [], ?\Illuminate\Database\Eloquent\Model $parent = null)
+ * @method \Tests\App\Models\User|\Tests\App\Collection\UserCollection make($attributes = [], ?\Illuminate\Database\Eloquent\Model $parent = null)
+ * @method \Tests\App\Models\User|\Tests\App\Collection\UserCollection createMany(iterable $records)
  */
 class UserFactory extends Factory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<\Tests\App\Models\User>
+     */
     protected $model = User::class;
 
     /**
      * Define the model's default state.
+     *
+     * The apostrophes are removed from the generated name.
      *
      * @return array<string, mixed>
      */

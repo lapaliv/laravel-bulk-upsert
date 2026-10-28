@@ -4,23 +4,24 @@ namespace Tests\Unit\Bulk\Update;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use JsonException;
-use Lapaliv\BulkUpsert\Contracts\BulkException;
-use Tests\App\Collection\PostCollection;
 use Tests\App\Models\Comment;
 use Tests\App\Models\Post;
 use Tests\TestCaseWrapper;
 
 /**
+ * The touching of the related models when `update()` writes the rows.
+ *
  * @internal
  */
 final class UpdateAndTouchTest extends TestCaseWrapper
 {
     /**
+     * The touching goes down the chain of the relations and updates `updated_at` everywhere.
+     *
      * @return void
      *
-     * @throws JsonException
-     * @throws BulkException
+     * @throws \JsonException
+     * @throws \Lapaliv\BulkUpsert\Contracts\BulkException
      */
     public function test(): void
     {
@@ -28,7 +29,7 @@ final class UpdateAndTouchTest extends TestCaseWrapper
         $now = Carbon::now();
         Carbon::setTestNow(Carbon::now()->subYear());
 
-        /** @var PostCollection $posts */
+        /** @var \Tests\App\Collection\PostCollection $posts */
         $posts = Post::factory()
             ->count(2)
             ->create()
@@ -51,7 +52,7 @@ final class UpdateAndTouchTest extends TestCaseWrapper
         $sut->update($posts);
 
         // assert
-        /** @var Post $post */
+        /** @var \Tests\App\Models\Post $post */
         foreach ($posts as $post) {
             foreach ($post->comments as $comment) {
                 $this->assertDatabaseHas($comment->getTable(), [

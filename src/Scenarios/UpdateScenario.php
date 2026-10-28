@@ -2,33 +2,92 @@
 
 namespace Lapaliv\BulkUpsert\Scenarios;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Lapaliv\BulkUpsert\Collections\BulkRows;
-use Lapaliv\BulkUpsert\Contracts\BulkDriverManager;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity;
 use Lapaliv\BulkUpsert\Entities\BulkAccumulationItemEntity;
-use Lapaliv\BulkUpsert\Entities\BulkRow;
 use Lapaliv\BulkUpsert\Enums\BulkEventEnum;
-use Lapaliv\BulkUpsert\Events\BulkEventDispatcher;
-use Lapaliv\BulkUpsert\Features\GetUpdateBuilderFeature;
-use Lapaliv\BulkUpsert\Features\MarkNonexistentRowsAsSkippedFeature;
-use Lapaliv\BulkUpsert\Features\TouchRelationsFeature;
+use Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher;
+use Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep;
+use Lapaliv\BulkUpsert\Scenarios\Shared\TouchRelationsStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\DispatchDeletingAndRestoringEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\DispatchSavingEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\DispatchUpdatedEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\DispatchUpdatingEventsStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\SyncChangesStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\SyncOriginalStep;
+use Lapaliv\BulkUpsert\Scenarios\Update\UpdateRowsStep;
+use Lapaliv\BulkUpsert\Support\ReturnedModels;
 
 /**
+ * Updates the rows in the database.
+ *
+ * The short algorithm contains the next steps:
+ *
+ * - Mark the rows that do not exist in the database as skipped;
+ * - Fire the 'saving' event for each model at the start of working;
+ * - Fire the 'savingMany' event for all models after the 'saving' event;
+ * - Fire the 'updating' event for each not skipped model after the 'savingMany' event;
+ * - Fire the 'updatingMany' event for all these models after the 'updating' event;
+ * - Fire the 'deleting' event for each model whose $deletedAtColumn has just been filled in;
+ * - Fire the 'restoring' event for each model whose $deletedAtColumn has just been cleared;
+ * - Fire the 'deletingMany' and 'restoringMany' events for the corresponding models;
+ * - Update rows in the database;
+ * - Exit the algorithm if a certain condition is met, indicating that there is no need
+ *   to keep the changes of the models and to fire the events ending with '-ed';
+ * - Remember the changes of each model, so that the listeners are able to read them;
+ * - Fire the 'updated' event for each updated model;
+ * - Fire the 'deleted' event for each model which has been soft deleted;
+ * - Fire the 'restored' event for each model which has been restored;
+ * - Fire the 'saved' event for each model;
+ * - Fire the 'updatedMany', 'deletedMany', 'restoredMany' and 'savedMany' events
+ *   for the corresponding models.
+ *
  * @internal
  */
-class UpdateScenario
+readonly class UpdateScenario
 {
+    /**
+     * Create a new updating scenario instance.
+     *
+     * @param \Lapaliv\BulkUpsert\Scenarios\Shared\MarkNonexistentRowsAsSkippedStep $markNonexistentRowsAsSkipped
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\DispatchSavingEventsStep $dispatchSavingEventsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\DispatchUpdatingEventsStep $dispatchUpdatingEventsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\DispatchDeletingAndRestoringEventsStep $dispatchDeletingAndRestoringEventsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\UpdateRowsStep $updateRowsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\SyncChangesStep $syncChangesStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\DispatchUpdatedEventsStep $dispatchUpdatedEventsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Shared\TouchRelationsStep $touchRelationsStep
+     * @param \Lapaliv\BulkUpsert\Scenarios\Update\SyncOriginalStep $syncOriginalStep
+     */
     public function __construct(
-        private MarkNonexistentRowsAsSkippedFeature $markNonexistentRowsAsSkipped,
-        private GetUpdateBuilderFeature $getUpdateBuilderFeature,
-        private BulkDriverManager $driverManager,
-        private TouchRelationsFeature $touchRelationsFeature,
-    ) {
+        private MarkNonexistentRowsAsSkippedStep $markNonexistentRowsAsSkipped,
+        private DispatchSavingEventsStep $dispatchSavingEventsStep,
+        private DispatchUpdatingEventsStep $dispatchUpdatingEventsStep,
+        private DispatchDeletingAndRestoringEventsStep $dispatchDeletingAndRestoringEventsStep,
+        private UpdateRowsStep $updateRowsStep,
+        private SyncChangesStep $syncChangesStep,
+        private DispatchUpdatedEventsStep $dispatchUpdatedEventsStep,
+        private TouchRelationsStep $touchRelationsStep,
+        private SyncOriginalStep $syncOriginalStep,
+    )
+    {
         //
     }
 
+    /**
+     * Run the scenario.
+     *
+     * @param \Illuminate\Database\Eloquent\Model $eloquent
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     * @param \Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher $eventDispatcher
+     * @param string[] $dateFields
+     * @param string[] $selectColumns
+     * @param string|null $deletedAtColumn
+     * @param bool $withTrashed
+     * @param \Lapaliv\BulkUpsert\Support\ReturnedModels|null $returned Collects the rows to give back.
+     *
+     * @return void
+     */
     public function handle(
         Model $eloquent,
         BulkAccumulationEntity $data,
@@ -37,339 +96,114 @@ class UpdateScenario
         array $selectColumns,
         ?string $deletedAtColumn,
         bool $withTrashed,
-    ): void {
-        if (empty($data->rows)) {
+        ?ReturnedModels $returned = null,
+    ): void
+    {
+        if (!$data->hasRows()) {
             return;
         }
 
+        // The rows that are absent in the database cannot be updated,
+        // so they are marked as skipped before anything else happens.
         $this->markNonexistentRowsAsSkipped->handle($eloquent, $data, $selectColumns, $deletedAtColumn, $withTrashed);
 
-        if ($eventDispatcher->hasListeners(BulkEventEnum::saving())
-            || $eventDispatcher->hasListeners(BulkEventEnum::updating())
-            || $eventDispatcher->hasListeners(BulkEventEnum::delete())
-            || $eventDispatcher->hasListeners(BulkEventEnum::restore())
-        ) {
-            $this->dispatchSavingEvents($eloquent, $data, $eventDispatcher);
-            $this->dispatchUpdatingEvents($eloquent, $data, $eventDispatcher);
-
-            if ($deletedAtColumn !== null) {
-                $this->dispatchDeletingAndRestoringEvents($eloquent, $data, $eventDispatcher, $deletedAtColumn);
+        // A row which does not exist in the database is not saved at all, so it takes part in
+        // no saving/saved event and is not returned. It is decided here, before any listener
+        // of this scenario, which may change `exists`.
+        foreach ($data->getRows() as $row) {
+            if (!$row->getModel()->exists) {
+                $row->setSkipSaving(true);
             }
         }
 
-        $builder = $this->getUpdateBuilderFeature->handle($eloquent, $data, $dateFields, $deletedAtColumn);
-        $driver = $this->driverManager->getForModel($eloquent);
+        // Before updating, it needs to define the final list of models that need to be updated.
+        // For this purpose, it uses events such as
+        // 'saving', 'savingMany', 'updating', 'updatingMany',
+        // 'deleting', 'deletingMany', 'restoring', 'restoringMany'.
+        $this->dispatchSavingEventsStep->handle($eloquent, $data, $eventDispatcher);
+        $this->dispatchUpdatingEventsStep->handle($eloquent, $data, $eventDispatcher);
+        $this->dispatchDeletingAndRestoringEventsStep->handle($eloquent, $data, $eventDispatcher, $deletedAtColumn);
 
-        if ($builder !== null) {
-            $driver->update($eloquent->getConnection(), $builder);
+        // Update rows in the database.
+        $this->updateRowsStep->handle($eloquent, $data, $dateFields, $deletedAtColumn);
+
+        $hasEndListeners = $this->hasEndListeners($eventDispatcher);
+        // The rows which are given back must describe what has been written as well.
+        $needToKeepModels = $returned !== null || $hasEndListeners || $this->hasModelsInData($data);
+
+        // Both the listeners and the models given by the user expect
+        // `getChanges()` to return the changes made by this query.
+        if ($needToKeepModels) {
+            $this->syncChangesStep->handle($data);
         }
 
-        unset($builder);
+        // After updating, it needs to fire events ending with '-ed' such as
+        // 'updated', 'updatedMany', 'deleted', 'deletedMany',
+        // 'restored', 'restoredMany', 'saved', 'savedMany'.
+        if ($hasEndListeners) {
+            $this->dispatchUpdatedEventsStep->handle($eloquent, $data, $eventDispatcher);
+        }
 
-        $hasEndListeners = $eventDispatcher->hasListeners(BulkEventEnum::saved())
+        // If the model has the property "touches", then it loads relations recursively
+        // and touches each of them. WARNING: This operation may be really heavy.
+        // Only the rows whose SET has been written touch: not a missing row, not a cancelled
+        // one, not a row without changes (it gets its primary key only).
+        $keyName = $eloquent->getKeyName();
+        $this->touchRelationsStep->handle(
+            $data,
+            static function (BulkAccumulationItemEntity $row) use ($keyName): bool {
+                $written = $row->getWrittenUpdate();
+
+                return $written !== null && array_diff_key($written, [$keyName => true]) !== [];
+            }
+        );
+
+        // At the end, all old attributes should be replaced with new ones.
+        if ($needToKeepModels) {
+            $this->syncOriginalStep->handle($data);
+        }
+
+        // The same set of rows as the `saved` events get, collected without depending on them.
+        if ($returned !== null) {
+            foreach ($data->getRows() as $row) {
+                if (!$row->isSkipSaving()) {
+                    $returned->add($row);
+                }
+            }
+        }
+    }
+
+    /**
+     * Return true when at least one of the events ending with '-ed' has listeners.
+     *
+     * @param \Lapaliv\BulkUpsert\EventDispatchers\BulkEventDispatcher $eventDispatcher
+     *
+     * @return bool
+     */
+    private function hasEndListeners(BulkEventDispatcher $eventDispatcher): bool
+    {
+        return $eventDispatcher->hasListeners(BulkEventEnum::saved())
             || $eventDispatcher->hasListeners(BulkEventEnum::updated())
             || $eventDispatcher->hasListeners(BulkEventEnum::deleted())
             || $eventDispatcher->hasListeners(BulkEventEnum::restored());
-        $hasModelsInData = !empty(array_filter($data->getRows(), fn (BulkAccumulationItemEntity $entity) => $entity->getOriginal() instanceof Model));
-
-        if ($hasEndListeners || $hasModelsInData) {
-            $this->syncChanges($data);
-        }
-
-        if ($hasEndListeners) {
-            $this->fireUpdatedEvents($eloquent, $data, $eventDispatcher);
-        }
-
-        $this->touchRelationsFeature->handle($data);
-
-        unset($driver);
-
-        if ($hasEndListeners || $hasModelsInData) {
-            $this->syncOriginal($data);
-        }
     }
 
-    private function dispatchSavingEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-    ): void {
-        if (!$eventDispatcher->hasListeners(BulkEventEnum::saving())) {
-            return;
-        }
-
-        /** @var Collection<int, Model> $models */
-        $models = $eloquent->newCollection();
-        $bulkRows = new BulkRows();
-
-        foreach ($data->rows as $row) {
-            if ($eventDispatcher->dispatch(BulkEventEnum::SAVING, $row->model) === false) {
-                $row->skipSaving = true;
-
-                continue;
-            }
-
-            if (!$row->model->isDirty()) {
-                $row->skipUpdating = true;
-            }
-
-            $models->push($row->model);
-            $bulkRows->push(
-                new BulkRow($row->model, $row->row, $data->uniqueBy)
-            );
-        }
-
-        if ($models->isNotEmpty()) {
-            $eventResult = $eventDispatcher->dispatch(BulkEventEnum::SAVING_MANY, $models, $bulkRows);
-
-            if ($eventResult === false) {
-                foreach ($data->rows as $row) {
-                    $row->skipSaving = true;
-                }
-            }
-        }
-
-        unset($models, $bulkRows);
-    }
-
-    private function dispatchUpdatingEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-    ): void {
-        if (!$eventDispatcher->hasListeners(BulkEventEnum::updating())) {
-            return;
-        }
-
-        /** @var Collection<int, Model> $models */
-        $models = $eloquent->newCollection();
-        $bulkRows = new BulkRows();
-
-        foreach ($data->rows as $row) {
-            if ($row->skipSaving || $row->skipUpdating) {
-                continue;
-            }
-
-            if ($eventDispatcher->dispatch(BulkEventEnum::UPDATING, $row->model) === false) {
-                $row->skipUpdating = true;
-
-                continue;
-            }
-
-            $models->push($row->model);
-            $bulkRows->push(
-                new BulkRow($row->model, $row->row, $data->uniqueBy)
-            );
-        }
-
-        if ($models->isNotEmpty()) {
-            $eventResult = $eventDispatcher->dispatch(BulkEventEnum::UPDATING_MANY, $models, $bulkRows);
-
-            if ($eventResult === false) {
-                foreach ($data->rows as $row) {
-                    $row->skipUpdating = true;
-                }
-            }
-        }
-
-        unset($models, $bulkRows);
-    }
-
-    private function dispatchDeletingAndRestoringEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-        string $deletedAtColumn,
-    ): void {
-        $hasDeleteListeners = $eventDispatcher->hasListeners(BulkEventEnum::delete());
-        $hasRestoreListeners = $eventDispatcher->hasListeners(BulkEventEnum::restore());
-
-        if (!$hasDeleteListeners && !$hasRestoreListeners) {
-            return;
-        }
-
-        /** @var Collection<int, Model> $deletingModels */
-        $deletingModels = $eloquent->newCollection();
-        /** @var Collection<int, Model> $restoringModels */
-        $restoringModels = $eloquent->newCollection();
-        $deletingBulkRows = new BulkRows();
-        $restoringBulkRows = new BulkRows();
-
-        foreach ($data->rows as $row) {
-            if ($row->skipSaving) {
-                continue;
-            }
-
-            if ($hasDeleteListeners
-                && !$row->skipDeleting
-                && $row->model->getAttribute($deletedAtColumn) !== null
-                && $row->model->getOriginal($deletedAtColumn) === null
-            ) {
-                $row->isDeleting = true;
-
-                if ($eventDispatcher->dispatch(BulkEventEnum::DELETING, $row->model) === false) {
-                    $row->skipDeleting = true;
-                } else {
-                    $deletingModels->push($row->model);
-                    $deletingBulkRows->push(
-                        new BulkRow($row->model, $row->row, $data->uniqueBy)
-                    );
-                }
-            }
-
-            if ($hasRestoreListeners
-                && !$row->skipRestoring
-                && $row->model->getAttribute($deletedAtColumn) === null
-                && $row->model->getOriginal($deletedAtColumn) !== null
-            ) {
-                $row->isRestoring = true;
-
-                if ($eventDispatcher->dispatch(BulkEventEnum::RESTORING, $row->model) === false) {
-                    $row->skipRestoring = true;
-                } else {
-                    $restoringModels->push($row->model);
-                    $restoringBulkRows->push(
-                        new BulkRow($row->model, $row->row, $data->uniqueBy)
-                    );
-                }
-            }
-        }
-
-        if ($deletingModels->isNotEmpty()) {
-            $eventResult = $eventDispatcher->dispatch(BulkEventEnum::DELETING_MANY, $deletingModels, $deletingBulkRows);
-
-            if ($eventResult === false) {
-                foreach ($data->rows as $row) {
-                    if ($row->isDeleting) {
-                        $row->skipDeleting = true;
-                    }
-                }
-            }
-        }
-
-        if ($restoringModels->isNotEmpty()) {
-            $eventResult = $eventDispatcher->dispatch(BulkEventEnum::RESTORING_MANY, $restoringModels, $restoringBulkRows);
-
-            if ($eventResult === false) {
-                foreach ($data->rows as $row) {
-                    if ($row->isRestoring) {
-                        $row->skipRestoring = true;
-                    }
-                }
-            }
-        }
-
-        unset($deletingModels, $deletingBulkRows, $restoringModels, $restoringBulkRows, $eventResult);
-    }
-
-    private function fireUpdatedEvents(
-        Model $eloquent,
-        BulkAccumulationEntity $data,
-        BulkEventDispatcher $eventDispatcher,
-    ): void {
-        $hasSavedListeners = $eventDispatcher->hasListeners(BulkEventEnum::saved());
-        $hasUpdatedListeners = $eventDispatcher->hasListeners(BulkEventEnum::updated());
-        $hasDeletedListeners = $eventDispatcher->hasListeners(BulkEventEnum::deleted());
-        $hasRestoredListeners = $eventDispatcher->hasListeners(BulkEventEnum::restored());
-
-        if (!$hasSavedListeners && !$hasUpdatedListeners && !$hasDeletedListeners && !$hasRestoredListeners) {
-            return;
-        }
-
-        /** @var Collection<int, Model> $savedModels */
-        $savedModels = $eloquent->newCollection();
-        /** @var Collection<int, Model> $updatedModels */
-        $updatedModels = $eloquent->newCollection();
-        /** @var Collection<int, Model> $deletedModels */
-        $deletedModels = $eloquent->newCollection();
-        /** @var Collection<int, Model> $restoredModels */
-        $restoredModels = $eloquent->newCollection();
-        $savedBulkRows = new BulkRows();
-        $updatedBulkRows = new BulkRows();
-        $deletedBulkRows = new BulkRows();
-        $restoredBulkRows = new BulkRows();
-
-        foreach ($data->rows as $accumulatedRow) {
-            if ($accumulatedRow->skipSaving) {
-                continue;
-            }
-
-            if ($hasUpdatedListeners && !$accumulatedRow->skipUpdating) {
-                $eventDispatcher->dispatch(BulkEventEnum::UPDATED, $accumulatedRow->model);
-                $updatedModels->push($accumulatedRow->model);
-                $updatedBulkRows->push(
-                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
-                );
-            }
-
-            if ($hasDeletedListeners && $accumulatedRow->isDeleting && !$accumulatedRow->skipDeleting) {
-                $eventDispatcher->dispatch(BulkEventEnum::DELETED, $accumulatedRow->model);
-                $deletedModels->push($accumulatedRow->model);
-                $deletedBulkRows->push(
-                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
-                );
-            }
-
-            if ($hasRestoredListeners && $accumulatedRow->isRestoring && !$accumulatedRow->skipRestoring) {
-                $eventDispatcher->dispatch(BulkEventEnum::RESTORED, $accumulatedRow->model);
-                $restoredModels->push($accumulatedRow->model);
-                $restoredBulkRows->push(
-                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
-                );
-            }
-
-            if ($hasSavedListeners) {
-                $eventDispatcher->dispatch(BulkEventEnum::SAVED, $accumulatedRow->model);
-                $savedModels->push($accumulatedRow->model);
-                $savedBulkRows->push(
-                    new BulkRow($accumulatedRow->model, $accumulatedRow->row, $data->uniqueBy)
-                );
-            }
-        }
-
-        unset($hasSavedListeners, $hasUpdatedListeners, $hasDeletedListeners, $hasRestoredListeners);
-
-        if ($updatedModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::UPDATED_MANY, $updatedModels, $updatedBulkRows);
-        }
-
-        if ($deletedModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::DELETED_MANY, $deletedModels, $deletedBulkRows);
-        }
-
-        if ($restoredModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::RESTORED_MANY, $restoredModels, $restoredBulkRows);
-        }
-
-        if ($savedModels->isNotEmpty()) {
-            $eventDispatcher->dispatch(BulkEventEnum::SAVED_MANY, $savedModels, $savedBulkRows);
-        }
-
-        unset(
-            $savedBulkRows, $updatedBulkRows, $deletedBulkRows, $restoredBulkRows,
-            $savedModels, $updatedModels, $deletedModels, $restoredModels,
-        );
-    }
-
-    private function syncChanges(BulkAccumulationEntity $data): void
+    /**
+     * Return true when the user has passed models rather than plain arrays,
+     * which means they keep the references and expect the models to be up-to-date.
+     *
+     * @param \Lapaliv\BulkUpsert\Entities\BulkAccumulationEntity $data
+     *
+     * @return bool
+     */
+    private function hasModelsInData(BulkAccumulationEntity $data): bool
     {
-        foreach ($data->rows as $row) {
-            if ($row->skipSaving) {
-                continue;
+        foreach ($data->getRows() as $row) {
+            if ($row->getOriginal() instanceof Model) {
+                return true;
             }
-
-            $row->model->syncChanges();
         }
-    }
 
-    private function syncOriginal(BulkAccumulationEntity $data): void
-    {
-        foreach ($data->rows as $row) {
-            if ($row->skipSaving) {
-                continue;
-            }
-
-            $row->model->syncOriginal();
-        }
+        return false;
     }
 }
