@@ -662,6 +662,60 @@ User::query()
 In this example you have a chain. After upserting the user, the library will run
 `UserObserver::savedMany()` where the code will prepare comments and will upsert them.
 
+## Performance
+
+Compared with v3 (`113e3e2`) on the same PHP 8.4.24, Laravel 12.64.0 and Carbon 3.13.1.
+Each run: `create()` of 10 000 rows into an empty table, `update()` of all of them, `delete()`
+of 5 000 of them, `upsert()` of 10 000 rows (5 000 existing and 5 000 new), with
+`uniqueBy('code')`, rows given as arrays and no listeners. The median of 7 runs of each
+version after a warm-up; CLI, OPcache off; MySQL 8.0.46, PostgreSQL 14.24 (both in Docker on
+the same machine) and SQLite 3.54.1. The change is the change of the time: a negative one
+means v4 takes less time.
+
+In v2 and v3 `create()`, `update()`, `upsert()` and `delete()` did not split the rows by
+`chunk()`: all the given rows went in one statement. v4 fixes it. The first table shows the
+difference which you get with `chunk(1000)`: v3 sends the 10 000 rows at once, v4 in ten
+statements of 1 000 rows.
+
+| Database | Operation | v3 | v4 | Change |
+|---|---|---:|---:|---:|
+| MySQL | create | 521 ms | 539 ms | +3% |
+| MySQL | update | 12 362 ms | 1 427 ms | -88% |
+| MySQL | delete | 236 ms | 268 ms | +13% |
+| MySQL | upsert | 7 558 ms | 1 128 ms | -85% |
+| PostgreSQL | create | 320 ms | 369 ms | +15% |
+| PostgreSQL | update | 3 378 ms | 1 097 ms | -68% |
+| PostgreSQL | delete | 134 ms | 182 ms | +36% |
+| PostgreSQL | upsert | 2 316 ms | 840 ms | -64% |
+| SQLite | create | 224 ms | 261 ms | +17% |
+| SQLite | update | 7 266 ms | 946 ms | -87% |
+| SQLite | delete | 133 ms | 169 ms | +27% |
+| SQLite | upsert | 3 576 ms | 731 ms | -80% |
+
+The second table removes that difference: with `chunk(10000)` both versions take the rows in
+packages of the same size. It is not an identical set of queries (e.g. the upsert of v4 runs
+one more SELECT on MySQL), so it shows the cost of the whole v4 logic, not of the PHP code
+alone. Here `create()` and `delete()` of v4 take more time, while `update()` and `upsert()`
+take less.
+
+| Database | Operation | v3 | v4 | Change |
+|---|---|---:|---:|---:|
+| MySQL | create | 473 ms | 539 ms | +14% |
+| MySQL | update | 12 492 ms | 4 864 ms | -61% |
+| MySQL | delete | 229 ms | 327 ms | +43% |
+| MySQL | upsert | 7 742 ms | 1 974 ms | -74% |
+| PostgreSQL | create | 322 ms | 368 ms | +14% |
+| PostgreSQL | update | 3 366 ms | 2 517 ms | -25% |
+| PostgreSQL | delete | 135 ms | 253 ms | +88% |
+| PostgreSQL | upsert | 2 552 ms | 1 404 ms | -45% |
+| SQLite | create | 218 ms | 271 ms | +24% |
+| SQLite | update | 7 276 ms | 2 334 ms | -68% |
+| SQLite | delete | 133 ms | 242 ms | +82% |
+| SQLite | upsert | 3 625 ms | 1 329 ms | -63% |
+
+The numbers come from one laptop and depend on the hardware, the data and the database
+settings. The script, the instructions and the raw results are in [benchmarks](benchmarks/README.md).
+
 ## Transactions
 
 The library does not wrap an operation into a transaction for you. Every operation sends its

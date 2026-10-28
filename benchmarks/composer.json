@@ -1,0 +1,21 @@
+{
+    "name": "lapaliv/laravel-bulk-upsert-benchmarks",
+    "description": "The benchmark of lapaliv/laravel-bulk-upsert. Not a part of the package.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "ext-pdo": "*",
+        "illuminate/container": "12.64.0",
+        "illuminate/database": "12.64.0",
+        "illuminate/events": "12.64.0",
+        "illuminate/support": "12.64.0",
+        "nesbot/carbon": "3.13.1"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        },
+        "sort-packages": true
+    }
+}
