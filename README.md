@@ -673,9 +673,9 @@ the same machine) and SQLite 3.54.1. The change is the change of the time: a neg
 means v4 takes less time.
 
 In v2 and v3 `create()`, `update()`, `upsert()` and `delete()` did not split the rows by
-`chunk()`: all the given rows went in one statement. v4 fixes it. The first table shows the
-difference which you get with `chunk(1000)`: v3 sends the 10 000 rows at once, v4 in ten
-statements of 1 000 rows.
+`chunk()`: all the given rows went in one statement (only the `*OrAccumulate()` methods
+split them). v4 fixes it. The first table shows the difference which you get with
+`chunk(1000)`: v3 writes all the given rows at once, v4 in packages of at most 1 000 rows.
 
 | Database | Operation | v3 | v4 | Change |
 |---|---|---:|---:|---:|
