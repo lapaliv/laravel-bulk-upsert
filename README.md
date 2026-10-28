@@ -53,12 +53,12 @@ The documentation for version 1.x you can see [here](https://github.com/lapaliv/
 
 ## Requires
 
-- Database:
-  - MySQL: __5.7+__
-  - PostgreSQL __9.6+__
-  - SQLite __3.32+__
+- Database (the versions the test suite runs on):
+  - MySQL __8.0+__
+  - PostgreSQL __14+__
+  - SQLite __3.32+__ (tested with 3.54)
 - PHP: __8.4+__
-- Laravel: __11.0+__
+- Laravel: __11, 12, 13__
 
 ## Installation
 

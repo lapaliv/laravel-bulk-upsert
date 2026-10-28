@@ -2,11 +2,13 @@
 
 ## [4.x]
 
-#### Unreleased
+#### 2026-10-28
 * [[4.0.0]](https://github.com/lapaliv/laravel-bulk-upsert/compare/v3.0.1...v4.0.0)
 
 Requirements
 * PHP ^8.4 (was ^8.2); `illuminate/database` ^11.0|^12.0|^13.0.
+* The documented database versions are now the tested ones: MySQL 8.0+ (was 5.7+) and
+  PostgreSQL 14+ (was 9.6+). Older servers are not known to fail; they are not tested.
 
 Changes which may affect your code
 * The insert of `upsert()` skips a duplicate key only: NOT NULL, CHECK, foreign key and
